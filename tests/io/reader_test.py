@@ -6,29 +6,33 @@ from datagenius.io import reader
 
 
 def test_read_csv():
-    expected = [
-        ['id', 'fname', 'lname'],
-        ['1', 'Yancy', 'Cordwainer'],
-        ['2', 'Muhammad', 'El-Kanan'],
-        ['3', 'Luisa', 'Romero'],
-        ['4', 'Semaj', 'Soto']
-    ]
+    expected = {
+        'simple': [
+            ['id', 'fname', 'lname'],
+            ['1', 'Yancy', 'Cordwainer'],
+            ['2', 'Muhammad', 'El-Kanan'],
+            ['3', 'Luisa', 'Romero'],
+            ['4', 'Semaj', 'Soto']
+        ]
+    }
 
     assert reader.read_csv('tests/samples/csv/simple.csv') == expected
 
     # Test ability to handle badly formatted csvs:
-    expected = [
-        ['', '', ''],
-        ['', '', ''],
-        ['', '', ''],
-        ['', '', ''],
-        ['id', 'fname', 'lname'],
-        ['', '', ''],
-        ['1', 'Yancy', 'Cordwainer'],
-        ['2', 'Muhammad', 'El-Kanan'],
-        ['3', 'Luisa', 'Romero'],
-        ['4', 'Semaj', 'Soto']
-    ]
+    expected = {
+        'gaps': [
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['id', 'fname', 'lname'],
+            ['', '', ''],
+            ['1', 'Yancy', 'Cordwainer'],
+            ['2', 'Muhammad', 'El-Kanan'],
+            ['3', 'Luisa', 'Romero'],
+            ['4', 'Semaj', 'Soto']
+        ]
+    }
 
     assert reader.read_csv('tests/samples/csv/gaps.csv') == expected
 
