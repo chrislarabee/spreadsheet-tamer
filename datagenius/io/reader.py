@@ -7,6 +7,8 @@ import xlrd
 def read_csv(file_name):
     """
     Quickly reads a well-formatted csv file to a list of lists.
+    Also, attempts to parse data as numeric and uses float
+    data type if successful.
 
     Args:
         file_name: The path to the csv file to read.
@@ -21,7 +23,15 @@ def read_csv(file_name):
     result = []
     with open(file_name, newline='', encoding='utf-8') as f:
         for row in csv.reader(f):
-            result.append(row)
+            parsed_row = []
+            for r in row:
+                try:
+                    fr = float(r)
+                except ValueError:
+                    parsed_row.append(r)
+                else:
+                    parsed_row.append(fr)
+            result.append(parsed_row)
     return {key: result}
 
 
@@ -39,12 +49,12 @@ def read_excel(file_name):
         list values representing the data in each sheet.
 
     """
-    wb = xlrd.open_workbook(file_name)
-    names = wb.sheet_names()
-    result = dict()
+    with xlrd.open_workbook(file_name) as wb:
+        names = wb.sheet_names()
+        result = dict()
 
-    for i in range(wb.nsheets):
-        result[names[i]] = read_sheet(wb.sheet_by_index(i))
+        for i in range(wb.nsheets):
+            result[names[i]] = read_sheet(wb.sheet_by_index(i))
 
     return result
 

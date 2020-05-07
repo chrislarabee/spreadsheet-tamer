@@ -1,69 +1,28 @@
-from collections import OrderedDict
-
 import xlrd
 
 from datagenius.io import reader
 
 
-def test_read_csv():
+def test_read_csv(simple_data, gaps):
     expected = {
-        'simple': [
-            ['id', 'fname', 'lname'],
-            ['1', 'Yancy', 'Cordwainer'],
-            ['2', 'Muhammad', 'El-Kanan'],
-            ['3', 'Luisa', 'Romero'],
-            ['4', 'Semaj', 'Soto']
-        ]
+        'simple': simple_data
     }
 
     assert reader.read_csv('tests/samples/csv/simple.csv') == expected
 
     # Test ability to handle badly formatted csvs:
     expected = {
-        'gaps': [
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['id', 'fname', 'lname'],
-            ['', '', ''],
-            ['1', 'Yancy', 'Cordwainer'],
-            ['2', 'Muhammad', 'El-Kanan'],
-            ['3', 'Luisa', 'Romero'],
-            ['4', 'Semaj', 'Soto']
-        ]
+        'gaps': gaps
     }
 
     assert reader.read_csv('tests/samples/csv/gaps.csv') == expected
 
 
-def test_read_sheet():
-    wb = xlrd.open_workbook('tests/samples/excel/simple.xlsx')
+def test_read_sheet(simple_data, gaps_totals):
+    with xlrd.open_workbook(
+            'tests/samples/excel/simple.xlsx') as wb:
+        assert reader.read_sheet(wb.sheet_by_index(0)) == simple_data
 
-    expected = [
-        ['id', 'fname', 'lname'],
-        [1, 'Yancy', 'Cordwainer'],
-        [2, 'Muhammad', 'El-Kanan'],
-        [3, 'Luisa', 'Romero'],
-        [4, 'Semaj', 'Soto']
-    ]
-
-    assert reader.read_sheet(wb.sheet_by_index(0)) == expected
-
-    wb = xlrd.open_workbook('tests/samples/excel/gaps_totals.xlsx')
-
-    expected = [
-        ['Sales by Location Report', '', ''],
-        ['Grouping: Region', '', ''],
-        ['', '', ''],
-        ['', '', ''],
-        ['location', 'region', 'sales'],
-        ['Bayside Store', 'Northern', 500],
-        ['West Valley Store', 'Northern', 300],
-        ['', '', 800],
-        ['Precioso Store', 'Southern', 1000],
-        ['Kalliope Store', 'Southern', 200],
-        ['', '', 1200]
-    ]
-
-    assert reader.read_sheet(wb.sheet_by_index(0)) == expected
+    with xlrd.open_workbook(
+            'tests/samples/excel/gaps_totals.xlsx') as wb:
+        assert reader.read_sheet(wb.sheet_by_index(0)) == gaps_totals
