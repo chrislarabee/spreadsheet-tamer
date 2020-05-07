@@ -4,7 +4,7 @@ import os
 import xlrd
 
 
-def read_csv(file_name: str):
+def read_csv(file_name: str) -> dict:
     """
     Quickly reads a well-formatted csv file to a list of lists.
     Also, attempts to parse data as numeric and uses float
@@ -35,7 +35,7 @@ def read_csv(file_name: str):
     return {key: result}
 
 
-def read_excel(file_name: str):
+def read_excel(file_name: str) -> dict:
     """
 
     Loops all sheets in an excel workbook and returns a dictionary
@@ -59,7 +59,7 @@ def read_excel(file_name: str):
     return result
 
 
-def read_file(file_name: str):
+def read_file(file_name: str) -> dict:
     """
     Uses the appropriate reader function based on the extension
     of the passed file.
@@ -87,7 +87,7 @@ def read_file(file_name: str):
         return read_funcs[ext](file_name)
 
 
-def read_sheet(sheet: xlrd.sheet):
+def read_sheet(sheet: xlrd.sheet) -> list:
     """
     Reads all rows and columns in a Microsoft excel sheet and creates
     a list of lists with all values from the spreadsheet.
