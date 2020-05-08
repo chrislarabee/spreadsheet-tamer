@@ -22,20 +22,26 @@ class TestParser:
 
 
 class TestDataset:
-    def test_match(self, simple_data):
+    def test_loop(self, simple_data):
         expected = [
             [1, 'Yancy', 'Cordwainer'],
             [2, 'Muhammad', 'El-Kanan'],
             [3, 'Luisa', 'Romero'],
         ]
         d = Dataset(simple_data)
-        p = Parser(lambda x: True if len(x[2]) > 5 else False)
-        assert d.match(p) == expected
+        p = Parser(lambda x: (x if len(x[2]) > 5
+                              else None),
+                   riders=False)
+        assert d.loop(p) == expected
+
+        p.func = lambda x: 1 if len(x[2]) > 5 else 0
+        expected = [0, 1, 1, 1, 0]
+        assert d.loop(p) == expected
 
     def test_preprocess(self, simple_data, gaps_totals):
         d = Dataset(simple_data)
         d.preprocess()
-        assert d == simple_data
+        assert d.data == simple_data
 
         d = Dataset(gaps_totals)
         expected = [
@@ -46,4 +52,4 @@ class TestDataset:
             ['Kalliope Store', 'Southern', 200]
         ]
         d.preprocess()
-        assert d == expected
+        assert d.data == expected

@@ -8,8 +8,29 @@ class Parser:
     all the inputs for the various datagenius objects, so that their
     ETL steps can be highly modular.
     """
-    def __init__(self, func=None):
+    def __init__(self, func=None, **kwargs):
+        """
+
+        Args:
+            func: A callable object that takes one argument.
+            kwargs: Various ways to customize Parser's behaviors.
+                Currently in use kwargs:
+                null_ind: What func returns when it returns an
+                    empty value. Default is None, but this parameter
+                    can be overridden if None is a meaningful value
+                    for your func.
+                riders: A single object or tuple of additional
+                    values Parser should append to the result of
+                    func.
+
+        """
         self.func = func
+        self.null_ind = kwargs.get('null_ind', None)
+        self.riders = kwargs.get('riders')
+        if ((not isinstance(self.riders, tuple)
+                or not isinstance(self.riders, list))
+                and self.riders is not None):
+            self.riders = tuple([self.riders])
 
     def __call__(self, data: list):
         """
@@ -23,7 +44,10 @@ class Parser:
 
         """
         if self.func is not None:
-            return self.func(data)
+            if self.riders is not None:
+                return (self.func(data), *self.riders)
+            else:
+                return self.func(data)
         else:
             raise ValueError('No parsing function defined.')
 
@@ -59,12 +83,20 @@ class Dataset:
     A wrapper object for lists of lists. Datasets are the primary
     data-containing object for datagenius.
     """
-    def __init__(self, data: list):
+    def __init__(self, data: list, **kwargs):
         """
         Datasets must be instantiated with a list of lists.
 
         Args:
             data: A list of lists.
+            kwargs: Various ways to customize Dataset's behaviors.
+                Currently in use kwargs:
+                threshold: An integer, the number of
+                    non-null/blank values that a row must have to
+                    be included in the dataset. By default this will
+                    be the number of columns in the dataset - 1
+                    in order to automatically weed out obvious
+                    subtotal rows.
         """
         struct_error_msg = 'Dataset data must be a list of lists.'
         if isinstance(data, list):
@@ -76,6 +108,7 @@ class Dataset:
                                          f'same length. Invalid row= '
                                          f'{d}')
                 self.data = data
+                self.needs_preprocess = True
                 # Attributes to allow iteration.
                 self.cur_idx = -1
                 self.max_idx = len(data)
@@ -83,60 +116,58 @@ class Dataset:
                 raise ValueError(struct_error_msg)
         else:
             raise ValueError(struct_error_msg)
+        self.threshold = self.col_ct - kwargs.get('threshold', 1)
 
-    def match(self, match_parser: Parser,
-              break_on_match=False) -> list:
+    def loop(self, p: Parser) -> list:
         """
-        Loops over all the rows in self.data and returns the ones
-        that meet match_parser's criteria.
+        Loops over all the rows in self.data and passes each to p.
 
         Args:
-            match_parser: A Parser object that takes a list (a row
-                of Dataset) and evaluates it somehow, returning
-                True if it matches and False if it doesn't.
-            break_on_match: A boolean, indicates whether match
-                should stop looping after the first row that meets
-                match_parser's criteria.
+            p: A Parser object that takes a list (a row
+                of Dataset) and evaluates it somehow. It must
+                return a tuple of two values, the second of which
+                must be a boolean indicating whether to break the
+                loop or not (True breaks).
 
-        Returns: A list containing the rows that meet match_parser's
-            criteria.
+        Returns: A list containing the results of p's evaluation
+            of each row.
 
         """
         result = []
         for i in self:
-            if match_parser(i):
-                result.append(i)
-                if break_on_match:
-                    break
+            r, break_ind = p(i)
+            if r != p.null_ind:
+                result.append(r)
+            if break_ind:
+                break
         return result
 
-    def preprocess(self, threshold: int = -1):
+    def preprocess(self, threshold: int = None):
         """
-        Uses match to reduce data to only rows that contain
+        Uses loop to reduce data to only rows that contain
         sufficient non-null values.
 
         Args:
-            threshold: An integer, the number of null/blank values
-                that disqualifies a row from inclusion in the
-                dataset. By default this will be the number of
-                columns in the dataset - 1. So at least 2 fields
-                in the row must have data for it to survive
-                preprocessing.
+            threshold: Updates Dataset's existing threshold
+                attribute directly before preprocessing.
 
         Returns: None
 
         """
-        null_ctr = Parser(
-            lambda x: [1 if y in (None, '') else 0 for y in x]
-        )
-        if threshold == -1:
-            t = self.col_ct - 1
-        else:
-            t = threshold
-        cleaner = Parser(
-            lambda x: False if sum(null_ctr(x)) >= t else True
-        )
-        self.data = self.match(cleaner)
+        if self.needs_preprocess:
+            non_null_ctr = Parser(
+                lambda x: [0 if y in (None, '') else 1 for y in x]
+            )
+            if threshold is not None:
+                self.threshold = threshold
+            cleaner = Parser(
+                lambda x: (
+                    None if sum(non_null_ctr(x)) <= self.threshold
+                    else x),
+                riders=False
+            )
+            self.data = self.loop(cleaner)
+            self.needs_preprocess = False
 
     def __eq__(self, other) -> bool:
         """
