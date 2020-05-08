@@ -53,3 +53,11 @@ class TestDataset:
         ]
         d.preprocess()
         assert d.data == expected
+
+    def test_getitem(self):
+        d = Dataset([
+            [1, 2, 3],
+            [4, 5, 6]
+        ])
+
+        assert d[0] == [1, 2, 3]

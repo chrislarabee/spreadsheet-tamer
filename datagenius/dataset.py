@@ -1,4 +1,6 @@
+import collections
 import inspect
+from abc import ABC
 
 
 class Parser:
@@ -78,7 +80,7 @@ class Parser:
         self.__dict__[key] = value
 
 
-class Dataset:
+class Dataset(collections.abc.Sequence, ABC):
     """
     A wrapper object for lists of lists. Datasets are the primary
     data-containing object for datagenius.
@@ -187,29 +189,11 @@ class Dataset:
         else:
             return False
 
-    def __iter__(self):
-        """
-        Makes Dataset iterable.
+    def __getitem__(self, item):
+        return self.data[item]
 
-        Returns: self.
-
-        """
-        return self
-
-    def __next__(self):
-        """
-        Makes Dataset an iterable.
-
-        Returns: The next value in self.data, or StopIteration
-            if the end of self.data has been reached.
-
-        """
-        self.cur_idx += 1
-        if self.cur_idx < self.max_idx:
-            return self.data[self.cur_idx]
-        else:
-            self.cur_idx = -1
-            raise StopIteration
+    def __len__(self):
+        return len(self.data)
 
     def __ne__(self, other) -> bool:
         """
