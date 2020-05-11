@@ -212,3 +212,6 @@ class Dataset(collections.abc.Sequence, ABC):
             return True
         else:
             return False
+
+    def __repr__(self):
+        return 'Dataset(' + str(self.data) + ')'
