@@ -9,8 +9,6 @@ from datagenius.dataset import Dataset
 def read_csv(file_name: str) -> dict:
     """
     Quickly reads a well-formatted csv file to a list of lists.
-    Also, attempts to parse data as numeric and uses float
-    data type if successful.
 
     Args:
         file_name: The path to the csv file to read.
@@ -25,15 +23,7 @@ def read_csv(file_name: str) -> dict:
     result = []
     with open(file_name, newline='', encoding='utf-8') as f:
         for row in csv.reader(f):
-            parsed_row = []
-            for r in row:
-                try:
-                    fr = float(r)
-                except ValueError:
-                    parsed_row.append(r)
-                else:
-                    parsed_row.append(fr)
-            result.append(parsed_row)
+            result.append(row)
     return {key: Dataset(result)}
 
 
