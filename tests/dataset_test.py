@@ -21,6 +21,16 @@ class TestDataset:
         expected = [0, 1, 1, 1, 0]
         assert d.loop(p) == expected
 
+        d = Dataset([
+            [1, 2, 3],
+            [2, 3, 4],
+            [3, 4, 5]
+        ])
+
+        p = pa.parser(lambda x: x if x[0] > 1 else None,
+                      requires_header=False, breaks_loop=True)
+        assert d.loop(p) == [[2, 3, 4]]
+
         with pytest.raises(ValueError,
                            match='decorated as parsers'):
             d.loop(lambda x: x + 1)
