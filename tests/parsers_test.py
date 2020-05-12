@@ -8,6 +8,7 @@ def test_parser():
     def f(x):
         return x * 10
 
+    assert f.is_parser
     assert not f.breaks_loop
     assert f.null_val is None
 
@@ -20,7 +21,7 @@ def test_parser():
     assert g.null_val is None
 
     # Sanity check to ensure pre-built parsers work:
-    assert not pa.cleanse_gaps.breaks_loop
+    assert not pa.cleanse_gap.breaks_loop
 
     # Sanity check to ensure lambda function parsers work:
     p = pa.parser(lambda x: x + 1, null_val=0)
@@ -29,5 +30,13 @@ def test_parser():
     assert p(3) == 4
 
 
-def test_cleanse_gaps(simple_data, gaps):
-    assert pa.cleanse_gaps(d.Dataset(gaps)) == simple_data()
+def test_cleanse_gap():
+    assert pa.cleanse_gap([1, 2, 3]) == [1, 2, 3]
+    assert pa.cleanse_gap(['', '', '']) is None
+    assert pa.cleanse_gap([1, 2, None], 3) is None
+    assert pa.cleanse_gap([1, 2, None], 2) == [1, 2, None]
+
+
+def test_detect_header():
+    assert pa.detect_header([1, 2, 3]) is None
+    assert pa.detect_header(['a', 'b', 'c']) == ['a', 'b', 'c']

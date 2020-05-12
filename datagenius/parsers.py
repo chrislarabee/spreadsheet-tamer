@@ -36,6 +36,7 @@ def parser(func=None, *,
         wrapper_parser.breaks_loop = breaks_loop
         wrapper_parser.null_val = null_val
         wrapper_parser.requires_header = requires_header
+        wrapper_parser.is_parser = True
         return wrapper_parser
     # Allows parser to be used without arguments:
     if func is None:
@@ -45,21 +46,47 @@ def parser(func=None, *,
 
 
 @parser(requires_header=False)
-def cleanse_gaps(dset: d.Dataset, threshold: int = 1) -> list:
+def cleanse_gap(x: list, threshold: int = None):
     """
-    Uses a Dataset's loop to create a list of rows that have
-    sufficient non-null values.
+    Checks a list to see if it has sufficient non-null values.
 
     Args:
-        dset: A Dataset object.
+        x: A list.
         threshold: An integer, indicates the number of # of
-            columns in the Dataset that can be null without
-            rejecting a row. Default is at most one null value.
+            values in the list that must be non-nulls. If None,
+            uses the length of the list.
 
-    Returns: A list containing only non-gap rows.
+    Returns: The list if it contains equal to or greater non-null
+        values than the threshold, otherwise None.
 
     """
-    t = dset.col_ct - threshold
-    return dset.loop(
-        parser(lambda x: None if u.non_null_count(x) < t else x)
-    )
+    if threshold is None:
+        w = len(x)
+    else:
+        w = threshold
+    nn = u.non_null_count(x)
+    if nn >= w:
+        return x
+    else:
+        return None
+
+
+@parser(requires_header=False, breaks_loop=True)
+def detect_header(x: list):
+    """
+    Checks a list to see if it contains only strings. If it does,
+    then it could probably be a header row.
+
+    Args:
+        x: A list
+
+    Returns: The list if it contains only non-null strings,
+        otherwise None.
+
+    """
+    w = len(x)
+    ts = u.true_str_count(x)
+    if ts == w:
+        return x
+    else:
+        return None

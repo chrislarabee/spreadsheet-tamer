@@ -1,6 +1,7 @@
 import collections
 from abc import ABC
 
+import datagenius.util as u
 
 class Dataset(collections.abc.Sequence, ABC):
     """
@@ -32,7 +33,7 @@ class Dataset(collections.abc.Sequence, ABC):
                                          f'same length. Invalid row= '
                                          f'{d}')
                 self.data = data
-                self.needs_preprocess = True
+                self.header = None
                 # Attributes to allow iteration.
                 self.cur_idx = -1
                 self.max_idx = len(data)
@@ -40,7 +41,6 @@ class Dataset(collections.abc.Sequence, ABC):
                 raise ValueError(struct_error_msg)
         else:
             raise ValueError(struct_error_msg)
-        self.threshold = self.col_ct - kwargs.get('threshold', 1)
 
     def loop(self, p) -> list:
         """
@@ -54,14 +54,23 @@ class Dataset(collections.abc.Sequence, ABC):
             of each row.
 
         """
-        result = []
-        for i in self:
-            r = p(i)
-            if r != p.null_val:
-                result.append(r)
-            if p.breaks_loop:
-                break
-        return result
+        if u.validate_parser(p):
+            if p.requires_header and self.header is None:
+                raise ValueError('Passed parser requires a header, '
+                                 'which this Dataset does not have '
+                                 'yet.')
+            else:
+                result = []
+                for i in self:
+                    r = p(i)
+                    if r != p.null_val:
+                        result.append(r)
+                        if p.breaks_loop:
+                            break
+            return result
+        else:
+            raise ValueError('Dataset.loop can only take functions'
+                             'decorated as parsers.')
 
     def __eq__(self, other) -> bool:
         """
