@@ -3,6 +3,7 @@ from abc import ABC
 
 import datagenius.util as u
 
+
 class Dataset(collections.abc.Sequence, ABC):
     """
     A wrapper object for lists of lists. Datasets are the primary
@@ -85,10 +86,14 @@ class Dataset(collections.abc.Sequence, ABC):
             is equivalent to other.
 
         """
-        if self.data == other:
-            return True
+        result = False
+        if isinstance(other, Dataset):
+            if self.__repr__() == other.__repr__():
+                result = True
         else:
-            return False
+            if self.data == other:
+                result = True
+        return result
 
     def __getitem__(self, item):
         return self.data[item]
@@ -109,10 +114,11 @@ class Dataset(collections.abc.Sequence, ABC):
             is not equivalent to other.
 
         """
-        if self.data != other:
-            return True
+        result = False
+        if isinstance(other, Dataset):
+            if self.__repr__() != other.__repr__():
+                result = True
         else:
-            return False
-
-    def __repr__(self):
-        return 'Dataset(' + str(self.data) + ')'
+            if self.data != other:
+                result = True
+        return result
