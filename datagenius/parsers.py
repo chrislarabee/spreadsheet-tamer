@@ -1,6 +1,5 @@
 import functools
 
-import datagenius.dataset as d
 import datagenius.util as u
 
 
