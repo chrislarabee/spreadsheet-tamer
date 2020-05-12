@@ -1,38 +1,43 @@
 import datagenius.dataset as ds
+import datagenius.parsers as pa
+import datagenius.util as u
 
 
 class Genius:
-    def __init__(self, dataset: ds.Dataset, **kwargs):
-        hfunc = kwargs.get('header_func', self.header_func)
+    def __init__(self, *steps):
+        self.steps = []
+        for s in steps:
+            if u.validate_parser(s):
+                self.steps.append(s)
+            else:
+                raise ValueError(f'Genius objects only take parser'
+                                 f'functions as steps. Invalid '
+                                 f'function={s.__name__}')
 
-    @staticmethod
-    def header_func(dataset: ds.Dataset) -> (int, list):
-        """
-        Takes a dataset (a list of lists) and determines which row
-        is most likely to be the header row. This simple function
-        assumes that the header row is the row that has a filled
-        string value for every column in the dataset.
+    def go(self, dset: ds.Dataset, **options):
+        if options.get('overwrite', True):
+            wdset = dset
+        else:
+            wdset = dset.copy()
+        for p in self.steps:
+            wdset.data = wdset.loop(p)
+        return wdset
 
-        Args:
-            dataset: A datagenius Dataset object.
 
-        Returns: An integer indicating the index of the header row
-            of the passed Dataset.
+class Preprocess(Genius):
+    def __init__(self, *custom_steps):
+        preprocess_steps = [
+            pa.cleanse_gap,
+            *custom_steps
+        ]
+        super(Preprocess, self).__init__(*preprocess_steps)
 
-        """
-        width = dataset.col_ct
-        header = []
-        header_idx = None
-        str_ctr = ds.Parser(
-            lambda x: [
-                1 if isinstance(y, str) and y != '' else 0 for y in x]
-        )
-        find_hdr = ds.Parser(
-            lambda x: ((x, True) if sum(str_ctr(x)) == width
-                       else (None, False))
-        )
-        h = dataset.loop(find_hdr)
-        if len(h) > 0:
-            header = h[0]
-            header_idx = dataset.index(header)
-        return header_idx, header
+    def go(self, dset: ds.Dataset, **options):
+        wdset = super(Preprocess, self).go(dset, **options)
+        wdset.header = wdset.loop(
+            options.get('header_func', pa.detect_header)
+        )[0]
+        return wdset
+
+
+

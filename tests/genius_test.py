@@ -1,11 +1,14 @@
 from datagenius.dataset import Dataset
-from datagenius.genius import Genius
+import datagenius.genius as ge
 
 
-class TestGenius:
-    def test_header_func(self, simple_data, gaps):
-        expected = ['id', 'fname', 'lname']
-        assert Genius.header_func(Dataset(simple_data)) == (
-            0, expected)
-        assert Genius.header_func(Dataset(gaps)) == (
-            4, expected)
+class TestPreprocess:
+    def test_go(self, simple_data, gaps, gaps_totals):
+        p = ge.Preprocess()
+        d = Dataset(simple_data())
+        assert p.go(d) == simple_data()
+        assert p.go(d) == d
+        assert d.header == ['id', 'fname', 'lname', 'foreign_key']
+
+        d = Dataset(gaps)
+        assert p.go(d) == simple_data()
