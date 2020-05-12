@@ -6,7 +6,8 @@ import datagenius.util as u
 def parser(func=None, *,
            breaks_loop=False,
            null_val=None,
-           requires_header=True):
+           requires_header=True,
+           set_parser=False):
     """
     Acts as a wrapper for other functions so that functions passed
     to Dataset.loop have all the necessary attributes for successfully
@@ -21,6 +22,9 @@ def parser(func=None, *,
         requires_header: A boolean, indicates whether this parser
             can be run in a Dataset that has had its header
             row built (True) or not (False).
+        set_parser: A boolean, indicates whether this parser can
+            be run on a full Dataset or if it's meant to be run
+            potentially with other parsers on each row in turn.
 
     Returns: Passed func, but decorated.
 
@@ -35,6 +39,7 @@ def parser(func=None, *,
         wrapper_parser.breaks_loop = breaks_loop
         wrapper_parser.null_val = null_val
         wrapper_parser.requires_header = requires_header
+        wrapper_parser.set_parser = set_parser
         wrapper_parser.is_parser = True
         return wrapper_parser
     # Allows parser to be used without arguments:
@@ -70,7 +75,7 @@ def cleanse_gap(x: list, threshold: int = None):
         return None
 
 
-@parser(requires_header=False, breaks_loop=True)
+@parser(requires_header=False, breaks_loop=True, set_parser=True)
 def detect_header(x: list):
     """
     Checks a list to see if it contains only strings. If it does,
