@@ -1,8 +1,6 @@
 import collections
 from abc import ABC
 
-import datagenius.util as u
-
 
 class Dataset(collections.abc.Sequence, ABC):
     """
