@@ -4,6 +4,15 @@ from datagenius.dataset import Dataset
 
 
 class TestDataset:
+    def test_from_file(self, simple_data):
+        d = Dataset.from_file('tests/samples/csv/simple.csv')
+        assert isinstance(d, Dataset)
+        assert d == simple_data()
+
+        d = Dataset.from_file('tests/samples/excel/simple.xlsx')
+        assert isinstance(d, Dataset)
+        assert d == simple_data(int)
+
     def test_remove(self, simple_data):
         d = Dataset(simple_data())
         d.remove(0)
