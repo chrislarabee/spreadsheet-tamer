@@ -49,7 +49,7 @@ def parser(func=None, *,
         return decorator_parser(func)
 
 
-@parser(requires_header=False)
+@parser(requires_header=False, set_parser=True)
 def cleanse_gap(x: list, threshold: int = None):
     """
     Checks a list to see if it has sufficient non-null values.

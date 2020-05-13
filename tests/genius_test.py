@@ -42,17 +42,62 @@ class TestGenius:
 
 
 class TestPreprocess:
-    def test_go(self, simple_data, gaps, gaps_totals):
+    def test_basic_go(self, customers, sales, simple_data, gaps,
+                      gaps_totals):
         p = ge.Preprocess()
         d = Dataset(simple_data())
-        assert p.go(d) == simple_data()
-        assert p.go(d) == d
-        assert d.header == ['id', 'fname', 'lname', 'foreign_key']
+        r = p.go(d)
+        assert r == d
+        assert r == customers[1]
+        assert d.header == customers[0]
 
         d = Dataset(gaps)
-        assert p.go(d) == simple_data()
-        assert p.go(d) == d
-        assert d.header == ['id', 'fname', 'lname', 'foreign_key']
+        r = p.go(d, overwrite=False)
+        assert r == customers[1]
+        assert r != d
+        assert d.header is None
+        assert r.header == customers[0]
 
         d = Dataset(gaps_totals)
+        r = p.go(d)
+        assert r == sales[1]
+        assert r.header == sales[0]
 
+    def test_custom_go(self):
+        # Test custom preprocess step and header_func:
+        pr = pa.parser(
+            lambda x: [str(x[0]), *x[1:]],
+            requires_header=False
+        )
+        hf = pa.parser(
+            lambda x: x if x[0] == 'odd' else None,
+            requires_header=False,
+            breaks_loop=True
+        )
+        d = Dataset([
+            ['', '', ''],
+            ['odd', 1, 'header'],
+            [1, 2, 3],
+            [None, None, None],
+            [4, 5, 6]
+        ])
+
+        assert ge.Preprocess(pr).go(d, header_func=hf) == [
+            ['1', 2, 3],
+            ['4', 5, 6]
+        ]
+        assert d.header == ['odd', 1, 'header']
+
+        # Test manual_header:
+        d = Dataset([
+            [1, 2, 3],
+            [4, 5, 6]
+        ])
+
+        assert ge.Preprocess().go(
+            d,
+            manual_header=['a', 'b', 'c']) == [
+            [1, 2, 3],
+            [4, 5, 6]
+        ]
+        assert d.header == ['a', 'b', 'c']

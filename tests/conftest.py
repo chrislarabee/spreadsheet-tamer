@@ -2,6 +2,32 @@ import pytest
 
 
 @pytest.fixture
+def customers():
+    return (
+        ['id', 'fname', 'lname', 'foreign_key'],
+        [
+            ['1', 'Yancy', 'Cordwainer', '00025'],
+            ['2', 'Muhammad', 'El-Kanan', '00076'],
+            ['3', 'Luisa', 'Romero', '00123'],
+            ['4', 'Semaj', 'Soto', '01234']
+        ]
+    )
+
+
+@pytest.fixture
+def sales():
+    return (
+        ['location', 'region', 'sales'],
+        [
+            ['Bayside Store', 'Northern', 500],
+            ['West Valley Store', 'Northern', 300],
+            ['Precioso Store', 'Southern', 1000],
+            ['Kalliope Store', 'Southern', 200],
+        ]
+    )
+
+
+@pytest.fixture
 def simple_data():
     """
     Generates a simple, ideal dataset for tests. The inner function
