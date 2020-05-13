@@ -1,3 +1,5 @@
+import pytest
+
 from datagenius import dataset as d
 from datagenius import parsers as pa
 
@@ -20,6 +22,11 @@ def test_parser():
     assert g.breaks_loop
     assert g.null_val is None
 
+    # Check set_parser/uses_cache conflict:
+    with pytest.raises(ValueError,
+                       match='set_parsers cannot use cache'):
+        pa.parser(lambda x: x + 1, uses_cache=True, set_parser=True)
+
     # Sanity check to ensure pre-built parsers work:
     assert not pa.cleanse_gap.breaks_loop
 
@@ -41,3 +48,9 @@ def test_cleanse_gap():
 def test_detect_header():
     assert pa.detect_header([1, 2, 3]) is None
     assert pa.detect_header(['a', 'b', 'c']) == ['a', 'b', 'c']
+
+
+def test_extrapolate():
+    assert pa.extrapolate(
+        [2, None, None], [1, 2], [1, 'Foo', 'Bar']
+    ) == [2, 'Foo', 'Bar']

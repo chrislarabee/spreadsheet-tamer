@@ -119,3 +119,18 @@ class TestPreprocess:
             [4, 5, 6]
         ]
         assert d.header == ['a', 'b', 'c']
+
+    def test_go_w_extrapolate(self, needs_extrapolation):
+        d = Dataset(needs_extrapolation)
+        expected = [
+            [1, 'StrexCorp', 'Teeth'],
+            [2, 'StrexCorp', 'Radio Equipment'],
+            [3, 'KVX Bank', 'Bribe'],
+            [4, 'KVX Bank', 'Not candy or pens']
+        ]
+
+        assert ge.Preprocess().go(
+            d,
+            parser_args={'cleanse_gap': {'threshold': 1}},
+            extrapolate=['vendor_name']
+        ) == expected

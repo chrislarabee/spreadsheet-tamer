@@ -87,6 +87,7 @@ class Genius:
 
         """
         results = []
+        cache = None
         for i in dset:
             row = i.copy()
             passes_all = True
@@ -107,6 +108,8 @@ class Genius:
                         p_args = parser_args.get(p.__name__)
                     else:
                         p_args = dict()
+                    if p.uses_cache and cache is not None:
+                        p_args['cache'] = cache
                     parse_result = p(row, **p_args)
                     if parse_result != p.null_val:
                         row = parse_result
@@ -119,6 +122,7 @@ class Genius:
                 results.append(row)
                 if outer_break:
                     break
+                cache = row
         if one_return:
             if len(results) > 0:
                 return results[0]
@@ -163,6 +167,10 @@ class Preprocess(Genius):
                         manually creating one.
                     header_func: A parser, used if you need to
                         overwrite the default detect_header parser.
+                    extrapolate: A list of strings corresponding to
+                        values in the Dataset's header. Any rows
+                        with nulls in those columns will get values
+                        from the previous row.
         Returns: The Dataset object, or a copy of it.
 
         """
@@ -177,6 +185,14 @@ class Preprocess(Genius):
             )
             if wdset.header is not None:
                 wdset.remove(wdset.header)
+        extrp_cols = options.get('extrapolate')
+        if extrp_cols:
+            idxs = [wdset.header.index(e) for e in extrp_cols]
+            wdset = self.loop(
+                wdset,
+                pa.extrapolate,
+                parser_args={'extrapolate': {'indices': idxs}}
+            )
         return wdset
 
 

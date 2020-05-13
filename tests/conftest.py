@@ -97,3 +97,14 @@ def gaps_totals():
         ['Kalliope Store', 'Southern', 200],
         ['', '', 1200]
     ]
+
+
+@pytest.fixture
+def needs_extrapolation():
+    return [
+        ['product_id', 'vendor_name', 'product_name'],
+        [1, 'StrexCorp', 'Teeth'],
+        [2, '', 'Radio Equipment'],
+        [3, 'KVX Bank', 'Bribe'],
+        [4, '', 'Not candy or pens']
+    ]
