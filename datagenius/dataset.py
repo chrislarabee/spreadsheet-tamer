@@ -1,6 +1,8 @@
 import collections
 from abc import ABC
 
+from datagenius.io import reader
+
 
 class Dataset(collections.abc.Sequence, ABC):
     """
@@ -53,6 +55,27 @@ class Dataset(collections.abc.Sequence, ABC):
         if self.header:
             d.header = self.header.copy()
         return d
+
+    @staticmethod
+    def from_file(file_path: str):
+        """
+        Uses read_file to read in the passed file path.
+
+        Args:
+            file_path: The file path to the desired data file.
+
+        Returns: For excel workbooks with multiple sheets, it will
+            return a dictionary of sheet names as keys and raw
+            sheet contents as values. For excel workbooks with
+            one sheet and other file formats with a single set of
+            data, it will return a Dataset object.
+
+        """
+        raw = reader.read_file(file_path)
+        if len(raw.keys()) == 1:
+            return Dataset(list(raw.values())[0])
+        else:
+            return raw
 
     def remove(self, key: (int, list)) -> None:
         """

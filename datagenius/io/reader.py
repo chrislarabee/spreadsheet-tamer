@@ -3,8 +3,6 @@ import os
 
 import xlrd
 
-from datagenius.dataset import Dataset
-
 
 def read_csv(file_name: str) -> dict:
     """
@@ -24,7 +22,7 @@ def read_csv(file_name: str) -> dict:
     with open(file_name, newline='', encoding='utf-8') as f:
         for row in csv.reader(f):
             result.append(row)
-    return {key: Dataset(result)}
+    return {key: result}
 
 
 def read_excel(file_name: str) -> dict:
@@ -79,7 +77,7 @@ def read_file(file_name: str) -> dict:
         return read_funcs[ext](file_name)
 
 
-def read_sheet(sheet: xlrd.sheet) -> Dataset:
+def read_sheet(sheet: xlrd.sheet) -> list:
     """
     Reads all rows and columns in a Microsoft excel sheet and creates
     a list of lists with all values from the spreadsheet.
@@ -97,4 +95,4 @@ def read_sheet(sheet: xlrd.sheet) -> Dataset:
         for j in range(sheet.ncols):
             row.append(sheet.cell_value(i, j))
         result.append(row)
-    return Dataset(result)
+    return result
