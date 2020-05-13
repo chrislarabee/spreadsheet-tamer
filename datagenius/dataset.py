@@ -56,48 +56,6 @@ class Dataset(collections.abc.Sequence, ABC):
             d.header = self.header.copy()
         return d
 
-    def loop(self, *parsers) -> list:
-        """
-        Loops over all the rows in self.data and passes each to p.
-
-        Args:
-            parsers: One or more parser functions.
-
-        Returns: A list containing the results of the parsers'
-            evaluation of each row.
-
-        """
-        results = []
-        for i in self:
-            row = i.copy()
-            passes_all = True
-            # Used to break the outer loop too if a breaks_loop
-            # parser evaluates successfully:
-            outer_break = False
-            for p in parsers:
-                if not u.validate_parser(p):
-                    raise ValueError('Dataset.loop can only take '
-                                     'functions decorated as '
-                                     'parsers.')
-                elif p.requires_header and self.header is None:
-                    raise ValueError('Passed parser requires a '
-                                     'header, which this Dataset '
-                                     'does not have yet.')
-                else:
-                    parse_result = p(row)
-                    if parse_result != p.null_val:
-                        row = parse_result
-                        if p.breaks_loop:
-                            outer_break = p.breaks_loop
-                            break
-                    else:
-                        passes_all = False
-            if passes_all:
-                results.append(row)
-                if outer_break:
-                    break
-        return results
-
     def __eq__(self, other) -> bool:
         """
         Overrides built-in object equality so that Datasets
