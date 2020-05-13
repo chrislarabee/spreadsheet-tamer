@@ -56,6 +56,26 @@ class Dataset(collections.abc.Sequence, ABC):
             d.header = self.header.copy()
         return d
 
+    def remove(self, key: (int, list)) -> None:
+        """
+        Removes a row from the dataset based on its index or
+        an exact match of the rows contents.
+
+        Args:
+            key: An integer corresponding to an index in self.data
+                or a list corresponding to a row in self.data.
+
+        Returns: None
+
+        """
+        if isinstance(key, int):
+            self.data.pop(key)
+        elif isinstance(key, list):
+            self.data.remove(key)
+        else:
+            raise ValueError('Dataset.remove can only take int '
+                             'or list arguments.')
+
     def __eq__(self, other) -> bool:
         """
         Overrides built-in object equality so that Datasets
