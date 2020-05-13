@@ -6,7 +6,7 @@ setup(
     author='Chris Larabee',
     author_email='chris.larabee9@gmail.com',
     packages=['datagenius'],
-    install_requires=['pandas', 'xlrd', 'pytest'],
+    install_requires=['pandas', 'xlrd'],
     version=0.1,
     license='GNU',
     description=('A suite of classes and functions that attempt to '
