@@ -7,7 +7,8 @@ def parser(func=None, *,
            breaks_loop=False,
            null_val=None,
            requires_header=True,
-           set_parser=False):
+           set_parser=False,
+           takes_args=False):
     """
     Acts as a wrapper for other functions so that functions passed
     to Dataset.loop have all the necessary attributes for successfully
@@ -25,6 +26,8 @@ def parser(func=None, *,
         set_parser: A boolean, indicates whether this parser can
             be run on a full Dataset or if it's meant to be run
             potentially with other parsers on each row in turn.
+        takes_args: A boolean, indicates whether this parser can
+            be run with arguments beyond one positional argument.
 
     Returns: Passed func, but decorated.
 
@@ -40,6 +43,7 @@ def parser(func=None, *,
         wrapper_parser.null_val = null_val
         wrapper_parser.requires_header = requires_header
         wrapper_parser.set_parser = set_parser
+        wrapper_parser.takes_args = takes_args
         wrapper_parser.is_parser = True
         return wrapper_parser
     # Allows parser to be used without arguments:
@@ -49,7 +53,7 @@ def parser(func=None, *,
         return decorator_parser(func)
 
 
-@parser(requires_header=False, set_parser=True)
+@parser(requires_header=False, set_parser=True, takes_args=True)
 def cleanse_gap(x: list, threshold: int = None):
     """
     Checks a list to see if it has sufficient non-null values.

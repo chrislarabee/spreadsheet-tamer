@@ -33,6 +33,7 @@ def test_parser():
 def test_cleanse_gap():
     assert pa.cleanse_gap([1, 2, 3]) == [1, 2, 3]
     assert pa.cleanse_gap(['', '', '']) is None
+    assert pa.cleanse_gap(['', '', ''], 0) == ['', '', '']
     assert pa.cleanse_gap([1, 2, None], 3) is None
     assert pa.cleanse_gap([1, 2, None], 2) == [1, 2, None]
 

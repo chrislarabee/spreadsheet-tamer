@@ -46,6 +46,8 @@ class Genius:
                     overwrite: A boolean, tells go whether to
                         overwrite the contents of dset with the
                         results of the loops.
+                    parser_args: A dictionary containing parser_args
+                        for loop's use (see loop for more info).
 
         Returns: The Dataset or a copy of it.
 
@@ -55,12 +57,15 @@ class Genius:
         else:
             wdset = dset.copy()
         for step in self.order:
-            wdset.data = self.loop(wdset, *self.__dict__[step])
+            wdset.data = self.loop(
+                wdset, *self.__dict__[step],
+                parser_args=options.get('parser_args')
+            )
         return wdset
 
     @staticmethod
-    def loop(dset: ds.Dataset, *parsers,
-             one_return: bool = False) -> (list or None):
+    def loop(dset: ds.Dataset, *parsers, one_return: bool = False,
+             parser_args: dict = None) -> (list or None):
         """
         Loops over all the rows in the passed Dataset and passes
         each to the passed parsers.
@@ -72,6 +77,10 @@ class Genius:
                 parsers will only result in a single
                 object to return, so no need to wrap it
                 in an outer list.
+            parser_args: A dictionary containing keys matching
+                the names of any of the parser functions, with
+                each key being assigned a kwargs dictionary that
+                the parser function can accept.
 
         Returns: A list containing the results of the parsers'
             evaluation of each row in dset.
@@ -94,7 +103,11 @@ class Genius:
                                      'header, which this Dataset '
                                      'does not have yet.')
                 else:
-                    parse_result = p(row)
+                    if parser_args and p.takes_args:
+                        p_args = parser_args.get(p.__name__)
+                    else:
+                        p_args = dict()
+                    parse_result = p(row, **p_args)
                     if parse_result != p.null_val:
                         row = parse_result
                         if p.breaks_loop:
@@ -133,7 +146,8 @@ class Preprocess(Genius):
             pa.cleanse_gap,
             *custom_steps
         ]
-        super(Preprocess, self).__init__(*preprocess_steps)
+        super(Preprocess, self).__init__(
+            *preprocess_steps)
 
     def go(self, dset: ds.Dataset, **options) -> ds.Dataset:
         """
@@ -149,7 +163,6 @@ class Preprocess(Genius):
                         manually creating one.
                     header_func: A parser, used if you need to
                         overwrite the default detect_header parser.
-
         Returns: The Dataset object, or a copy of it.
 
         """

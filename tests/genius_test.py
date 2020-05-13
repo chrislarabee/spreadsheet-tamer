@@ -7,6 +7,7 @@ import datagenius.parsers as pa
 
 class TestGenius:
     def test_loop(self, simple_data):
+        # Test simple filtering loop:
         expected = [
             ['1', 'Yancy', 'Cordwainer', '00025'],
             ['2', 'Muhammad', 'El-Kanan', '00076'],
@@ -17,11 +18,13 @@ class TestGenius:
                       requires_header=False)
         assert ge.Genius.loop(d, p) == expected
 
+        # Test loop that generates new values:
         p = pa.parser(lambda x: 1 if len(x[2]) > 5 else 0,
                       requires_header=False)
         expected = [0, 1, 1, 1, 0]
         assert ge.Genius.loop(d, p) == expected
 
+        # Test breaks_loop
         d = Dataset([
             [1, 2, 3],
             [2, 3, 4],
@@ -31,6 +34,14 @@ class TestGenius:
         p = pa.parser(lambda x: x if x[0] > 1 else None,
                       requires_header=False, breaks_loop=True)
         assert ge.Genius.loop(d, p) == [[2, 3, 4]]
+
+        # Test args:
+        @pa.parser(requires_header=False, takes_args=True)
+        def test_parser(x, y):
+            return x if x[0] > y else None
+        assert ge.Genius.loop(
+            d, test_parser, parser_args={'test_parser': {'y': 2}}
+        ) == [[3, 4, 5]]
 
         with pytest.raises(ValueError,
                            match='decorated as parsers'):
@@ -62,6 +73,13 @@ class TestPreprocess:
         r = p.go(d)
         assert r == sales[1]
         assert r.header == sales[0]
+
+        # Sanity check to ensure threshold works:
+        d = Dataset(gaps)
+        r = p.go(
+            d, parser_args={'cleanse_gap': {'threshold': 0}},
+            manual_header=['a', 'b', 'c', 'd'])
+        assert r == gaps
 
     def test_custom_go(self):
         # Test custom preprocess step and header_func:
