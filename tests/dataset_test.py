@@ -34,6 +34,25 @@ class TestDataset:
                            match='can only take int or list'):
             d.remove('bad input')
 
+    def test_format_changes(self):
+        raw = [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9]
+        ]
+        header = ['a', 'b', 'c']
+        expected = [
+            {'a': 1, 'b': 2, 'c': 3},
+            {'a': 4, 'b': 5, 'c': 6},
+            {'a': 7, 'b': 8, 'c': 9},
+        ]
+
+        d = Dataset(raw)
+        d.header = header
+
+        assert d.to_dicts() == expected
+        assert d.to_lists() == raw
+
     def test_getitem(self):
         d = Dataset([
             [1, 2, 3],

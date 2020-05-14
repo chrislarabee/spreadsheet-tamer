@@ -24,7 +24,8 @@ class Dataset(collections.abc.Sequence, ABC):
                     in order to automatically weed out obvious
                     subtotal rows.
         """
-        struct_error_msg = 'Dataset data must be a list of lists.'
+        struct_error_msg = ('Dataset data must be instantiated as a ' \
+                            'list of lists.')
         if isinstance(data, list):
             if isinstance(data[0], list):
                 self.col_ct = len(data[0])
@@ -35,6 +36,7 @@ class Dataset(collections.abc.Sequence, ABC):
                                          f'{d}')
                 self.data = data
                 self.header = None
+                self.format = 'lists'
                 # Attributes to allow iteration.
                 self.cur_idx = -1
                 self.max_idx = len(data)
@@ -96,6 +98,49 @@ class Dataset(collections.abc.Sequence, ABC):
         else:
             raise ValueError('Dataset.remove can only take int '
                              'or list arguments.')
+
+    def to_dicts(self):
+        """
+        Uses self.header and self.data to convert self.data into
+        a list of OrderedDicts instead of a list of lists.
+
+        Returns: self, with self.data modified to be a list of
+            OrderedDicts.
+
+        """
+        if self.header is None:
+            raise AttributeError('This Dataset has no header. '
+                                 'Cannot convert to dicts format '
+                                 'without a header.')
+        elif self.format == 'lists':
+            results = []
+            for row in self:
+                d = collections.OrderedDict()
+                for i, h in enumerate(self.header):
+                    d[h] = row[i]
+                results.append(d)
+            self.data = results
+            self.format = 'dicts'
+        return self
+
+    def to_lists(self):
+        """
+        Converts self.data back into a list of lists and uses
+        the keys of the first row as the new header (in cases
+        changes were made).
+
+        Returns: self, with self.data modified to be a list of
+            lists.
+
+        """
+        if self.format == 'dicts':
+            results = []
+            self.header = list(self[0].keys())
+            for row in self:
+                results.append([*list(row.values())])
+            self.data = results
+            self.format = 'lists'
+        return self
 
     def __eq__(self, other) -> bool:
         """
