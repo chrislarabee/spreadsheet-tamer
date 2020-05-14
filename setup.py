@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='Data-Genius',
-    url='',
+    url='https://gitlab.com/mnhs/bipi/datagenius',
     author='Chris Larabee',
     author_email='chris.larabee9@gmail.com',
     packages=['datagenius', 'datagenius.io'],
