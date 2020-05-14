@@ -2,7 +2,39 @@ import pytest
 
 from datagenius.dataset import Dataset
 import datagenius.genius as ge
-import datagenius.parsers as pa
+
+
+def test_parser():
+    # Decorator without arguments:
+    @ge.parser
+    def f(x):
+        return x * 10
+
+    assert f.is_parser
+    assert not f.breaks_loop
+    assert f.null_val is None
+
+    # Decorator with arguments:
+    @ge.parser(breaks_loop=True)
+    def g(x):
+        return x + 1
+
+    assert g.breaks_loop
+    assert g.null_val is None
+
+    # Check set_parser/uses_cache conflict:
+    with pytest.raises(ValueError,
+                       match='set_parsers cannot use cache'):
+        ge.parser(lambda x: x + 1, uses_cache=True, set_parser=True)
+
+    # Sanity check to ensure pre-built parsers work:
+    assert not ge.Preprocess.cleanse_gap.breaks_loop
+
+    # Sanity check to ensure lambda function parsers work:
+    p = ge.parser(lambda x: x + 1, null_val=0)
+
+    assert p.null_val == 0
+    assert p(3) == 4
 
 
 class TestGenius:
@@ -14,12 +46,12 @@ class TestGenius:
             ['3', 'Luisa', 'Romero', '00123'],
         ]
         d = Dataset(simple_data())
-        p = pa.parser(lambda x: (x if len(x[2]) > 5 else None),
+        p = ge.parser(lambda x: (x if len(x[2]) > 5 else None),
                       requires_header=False)
         assert ge.Genius.loop(d, p) == expected
 
         # Test loop that generates new values:
-        p = pa.parser(lambda x: 1 if len(x[2]) > 5 else 0,
+        p = ge.parser(lambda x: 1 if len(x[2]) > 5 else 0,
                       requires_header=False)
         expected = [0, 1, 1, 1, 0]
         assert ge.Genius.loop(d, p) == expected
@@ -31,16 +63,17 @@ class TestGenius:
             [3, 4, 5]
         ])
 
-        p = pa.parser(lambda x: x if x[0] > 1 else None,
+        p = ge.parser(lambda x: x if x[0] > 1 else None,
                       requires_header=False, breaks_loop=True)
         assert ge.Genius.loop(d, p) == [[2, 3, 4]]
 
         # Test args:
-        @pa.parser(requires_header=False, takes_args=True)
-        def test_parser(x, y):
+        @ge.parser(requires_header=False, takes_args=True)
+        def simple_parser(x, y):
             return x if x[0] > y else None
         assert ge.Genius.loop(
-            d, test_parser, parser_args={'test_parser': {'y': 2}}
+            d, simple_parser, parser_args={
+                'simple_parser': {'y': 2}}
         ) == [[3, 4, 5]]
 
         with pytest.raises(ValueError,
@@ -49,10 +82,30 @@ class TestGenius:
 
         with pytest.raises(ValueError,
                            match='requires a header'):
-            ge.Genius.loop(d, pa.parser(lambda x: x))
+            ge.Genius.loop(d, ge.parser(lambda x: x))
 
 
 class TestPreprocess:
+    def test_cleanse_gap(self):
+        pp = ge.Preprocess()
+        # First test doesn't use pp to verify staticmethod status.
+        assert ge.Preprocess.cleanse_gap([1, 2, 3]) == [1, 2, 3]
+        assert pp.cleanse_gap(['', '', '']) is None
+        assert pp.cleanse_gap(['', '', ''], 0) == ['', '', '']
+        assert pp.cleanse_gap([1, 2, None], 3) is None
+        assert pp.cleanse_gap([1, 2, None], 2) == [1, 2, None]
+
+    def test_detect_header(self):
+        pp = ge.Preprocess()
+        # First test doesn't use pp to verify staticmethod status.
+        assert ge.Preprocess.detect_header([1, 2, 3]) is None
+        assert pp.detect_header(['a', 'b', 'c']) == ['a', 'b', 'c']
+
+    def test_extrapolate(self):
+        assert ge.Preprocess.extrapolate(
+            [2, None, None], [1, 2], [1, 'Foo', 'Bar']
+        ) == [2, 'Foo', 'Bar']
+
     def test_basic_go(self, customers, sales, simple_data, gaps,
                       gaps_totals):
         p = ge.Preprocess()
@@ -83,11 +136,11 @@ class TestPreprocess:
 
     def test_custom_go(self):
         # Test custom preprocess step and header_func:
-        pr = pa.parser(
+        pr = ge.parser(
             lambda x: [str(x[0]), *x[1:]],
             requires_header=False
         )
-        hf = pa.parser(
+        hf = ge.parser(
             lambda x: x if x[0] == 'odd' else None,
             requires_header=False,
             breaks_loop=True
