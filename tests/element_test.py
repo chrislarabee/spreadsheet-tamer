@@ -1,6 +1,6 @@
 import pytest
 
-from datagenius.dataset import Dataset
+from datagenius.element import Dataset
 
 
 class TestDataset:
