@@ -5,7 +5,7 @@ setup(
     url='',
     author='Chris Larabee',
     author_email='chris.larabee9@gmail.com',
-    packages=['datagenius', 'io'],
+    packages=['datagenius', 'datagenius.io'],
     install_requires=['pandas', 'xlrd'],
     version=0.1,
     license='GNU',
