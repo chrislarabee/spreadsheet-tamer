@@ -1,6 +1,6 @@
 import pytest
 
-from datagenius.dataset import Dataset
+from datagenius.element import Dataset
 import datagenius.genius as ge
 
 
@@ -69,12 +69,25 @@ class TestGenius:
 
         # Test args:
         @ge.parser(requires_header=False, takes_args=True)
-        def simple_parser(x, y):
+        def arg_parser(x, y):
             return x if x[0] > y else None
         assert ge.Genius.loop(
-            d, simple_parser, parser_args={
-                'simple_parser': {'y': 2}}
+            d, arg_parser, parser_args={
+                'arg_parser': {'y': 2}}
         ) == [[3, 4, 5]]
+
+        # Test condition:
+        @ge.parser(requires_header=False, condition='0 <= 2')
+        def conditional_parser(x):
+            x.append(0)
+            return x
+        assert ge.Genius.loop(
+            d, conditional_parser
+        ) == [
+            [1, 2, 3, 0],
+            [2, 3, 4, 0],
+            [3, 4, 5]
+        ]
 
         with pytest.raises(ValueError,
                            match='decorated as parsers'):
@@ -83,6 +96,15 @@ class TestGenius:
         with pytest.raises(ValueError,
                            match='requires a header'):
             ge.Genius.loop(d, ge.parser(lambda x: x))
+
+    def test_eval_condition(self):
+        row = [1, 2, 3]
+        assert ge.Genius.eval_condition(row, '0 > 0')
+        assert not ge.Genius.eval_condition(row, '2 < 2')
+
+        row = {'a': 1, 'b': 'foo'}
+        assert ge.Genius.eval_condition(row, 'a == 1')
+        assert ge.Genius.eval_condition(row, "b != 'bar'")
 
 
 class TestPreprocess:

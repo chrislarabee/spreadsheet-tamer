@@ -1,16 +1,19 @@
+import re
+from collections import OrderedDict
 import functools
 
-import datagenius.dataset as ds
+import datagenius.element as e
 import datagenius.util as u
 
 
 def parser(func=None, *,
-           breaks_loop=False,
+           breaks_loop: bool = False,
            null_val=None,
-           requires_header=True,
-           set_parser=False,
-           takes_args=False,
-           uses_cache=False):
+           requires_header: bool = True,
+           set_parser: bool = False,
+           takes_args: bool = False,
+           uses_cache: bool = False,
+           condition: (str, None) = None):
     """
     Acts as a wrapper for other functions so that functions passed
     to Dataset.loop have all the necessary attributes for successfully
@@ -34,6 +37,10 @@ def parser(func=None, *,
             to reference the previous result of the parser to
             execute successfully. Cannot be True if set_parser
             is also True.
+        condition: A string in the format of a python conditional,
+            with the antecedent of the conditional being a key
+            or index that the parser function can find in the
+            data it is passed.
 
     Returns: Passed func, but decorated.
 
@@ -50,6 +57,7 @@ def parser(func=None, *,
         wrapper_parser.requires_header = requires_header
         wrapper_parser.set_parser = set_parser
         wrapper_parser.takes_args = takes_args
+        wrapper_parser.condition = condition
         if set_parser and uses_cache:
             raise ValueError('set_parsers cannot use cache.')
         else:
@@ -93,7 +101,7 @@ class Genius:
                                  f'functions as steps. Invalid '
                                  f'function={s.__name__}')
 
-    def go(self, dset: ds.Dataset, **options) -> ds.Dataset:
+    def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
         Runs the parser functions found on the Genius object
         in the order specified by self.order and then in the
@@ -124,7 +132,7 @@ class Genius:
         return wdset
 
     @staticmethod
-    def loop(dset: ds.Dataset, *parsers, one_return: bool = False,
+    def loop(dset: e.Dataset, *parsers, one_return: bool = False,
              parser_args: dict = None) -> (list or None):
         """
         Loops over all the rows in the passed Dataset and passes
@@ -163,7 +171,7 @@ class Genius:
                     raise ValueError('Passed parser requires a '
                                      'header, which this Dataset '
                                      'does not have yet.')
-                else:
+                elif Genius.eval_condition(row, p.condition):
                     if parser_args and p.takes_args:
                         p_args = parser_args.get(p.__name__)
                     else:
@@ -191,6 +199,64 @@ class Genius:
         else:
             return results
 
+    @staticmethod
+    def eval_condition(row: (list, OrderedDict),
+                       c: (str, None)) -> bool:
+        """
+        Takes a string formatted as a python conditional, with the
+        antecedent being an index/key found in row, and evaluates
+        if the value found at that location meets the condition
+        or not.
+
+        *** USE INNER QUOTES ON STRINGS WITHIN c! ***
+
+        Args:
+            row: A list or OrderedDict.
+            c: A string or None, which must be a python
+                conditional statement like "'key' == 'value'".
+
+        Returns: A boolean.
+
+        """
+        if c is None:
+            return True
+        else:
+            # First, handle strings contained within the c string:
+            quotes = ["'", '"']
+            consequent = None
+            for q in quotes:
+                quote_str = re.search(f'{q}.+{q}', c)
+                if quote_str is not None:
+                    consequent = quote_str.group()
+                    c = c[:quote_str.start()]
+                    break
+            # Now it's safe to split it:
+            components = c.split(' ')
+            if consequent is not None:
+                components[2] = consequent
+            if len(components) > 3:
+                raise ValueError(f'"{c}" is not a valid conditional')
+            else:
+                # Get key/index:
+                i = components[0]
+                # Make sure i is the proper data type for row's
+                # data type:
+                if isinstance(row, list):
+                    i = int(i)
+                antecedent = row[i]
+                # Make val a string that will pass eval:
+                if isinstance(antecedent, str):
+                    antecedent = '"' + antecedent + '"'
+                else:
+                    antecedent = str(antecedent)
+                components[0] = antecedent
+                print(components)
+                condition = ' '.join(components)
+            return eval(condition)
+
+# TODO: Add a Genius object that can deal with excel workbooks
+#       that have multiple sheets.
+
 
 class Preprocess(Genius):
     """
@@ -213,7 +279,7 @@ class Preprocess(Genius):
         super(Preprocess, self).__init__(
             *preprocess_steps)
 
-    def go(self, dset: ds.Dataset, **options) -> ds.Dataset:
+    def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
         Executes the preprocessing steps on the Dataset and then
         ensures the Dataset has a header.
@@ -328,6 +394,3 @@ class Preprocess(Genius):
                 if result[i] in (None, ''):
                     result[i] = cache[i]
         return result
-
-# TODO: Add a Genius object that can deal with excel workbooks
-#       that have multiple sheets.
