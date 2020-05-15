@@ -129,14 +129,15 @@ class Dataset(Element):
             d.header = self.header.copy()
         return d
 
-    def to_format(self, to: str):
+    def to_format(self, to: str) -> bool:
         """
         Triggers the passed format change.
 
         Args:
             to: A string found in format_funcs dict, below.
 
-        Returns:
+        Returns: A boolean indicating whether to_format
+            needed to execute a formatting function.
 
         """
         format_funcs = {
