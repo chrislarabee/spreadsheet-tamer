@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import pytest
 
 from datagenius.element import Dataset
@@ -38,8 +40,35 @@ def test_parser():
 
 
 class TestGenius:
-    def test_loop(self, simple_data):
-        # Test simple filtering loop:
+    def test_validate_steps(self):
+        parsers = (
+            ge.parser(lambda x: x + 1),
+            ge.parser(lambda y: y * 2)
+        )
+        assert tuple(ge.Genius.validate_steps(parsers)) == parsers
+        with pytest.raises(
+                ValueError, match='only take parser functions'):
+            ge.Genius.validate_steps(('string', parsers))
+            ge.Genius.validate_steps(('string', (1, *parsers)))
+
+        with pytest.raises(
+                ValueError, match='same value for requires_format'):
+            ge.Genius.validate_steps(((
+                ge.parser(lambda z: z ** 2, requires_format='lists'),
+                *parsers
+            ),))
+
+    def test_order_parsers(self):
+        x2 = ge.parser(lambda x: x)
+        x3 = ge.parser(lambda x: x - 1)
+        x1 = ge.parser(lambda x: x + 1, priority=11)
+
+        expected = [x1, x2, x3]
+
+        assert ge.Genius.order_parsers([x2, x3, x1]) == expected
+
+    def test_loop_dataset(self, simple_data):
+        # Test simple filtering loop_dataset:
         expected = [
             ['1', 'Yancy', 'Cordwainer', '00025'],
             ['2', 'Muhammad', 'El-Kanan', '00076'],
@@ -47,14 +76,14 @@ class TestGenius:
         ]
         d = Dataset(simple_data())
         p = ge.parser(lambda x: (x if len(x[2]) > 5 else None),
-                      requires_header=False)
-        assert ge.Genius.loop(d, p) == expected
+                      requires_format='lists')
+        assert ge.Genius.loop_dataset(d, p) == expected
 
-        # Test loop that generates new values:
+        # Test loop_dataset that generates new values:
         p = ge.parser(lambda x: 1 if len(x[2]) > 5 else 0,
-                      requires_header=False)
+                      requires_format='lists')
         expected = [0, 1, 1, 1, 0]
-        assert ge.Genius.loop(d, p) == expected
+        assert ge.Genius.loop_dataset(d, p) == expected
 
         # Test breaks_loop
         d = Dataset([
@@ -64,38 +93,30 @@ class TestGenius:
         ])
 
         p = ge.parser(lambda x: x if x[0] > 1 else None,
-                      requires_header=False, breaks_loop=True)
-        assert ge.Genius.loop(d, p) == [[2, 3, 4]]
+                      requires_format='lists', breaks_loop=True)
+        assert ge.Genius.loop_dataset(d, p) == [[2, 3, 4]]
 
         # Test args:
-        @ge.parser(requires_header=False, takes_args=True)
+        @ge.parser(requires_format='lists', takes_args=True)
         def arg_parser(x, y):
             return x if x[0] > y else None
-        assert ge.Genius.loop(
+        assert ge.Genius.loop_dataset(
             d, arg_parser, parser_args={
                 'arg_parser': {'y': 2}}
         ) == [[3, 4, 5]]
 
         # Test condition:
-        @ge.parser(requires_header=False, condition='0 <= 2')
+        @ge.parser(requires_format='lists', condition='0 <= 2')
         def conditional_parser(x):
             x.append(0)
             return x
-        assert ge.Genius.loop(
+        assert ge.Genius.loop_dataset(
             d, conditional_parser
         ) == [
             [1, 2, 3, 0],
             [2, 3, 4, 0],
             [3, 4, 5]
         ]
-
-        with pytest.raises(ValueError,
-                           match='decorated as parsers'):
-            ge.Genius.loop(d, lambda x: x + 1)
-
-        with pytest.raises(ValueError,
-                           match='requires a header'):
-            ge.Genius.loop(d, ge.parser(lambda x: x))
 
     def test_eval_condition(self):
         row = [1, 2, 3]
@@ -122,11 +143,6 @@ class TestPreprocess:
         # First test doesn't use pp to verify staticmethod status.
         assert ge.Preprocess.detect_header([1, 2, 3]) is None
         assert pp.detect_header(['a', 'b', 'c']) == ['a', 'b', 'c']
-
-    def test_extrapolate(self):
-        assert ge.Preprocess.extrapolate(
-            [2, None, None], [1, 2], [1, 'Foo', 'Bar']
-        ) == [2, 'Foo', 'Bar']
 
     def test_basic_go(self, customers, sales, simple_data, gaps,
                       gaps_totals):
@@ -160,11 +176,12 @@ class TestPreprocess:
         # Test custom preprocess step and header_func:
         pr = ge.parser(
             lambda x: [str(x[0]), *x[1:]],
-            requires_header=False
+            requires_format='lists'
         )
         hf = ge.parser(
             lambda x: x if x[0] == 'odd' else None,
-            requires_header=False,
+            set_parser=True,
+            requires_format='lists',
             breaks_loop=True
         )
         d = Dataset([
@@ -195,17 +212,26 @@ class TestPreprocess:
         ]
         assert d.header == ['a', 'b', 'c']
 
-    def test_go_w_extrapolate(self, needs_extrapolation):
-        d = Dataset(needs_extrapolation)
-        expected = [
-            [1, 'StrexCorp', 'Teeth'],
-            [2, 'StrexCorp', 'Radio Equipment'],
-            [3, 'KVX Bank', 'Bribe'],
-            [4, 'KVX Bank', 'Not candy or pens']
-        ]
 
-        assert ge.Preprocess().go(
-            d,
-            parser_args={'cleanse_gap': {'threshold': 1}},
-            extrapolate=['vendor_name']
-        ) == expected
+class TestClean:
+    def test_extrapolate(self):
+        assert ge.Clean.extrapolate(
+            OrderedDict(a=2, b=None, c= None),
+            ['b', 'c'],
+            OrderedDict(a=1, b='Foo', c='Bar')
+        ) == OrderedDict(a=2, b='Foo', c='Bar')
+
+#     def test_go_w_extrapolate(self, needs_extrapolation):
+#         d = Dataset(needs_extrapolation)
+#         expected = [
+#             [1, 'StrexCorp', 'Teeth'],
+#             [2, 'StrexCorp', 'Radio Equipment'],
+#             [3, 'KVX Bank', 'Bribe'],
+#             [4, 'KVX Bank', 'Not candy or pens']
+#         ]
+#
+#         assert ge.Preprocess().go(
+#             d,
+#             parser_args={'cleanse_gap': {'threshold': 1}},
+#             extrapolate=['vendor_name']
+#         ) == expected

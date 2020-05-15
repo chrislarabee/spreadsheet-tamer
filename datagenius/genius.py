@@ -9,15 +9,16 @@ import datagenius.util as u
 def parser(func=None, *,
            breaks_loop: bool = False,
            null_val=None,
-           requires_header: bool = True,
            set_parser: bool = False,
+           requires_format: str = 'dicts',
            takes_args: bool = False,
            uses_cache: bool = False,
-           condition: (str, None) = None):
+           condition: (str, None) = None,
+           priority: int = 10):
     """
     Acts as a wrapper for other functions so that functions passed
-    to Dataset.loop have all the necessary attributes for successfully
-    managing the loop.
+    to Genius.loop_dataset have all the necessary attributes for
+    successfully managing the loop.
 
     Args:
         func: A callable object.
@@ -25,12 +26,11 @@ def parser(func=None, *,
             successfully executes in a loop, the loop should break.
         null_val: Leave this as None unless you need your parser
             to return None on a successful execution.
-        requires_header: A boolean, indicates whether this parser
-            can be run in a Dataset that has had its header
-            row built (True) or not (False).
         set_parser: A boolean, indicates whether this parser can
             be run on a full Dataset or if it's meant to be run
             potentially with other parsers on each row in turn.
+        requires_format: A string, indicates what format this
+            parser needs the Dataset to be in to process it.
         takes_args: A boolean, indicates whether this parser can
             be run with arguments beyond one positional argument.
         uses_cache: A boolean, indicates whether this parser needs
@@ -41,6 +41,11 @@ def parser(func=None, *,
             with the antecedent of the conditional being a key
             or index that the parser function can find in the
             data it is passed.
+        priority: An integer indicating that this parser needs
+            to be executed at a specific time in a Genius object's
+            parser execution plan. Parsers at the same priority
+            will be placed in the plan in the order they are
+            passed to the Genius object on instantiation.
 
     Returns: Passed func, but decorated.
 
@@ -54,10 +59,11 @@ def parser(func=None, *,
         # Attributes of parser functions expected by other objects:
         wrapper_parser.breaks_loop = breaks_loop
         wrapper_parser.null_val = null_val
-        wrapper_parser.requires_header = requires_header
         wrapper_parser.set_parser = set_parser
+        wrapper_parser.requires_format = requires_format
         wrapper_parser.takes_args = takes_args
         wrapper_parser.condition = condition
+        wrapper_parser.priority = priority
         if set_parser and uses_cache:
             raise ValueError('set_parsers cannot use cache.')
         else:
@@ -77,35 +83,86 @@ class Genius:
     Provides methods and attributes to assist in creating
     transforms that are as smart and flexible as possible.
     """
-    def __init__(self, *steps, parse_order: tuple = ('set', 'row')):
+    def __init__(self, *steps):
         """
 
         Args:
-            *steps: Any number of parser functions.
-            parse_order: A tuple of strings that match attributes
-                found on the Genius object. Used to customize the
-                order in which the different types of parser
-                functions are executed by the Genius.
+            *steps: Any number of parser functions, or
+                lists/tuples of parser functions that should
+                be executed as a group.
         """
-        self.order = parse_order
-        self.set = []
-        self.row = []
-        for s in steps:
-            if u.validate_parser(s):
-                if s.set_parser:
-                    self.set.append(s)
+        self.steps = self.validate_steps(steps)
+
+    @staticmethod
+    def validate_steps(steps: tuple):
+        """
+        Ensures that the passed tuple of steps are all
+        parser functions, and that any sets of steps all expect
+        the same format for the Dataset they will process.
+
+        Args:
+            steps: A tuple of parser functions.
+
+        Returns: steps if they are all valid.
+
+        """
+        def _validation_loop(_steps, mono_format=False):
+            results = []
+            formats = set()
+            for s in _steps:
+                if u.validate_parser(s):
+                    formats.add(s.requires_format)
+                    results.append(s)
+                elif isinstance(s, (list, tuple)):
+                    results.append(_validation_loop(s, True))
                 else:
-                    self.row.append(s)
-            else:
-                raise ValueError(f'Genius objects only take parser'
-                                 f'functions as steps. Invalid '
-                                 f'function={s.__name__}')
+                    raise ValueError(
+                        f'Genius objects only take parser '
+                        f'functions as steps. Invalid '
+                        f'step={s}')
+            print(formats)
+            if len(formats) > 1 and mono_format:
+                raise ValueError(
+                    f'Sets of parsers must all have the '
+                    f'same value for requires_format. '
+                    f'requires_formats = {formats}'
+                )
+            return results
+        return _validation_loop(steps)
+
+    @staticmethod
+    def order_parsers(parsers: (list, tuple)):
+        """
+        Places a list/tuple of parsers in priority order.
+        Primarily used by objects that inherit from Genius and
+        which need to mix built in parsers with user-defined
+        parsers.
+
+        Args:
+            parsers: A list/tuple of parser functions.
+
+        Returns: The list of parsers in increasing priority
+            order.
+
+        """
+        result = [parsers[0]]
+        if len(parsers) > 1:
+            for p in parsers[1:]:
+                idx = -1
+                for j, r in enumerate(result):
+                    if p.priority > r.priority:
+                        idx = j
+                        break
+                if idx >= 0:
+                    result.insert(idx, p)
+                else:
+                    result.append(p)
+        return result
 
     def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
         Runs the parser functions found on the Genius object
-        in the order specified by self.order and then in the
-        order they're placed in in each attribute.
+        in order on the passed Dataset.
 
         Args:
             dset: A Dataset object.
@@ -115,7 +172,8 @@ class Genius:
                         overwrite the contents of dset with the
                         results of the loops.
                     parser_args: A dictionary containing parser_args
-                        for loop's use (see loop for more info).
+                        for loop_dataset's use (see loop_dataset
+                        for more info).
 
         Returns: The Dataset or a copy of it.
 
@@ -124,16 +182,20 @@ class Genius:
             wdset = dset
         else:
             wdset = dset.copy()
-        for step in self.order:
-            wdset.data = self.loop(
-                wdset, *self.__dict__[step],
+        for step in self.steps:
+            if u.validate_parser(step):
+                s = [step]
+            else:
+                s = step
+            wdset.data = self.loop_dataset(
+                wdset, *s,
                 parser_args=options.get('parser_args')
             )
         return wdset
 
     @staticmethod
-    def loop(dset: e.Dataset, *parsers, one_return: bool = False,
-             parser_args: dict = None) -> (list or None):
+    def loop_dataset(dset: e.Dataset, *parsers, one_return: bool = False,
+                     parser_args: dict = None) -> (list or None):
         """
         Loops over all the rows in the passed Dataset and passes
         each to the passed parsers.
@@ -141,7 +203,7 @@ class Genius:
         Args:
             dset: A Dataset object.
             parsers: One or more parser functions.
-            one_return: A boolean, tells loop that the
+            one_return: A boolean, tells loop_dataset that the
                 parsers will only result in a single
                 object to return, so no need to wrap it
                 in an outer list.
@@ -156,6 +218,12 @@ class Genius:
         """
         results = []
         cache = None
+        # loop_dataset can change the Datasets format using the format
+        # of the first parser in parsers if required:
+        first_format = parsers[0].requires_format
+        if dset.format != first_format:
+            dset.to_format(first_format)
+
         for i in dset:
             row = i.copy()
             passes_all = True
@@ -163,15 +231,7 @@ class Genius:
             # parser evaluates successfully:
             outer_break = False
             for p in parsers:
-                if not u.validate_parser(p):
-                    raise ValueError('Genius.loop can only take '
-                                     'functions decorated as '
-                                     'parsers.')
-                elif p.requires_header and dset.header is None:
-                    raise ValueError('Passed parser requires a '
-                                     'header, which this Dataset '
-                                     'does not have yet.')
-                elif Genius.eval_condition(row, p.condition):
+                if Genius.eval_condition(row, p.condition):
                     if parser_args and p.takes_args:
                         p_args = parser_args.get(p.__name__)
                     else:
@@ -235,7 +295,8 @@ class Genius:
             if consequent is not None:
                 components[2] = consequent
             if len(components) > 3:
-                raise ValueError(f'"{c}" is not a valid conditional')
+                raise ValueError(
+                    f'"{c}" is not a valid conditional')
             else:
                 # Get key/index:
                 i = components[0]
@@ -293,10 +354,6 @@ class Preprocess(Genius):
                         manually creating one.
                     header_func: A parser, used if you need to
                         overwrite the default detect_header parser.
-                    extrapolate: A list of strings corresponding to
-                        values in the Dataset's header. Any rows
-                        with nulls in those columns will get values
-                        from the previous row.
         Returns: The Dataset object, or a copy of it.
 
         """
@@ -304,25 +361,18 @@ class Preprocess(Genius):
         if options.get('manual_header'):
             wdset.header = options.get('manual_header')
         else:
-            wdset.header = self.loop(
+            wdset.header = self.loop_dataset(
                 wdset,
                 options.get('header_func', self.detect_header),
                 one_return=True
             )
             if wdset.header is not None:
                 wdset.remove(wdset.header)
-        extrp_cols = options.get('extrapolate')
-        if extrp_cols:
-            idxs = [wdset.header.index(e) for e in extrp_cols]
-            wdset = self.loop(
-                wdset,
-                self.extrapolate,
-                parser_args={'extrapolate': {'indices': idxs}}
-            )
         return wdset
 
     @staticmethod
-    @parser(requires_header=False, set_parser=True, takes_args=True)
+    @parser(requires_format='lists', set_parser=True,
+            takes_args=True)
     def cleanse_gap(x: list, threshold: int = None):
         """
         Checks a list to see if it has sufficient non-null values.
@@ -348,7 +398,7 @@ class Preprocess(Genius):
             return None
 
     @staticmethod
-    @parser(requires_header=False, breaks_loop=True,
+    @parser(requires_format='lists', breaks_loop=True,
             set_parser=True)
     def detect_header(x: list):
         """
@@ -369,28 +419,47 @@ class Preprocess(Genius):
         else:
             return None
 
+
+class Clean(Genius):
+    def __init__(self, *custom_steps, extrapolate: list = None):
+        """
+
+        Args:
+            *custom_steps:
+            extrapolate: A list of strings corresponding to
+                values in the Dataset's header. Any rows
+                with nulls in those columns will get values
+                from the previous row.
+        """
+
+        clean_steps = []
+        if extrapolate:
+            clean_steps.append(self.extrapolate)
+        clean_steps += custom_steps
+        super(Clean, self).__init__(clean_steps)
+
     @staticmethod
     @parser(takes_args=True, uses_cache=True)
-    def extrapolate(x: list, indices: list,
-                    cache: (list, None) = None):
+    def extrapolate(x: OrderedDict, cols: list,
+                    cache: OrderedDict = None):
         """
         Uses the values in a cached row to fill in values in the current
         row by index. Useful when your dataset has grouped rows.
 
         Args:
-            x: A list.
-            indices: A list of integers, indices found in x.
-            cache: A list, which contains values to be pulled by
-                index in indices into x. If cache is None,
-                extrapolate will just returns a copy of x.
+            x: An OrderedDict.
+            cols: A list of keys, which must be found in x.
+            cache: An OrderedDict, which contains values to be
+                pulled by key in cols into x. If cache is None,
+                extrapolate will just return a copy of x.
 
         Returns: x with null values overwritten with populated
-            values from the cached list.
+            values from the cached OrderedDict.
 
         """
         result = x.copy()
         if cache is not None:
-            for i in indices:
-                if result[i] in (None, ''):
-                    result[i] = cache[i]
+            for c in cols:
+                if result[c] in (None, ''):
+                    result[c] = cache[c]
         return result
