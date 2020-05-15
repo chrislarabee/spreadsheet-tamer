@@ -1,4 +1,5 @@
 import datagenius.util as u
+from datagenius.genius import parser
 
 
 def test_non_null_count():
@@ -10,3 +11,9 @@ def test_non_null_count():
 def test_true_str_count():
     assert u.true_str_count(['', '', '']) == 0
     assert u.true_str_count(['a', 'test', 1]) == 2
+
+
+def test_validate_parser():
+    assert not u.validate_parser('string')
+    assert u.validate_parser(parser(lambda x: x + 1))
+    assert not u.validate_parser(lambda x: x + 1)

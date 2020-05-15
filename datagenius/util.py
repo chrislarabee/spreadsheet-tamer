@@ -50,7 +50,7 @@ def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:
 
     """
     result = False
-    if attr in f.__dict__.keys():
-        if f.__getattribute__(attr) == match:
+    if hasattr(f, attr):
+        if getattr(f, attr) == match:
             result = True
     return result
