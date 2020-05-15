@@ -52,6 +52,10 @@ class TestDataset:
 
         assert d.to_dicts() == expected
         assert d.to_lists() == raw
+        assert d.to_format('dicts')
+        assert d == expected
+        assert d.to_format('lists')
+        assert d == raw
 
     def test_getitem(self):
         d = e.Dataset([
@@ -69,6 +73,15 @@ class TestDataset:
 
         assert d.index([1, 2, 3]) == 0
 
+    def test_comparison(self):
+        d = e.Dataset([
+            [1, 2, 3],
+            [4, 5, 6]
+        ])
+
+        assert d == [[1, 2, 3], [4, 5, 6]]
+        assert d != [[0, 0, 0], [9, 9, 9]]
+
 
 class TestMappingRule:
     def test_basics(self):
@@ -81,12 +94,12 @@ class TestMappingRule:
 class TestMapping:
     def test_init(self):
         t = ['a lot', 'of', 'columns', 'for sure']
-        expected = (
-            'a lot=(some more, default=None), '
-            'columns=(cols, default=None), '
-            'for sure=(here, default=1), '
-            'of=(None, default=None)'
-        )
+        expected = {
+            'a lot': {'to': 'some more', 'default': None},
+            'columns': {'to': 'cols', 'default': None},
+            'for sure': {'to': 'here', 'default': 1},
+            'of': {'to': None, 'default': None}
+        }
 
         m = e.Mapping(
             t,
@@ -96,7 +109,7 @@ class TestMapping:
              }
         )
 
-        assert str(m) == expected
+        assert m == expected
 
         with pytest.raises(
                 ValueError,

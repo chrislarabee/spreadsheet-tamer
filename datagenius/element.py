@@ -1,28 +1,99 @@
-import collections
+import collections as col
 from abc import ABC
 
 from datagenius.io import reader
 
 
-class Dataset(collections.abc.Sequence, ABC):
+class Element(col.abc.Sequence, ABC):
+    """
+    A superclass for Element objects, which allows implementation
+    of some methods needed by all the objects in this module.
+    """
+    def __init__(self, data: (list, dict, col.OrderedDict)):
+        """
+
+        Args:
+            data: A list, dict, or OrderedDict (depends on the
+                exact specifications of the Element child class).
+        """
+        self.data = data
+
+    def element_comparison(self, other,
+                           eq_result: bool = True) -> bool:
+        """
+        Whenever Element objects are compared to other Elements,
+        compare their object reference. Whenever they're compared
+        to any other objects, compare the Element's data attribute
+        to that object.
+
+        Args:
+            other: Any object.
+            eq_result: A boolean, switch to False when using
+                element_comparison to implement !=.
+
+        Returns: A boolean.
+
+        """
+        if isinstance(other, self.__class__):
+            if self.__repr__() == other.__repr__():
+                result = eq_result
+            else:
+                result = not eq_result
+        else:
+            if self.data == other:
+                result = eq_result
+            else:
+                result = not eq_result
+        return result
+
+    def __eq__(self, other) -> bool:
+        """
+        Overrides built-in object equality so that Elements
+        used in == statements compare the value in self.data
+        rather than the Element object itself.
+
+        Args:
+            other: Any object.
+
+        Returns: A boolean indicating whether the value of self.data
+            is equivalent to other.
+
+        """
+        return self.element_comparison(other)
+
+    def __ne__(self, other) -> bool:
+        """
+        Overrides built-in object inequality so that Elements
+        used in != statements compare the value in self.data
+        rather than the Element object itself.
+
+        Args:
+            other: Any object.
+
+        Returns: A  boolean indicating whether the value of self.data
+            is not equivalent to other.
+
+        """
+        return self.element_comparison(other, False)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class Dataset(Element):
     """
     A wrapper object for lists of lists. Datasets are the primary
     data-containing object for datagenius.
     """
-    def __init__(self, data: list, **kwargs):
+    def __init__(self, data: list):
         """
         Datasets must be instantiated with a list of lists.
 
         Args:
             data: A list of lists.
-            kwargs: Various ways to customize Dataset's behaviors.
-                Currently in use kwargs:
-                threshold: An integer, the number of
-                    non-null/blank values that a row must have to
-                    be included in the dataset. By default this will
-                    be the number of columns in the dataset - 1
-                    in order to automatically weed out obvious
-                    subtotal rows.
         """
         struct_error_msg = ('Dataset data must be instantiated as a ' \
                             'list of lists.')
@@ -34,7 +105,7 @@ class Dataset(collections.abc.Sequence, ABC):
                         raise ValueError(f'All rows must have the '
                                          f'same length. Invalid row= '
                                          f'{d}')
-                self.data = data
+                super(Dataset, self).__init__(data)
                 self.header = None
                 self.format = 'lists'
                 # Attributes to allow iteration.
@@ -57,6 +128,27 @@ class Dataset(collections.abc.Sequence, ABC):
         if self.header:
             d.header = self.header.copy()
         return d
+
+    def to_format(self, to: str):
+        """
+        Triggers the passed format change.
+
+        Args:
+            to: A string found in format_funcs dict, below.
+
+        Returns:
+
+        """
+        format_funcs = {
+            'dicts': self.to_dicts,
+            'lists': self.to_lists
+        }
+        prev_format = self.format
+        format_funcs[to]()
+        if prev_format != self.format:
+            return True
+        else:
+            return False
 
     @staticmethod
     def from_file(file_path: str):
@@ -115,7 +207,7 @@ class Dataset(collections.abc.Sequence, ABC):
         elif self.format == 'lists':
             results = []
             for row in self:
-                d = collections.OrderedDict()
+                d = col.OrderedDict()
                 for i, h in enumerate(self.header):
                     d[h] = row[i]
                 results.append(d)
@@ -142,58 +234,8 @@ class Dataset(collections.abc.Sequence, ABC):
             self.format = 'lists'
         return self
 
-    def __eq__(self, other) -> bool:
-        """
-        Overrides built-in object equality so that Datasets
-        used in == statements compare the list in self.data
-        rather than the Dataset object itself.
 
-        Args:
-            other: Any object.
-
-        Returns: A boolean indicating whether the value of self.data
-            is equivalent to other.
-
-        """
-        result = False
-        if isinstance(other, Dataset):
-            if self.__repr__() == other.__repr__():
-                result = True
-        else:
-            if self.data == other:
-                result = True
-        return result
-
-    def __getitem__(self, item):
-        return self.data[item]
-
-    def __len__(self):
-        return len(self.data)
-
-    def __ne__(self, other) -> bool:
-        """
-        Overrides built-in object inequality so that Dataset's
-        used in != statements compare the list in self.data
-        rather than the Dataset object itself.
-
-        Args:
-            other: Any object.
-
-        Returns: A  boolean indicating whether the value of self.data
-            is not equivalent to other.
-
-        """
-        result = False
-        if isinstance(other, Dataset):
-            if self.__repr__() != other.__repr__():
-                result = True
-        else:
-            if self.data != other:
-                result = True
-        return result
-
-
-class MappingRule:
+class MappingRule(Element):
     """
         A fairly simple object for encoding what string value an object
         corresponds to and what default value should be used if a given row
@@ -211,6 +253,8 @@ class MappingRule:
         """
         self.to = to
         self.default = default
+        super(MappingRule, self).__init__(
+            {'to': self.to, 'default': self.default})
 
     def __call__(self, value=None):
         """
@@ -231,13 +275,13 @@ class MappingRule:
         return self.to, v
 
 
-class Mapping:
+class Mapping(Element):
     """
     Provides a quick way for creating many MappingRules from
     a target format template and from explicitly detailed rules.
     """
     def __init__(self, template: (list, tuple),
-                 rules: (dict, collections.OrderedDict)):
+                 rules: (dict, col.OrderedDict)):
         """
         Args:
             template: A list or tuple of strings, the header
@@ -248,8 +292,8 @@ class Mapping:
                 which columns in a Dataset should map to which
                 columns in template.
         """
+        super(Mapping, self).__init__(dict())
         self.template = template
-        self.m = dict()
         """
         Don't be tempted to make rules into **rules! Too many
         datasets have column names with spaces in them, and your
@@ -269,34 +313,10 @@ class Mapping:
                                      f'objects. Bad kv pair: {k, v}')
             else:
                 r = v
-            self.m[k] = r
+            self.data[k] = r
 
         # Ensure all template keys are used even if they are not
         # mapped:
         for t in self.template:
-            if t not in self.m.keys():
-                self.m[t] = MappingRule()
-
-    def __getitem__(self, item: str):
-        """
-        Makes Mapping subscriptable.
-
-        Args:
-            item: A key in self.m.
-
-        Returns: The value at that key in self.m.
-
-        """
-        return self.m[item]
-
-    def __repr__(self):
-        """
-        Overrides basic __repr__, mostly just to ease testing.
-
-        Returns: A string containing the details of self.m's rules.
-
-        """
-        s = []
-        for k, v in self.m.items():
-            s.append(f'{k}=({v.to}, default={v.default})')
-        return ', '.join(s)
+            if t not in self.data.keys():
+                self.data[t] = MappingRule()
