@@ -215,7 +215,6 @@ class TestPreprocess:
         )
         hf = ge.parser(
             lambda x: x if x[0] == 'odd' else None,
-            set_parser=True,
             requires_format='lists',
             breaks_loop=True
         )
@@ -256,9 +255,16 @@ class TestClean:
             OrderedDict(a=1, b='Foo', c='Bar')
         ) == OrderedDict(a=2, b='Foo', c='Bar')
 
+    def test_clean_numeric_typos(self):
+        assert ge.Clean.clean_numeric_typos('1,9') == 1.9
+        assert ge.Clean.clean_numeric_typos('10.1q') == 10.1
+        assert ge.Clean.clean_numeric_typos('101q') == 101
+        assert ge.Clean.clean_numeric_typos('1q0.1q') == 10.1
+        assert ge.Clean.clean_numeric_typos('abc') == 'abc'
+
     def test_go_w_extrapolate(self, needs_extrapolation):
-        d = Dataset(needs_extrapolation)
-        d.header = ['product_id', 'vendor_name', 'product_name']
+        d = Dataset(needs_extrapolation[1])
+        d.header = needs_extrapolation[0]
         expected = [
             OrderedDict(
                 product_id=1, vendor_name='StrexCorp', product_name='Teeth'),
@@ -276,3 +282,27 @@ class TestClean:
             d,
             extrapolate=['vendor_name']
         ) == expected
+
+
+class TestExplore:
+    def test_types_report(self):
+        assert ge.Explore.types_report([1, 2, 3, '4']) == {
+            'str_pct': 0, 'num_pct': 1, 'probable_type': 'numeric'
+        }
+
+        assert ge.Explore.types_report([1, 2, 'x']) == {
+            'str_pct': 0.33, 'num_pct': 0.67, 'probable_type': 'numeric'
+        }
+
+        assert ge.Explore.types_report([1, 'x', 'y']) == {
+            'str_pct': 0.67, 'num_pct': 0.33, 'probable_type': 'string'
+        }
+
+    def test_uniques_report(self):
+        assert ge.Explore.uniques_report([1, 2, 3, 4]) == {
+            'unique_ct': 4, 'unique_values': 'primary_key'
+        }
+
+        assert ge.Explore.uniques_report(['x', 'x', 'y', 'y']) == {
+            'unique_ct': 2, 'unique_values': {'x', 'y'}
+        }

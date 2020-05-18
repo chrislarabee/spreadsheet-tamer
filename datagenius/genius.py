@@ -14,6 +14,7 @@ def parser(func=None, *,
            requires_format: str = 'dicts',
            takes_args: bool = False,
            uses_cache: bool = False,
+           uses_meta_data: bool = False,
            condition: (str, None) = None,
            priority: int = 10):
     """
@@ -27,9 +28,8 @@ def parser(func=None, *,
             successfully executes in a loop, the loop should break.
         null_val: Leave this as None unless you need your parser
             to return None on a successful execution.
-        set_parser: A boolean, indicates whether this parser can
-            be run on a full Dataset or if it's meant to be run
-            potentially with other parsers on each row in turn.
+        set_parser: A boolean, indicates whether this parser should be
+            run on the full dataset and not with a loop over the rows.
         requires_format: A string, indicates what format this
             parser needs the Dataset to be in to process it.
         takes_args: A boolean, indicates whether this parser can
@@ -38,6 +38,8 @@ def parser(func=None, *,
             to reference the previous result of the parser to
             execute successfully. Cannot be True if set_parser
             is also True.
+        uses_meta_data: A boolean, indicates wehther this parser needs
+            to reference the meta_data attribute of the dataset.
         condition: A string in the format of a python conditional,
             with the antecedent of the conditional being a key
             or index that the parser function can find in the
@@ -65,6 +67,7 @@ def parser(func=None, *,
         wrapper_parser.takes_args = takes_args
         wrapper_parser.condition = condition
         wrapper_parser.priority = priority
+        wrapper_parser.uses_meta_data = uses_meta_data
         if set_parser and uses_cache:
             raise ValueError('set_parsers cannot use cache.')
         else:
@@ -218,7 +221,6 @@ class Genius:
         else:
             return parsers
 
-
     def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
         Runs the parser functions found on the Genius object
@@ -243,14 +245,17 @@ class Genius:
         else:
             wdset = dset.copy()
         for step in self.steps:
-            if u.validate_parser(step):
-                s = [step]
+            if u.validate_parser(step, 'set_parser'):
+                step(wdset)
             else:
-                s = step
-            wdset.data = self.loop_dataset(
-                wdset, *s,
-                parser_args=options.get('parser_args')
-            )
+                if u.validate_parser(step):
+                    s = [step]
+                else:
+                    s = step
+                wdset.data = self.loop_dataset(
+                    wdset, *s,
+                    parser_args=options.get('parser_args')
+                )
         return wdset
 
     @staticmethod
@@ -298,6 +303,8 @@ class Genius:
                         p_args = dict()
                     if p.uses_cache and cache is not None:
                         p_args['cache'] = cache
+                    if p.uses_meta_data:
+                        p_args['meta_data'] = dset.meta_data
                     parse_result = p(row, **p_args)
                     if parse_result != p.null_val:
                         row = parse_result
@@ -318,6 +325,23 @@ class Genius:
                 return None
         else:
             return results
+
+    @staticmethod
+    def get_column(dset: e.Dataset, column: str) -> list:
+        """
+        Gathers all the values in a given column of a Dataset.
+
+        Args:
+            dset: A Dataset object.
+            column: A string, a value in dset.header.
+
+        Returns: A list of values from the column.
+
+        """
+        return Genius.loop_dataset(
+            dset,
+            parser(lambda x: x[column])
+        )
 
     @staticmethod
     def eval_condition(row: (list, col.OrderedDict),
@@ -430,8 +454,7 @@ class Preprocess(Genius):
         return wdset
 
     @staticmethod
-    @parser(requires_format='lists', set_parser=True,
-            takes_args=True)
+    @parser(requires_format='lists', takes_args=True)
     def cleanse_gap(x: list, threshold: int = None):
         """
         Checks a list to see if it has sufficient non-null values.
@@ -457,8 +480,7 @@ class Preprocess(Genius):
             return None
 
     @staticmethod
-    @parser(requires_format='lists', breaks_loop=True,
-            set_parser=True)
+    @parser(requires_format='lists', breaks_loop=True)
     def detect_header(x: list):
         """
         Checks a list to see if it contains only strings. If it
@@ -480,6 +502,10 @@ class Preprocess(Genius):
 
 
 class Clean(Genius):
+    """
+    A Genius designed to clean up typos, type errors, and basically
+    any other bad data entry in a Preprocessed Dataset.
+    """
     def __init__(self, *custom_steps):
         """
 
@@ -538,3 +564,119 @@ class Clean(Genius):
                 if result[c] in (None, ''):
                     result[c] = cache[c]
         return result
+
+    @staticmethod
+    @parser(uses_meta_data=True)
+    def clean_typos(x: dict, meta_data: dict):
+        typo_funcs = {
+            'numeric': Clean.clean_numeric_typos
+        }
+        result = dict()
+        for k, v in x.items():
+            f = typo_funcs.get(
+                meta_data[k]['probable_type'],
+                lambda y: y
+            )
+            result[k] = f(v)
+        return result
+
+    @staticmethod
+    def clean_numeric_typos(value: str) -> (float, str):
+        """
+        Attempts to turn a string which might be a number with typos in
+        it into a number. Should only be used on columns that you are
+        confident *should* be entirely numbers, as it will remove
+        any non-numerals or periods from the passed string
+
+        Args:
+            value: A string.
+
+        Returns: A float or the string.
+
+        """
+        result = value
+        if not result.isnumeric():
+            result = result.replace(',', '.')
+            result = ''.join(re.findall(r'[0-9]+|\.', result))
+            try:
+                result = float(result)
+            except ValueError:
+                result = value
+        return result
+
+
+class Explore(Genius):
+    def __init__(self, *custom_steps):
+        self.report_steps = [
+            self.uniques_report,
+            self.types_report,
+            *custom_steps
+        ]
+        super(Explore, self).__init__()
+
+    def go(self, dset: e.Dataset, **options) -> e.Dataset:
+        for v in dset.header:
+            column = self.get_column(dset, v)
+            for rs in self.report_steps:
+                dset.update_meta_data(v, **rs(column))
+        return dset
+
+    @staticmethod
+    def types_report(column: list) -> dict:
+        """
+        Takes a list and creates a dictionary report on the types of
+        data found in the list.
+
+        Args:
+            column: A list.
+
+        Returns: A dictionary of meta_data about the list's data types.
+
+        """
+        types = []
+        for val in column:
+            if isinstance(val, (float, int)):
+                types.append(1)
+            elif isinstance(val, str):
+                types.append(1 if val.isnumeric() else 0)
+            else:
+                types.append(0)
+        type_sum = sum(types)
+        value_ct = len(column)
+        str_pct = round((value_ct - type_sum) / value_ct, 2)
+        num_pct = round(type_sum / value_ct, 2)
+        if num_pct > str_pct:
+            prob_type = 'numeric'
+        elif str_pct > num_pct:
+            prob_type = 'string'
+        else:
+            prob_type = 'uncertain'
+        return {
+            'str_pct': str_pct,
+            'num_pct': num_pct,
+            'probable_type': prob_type
+        }
+
+    @staticmethod
+    def uniques_report(column: list) -> dict:
+        """
+        Takes a list and creates a dictionary report on the unique
+        values of data found in the list.
+
+        Args:
+            column: A list.
+
+        Returns: A dictionary of meta_data about the list's unique
+            values.
+
+        """
+        uniques = set(column)
+        unique_ct = len(uniques)
+        if len(uniques) == len(column):
+            unique_vals = 'primary_key'
+        else:
+            unique_vals = uniques
+        return {
+            'unique_ct': unique_ct,
+            'unique_values': unique_vals
+        }
