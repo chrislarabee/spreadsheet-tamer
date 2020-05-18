@@ -239,7 +239,7 @@ class Dataset(Element):
             self.format = 'lists'
         return self
 
-    def update_meta_data(self, column: str, md_col: str, value) -> None:
+    def update_meta_data(self, column: str, **kwargs) -> None:
         """
         Convenience function for updating the Dataset's meta_data
         attribute, since a Dataset's meta_data may or may not be
@@ -248,16 +248,15 @@ class Dataset(Element):
 
         Args:
             column: A string.
-            md_col: A string.
-            value: The value to be assigned to the meta_data
-                dictionary.
+            **kwargs: Any number of key-value pairs, which will be
+                added to the meta_data for the passed column.
 
         Returns: None
 
         """
         if not self.meta_data.get(column):
             self.meta_data[column] = dict()
-        self.meta_data[column][md_col] = value
+        self.meta_data[column] = {**self.meta_data[column], **kwargs}
 
 
 class MappingRule(Element):

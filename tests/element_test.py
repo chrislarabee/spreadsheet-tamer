@@ -88,8 +88,12 @@ class TestDataset:
             [4, 5, 6]
         ])
 
-        d.update_meta_data('test', 'a', 1)
+        d.update_meta_data('test', a=1)
         assert d.meta_data['test']['a'] == 1
+        d.update_meta_data('test', b=2, c=3)
+        assert d.meta_data['test'] == {
+            'a': 1, 'b': 2, 'c': 3
+        }
 
 
 class TestMappingRule:
