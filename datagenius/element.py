@@ -95,7 +95,7 @@ class Dataset(Element):
         Args:
             data: A list of lists.
         """
-        struct_error_msg = ('Dataset data must be instantiated as a ' \
+        struct_error_msg = ('Dataset data must be instantiated as a '
                             'list of lists.')
         if isinstance(data, list):
             if isinstance(data[0], list):
@@ -108,6 +108,8 @@ class Dataset(Element):
                 super(Dataset, self).__init__(data)
                 self.header = None
                 self.format = 'lists'
+                # Stores results from Explore objects.
+                self.meta_data = dict()
                 # Attributes to allow iteration.
                 self.cur_idx = -1
                 self.max_idx = len(data)
@@ -234,6 +236,26 @@ class Dataset(Element):
             self.data = results
             self.format = 'lists'
         return self
+
+    def update_meta_data(self, column: str, md_col: str, value) -> None:
+        """
+        Convenience function for updating the Dataset's meta_data
+        attribute, since a Dataset's meta_data may or may not be
+        populate with the particular column that meta_data is
+        being collected on.
+
+        Args:
+            column: A string.
+            md_col: A string.
+            value: The value to be assigned to the meta_data
+                dictionary.
+
+        Returns: None
+
+        """
+        if not self.meta_data.get(column):
+            self.meta_data[column] = dict()
+        self.meta_data[column][md_col] = value
 
 
 class MappingRule(Element):

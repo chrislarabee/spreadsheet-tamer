@@ -82,6 +82,15 @@ class TestDataset:
         assert d == [[1, 2, 3], [4, 5, 6]]
         assert d != [[0, 0, 0], [9, 9, 9]]
 
+    def test_update_meta_data(self):
+        d = e.Dataset([
+            [1, 2, 3],
+            [4, 5, 6]
+        ])
+
+        d.update_meta_data('test', 'a', 1)
+        assert d.meta_data['test']['a'] == 1
+
 
 class TestMappingRule:
     def test_basics(self):
