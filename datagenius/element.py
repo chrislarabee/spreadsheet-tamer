@@ -88,12 +88,14 @@ class Dataset(Element):
     A wrapper object for lists of lists. Datasets are the primary
     data-containing object for datagenius.
     """
-    def __init__(self, data: list):
+    def __init__(self, data: list, header: list = None):
         """
         Datasets must be instantiated with a list of lists.
 
         Args:
             data: A list of lists.
+            header: A list, the header of the Dataset. Mostly used as a
+                convenience attribute for testing.
         """
         struct_error_msg = ('Dataset data must be instantiated as a '
                             'list of lists.')
@@ -106,7 +108,7 @@ class Dataset(Element):
                                          f'same length. Invalid row= '
                                          f'{d}')
                 super(Dataset, self).__init__(data)
-                self.header = None
+                self.header = header
                 self.format = 'lists'
                 # Stores results from Explore objects.
                 self.meta_data = dict()
