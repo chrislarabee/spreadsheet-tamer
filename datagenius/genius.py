@@ -1,6 +1,7 @@
 import re
-from collections import OrderedDict
+import collections as col
 import functools
+from abc import ABC
 
 import datagenius.element as e
 import datagenius.util as u
@@ -77,6 +78,69 @@ def parser(func=None, *,
         return decorator_parser(func)
 
 
+class ParserSubset(col.abc.MutableSequence, ABC):
+    """
+    If a single Genius needs to take a subset of parsers, use a
+    ParserSubset to group them and ensure they can still be properly
+    ordered among the Genius' other parsers.
+    """
+    def __init__(self, *data, priority: int = 10):
+        """
+
+        Args:
+            *data: Any number of parser functions.
+            priority: An integer, indicates the priority this subset of
+                parsers should take in a Genius object's parsing order.
+        """
+        self.data = self.validate_steps(data)
+        self.priority = priority
+
+    @staticmethod
+    def validate_steps(steps: tuple):
+        """
+        Ensures that the passed tuple of steps are all
+        parser functions, and that any sets of steps all expect
+        the same format for the Dataset they will process.
+
+        Args:
+            steps: A tuple of parser functions.
+
+        Returns: steps if they are all valid.
+
+        """
+        results = []
+        formats = set()
+        for s in steps:
+            if u.validate_parser(s):
+                formats.add(s.requires_format)
+                results.append(s)
+            else:
+                raise ValueError(
+                    f'ParserSubset objects only take parser functions. '
+                    f'Invalid object={s}')
+        if len(formats) > 1:
+            raise ValueError(
+                f'ParserSubset parsers must all have the same value '
+                f'for requires_format. requires_formats = {formats}'
+            )
+        return results
+
+    def insert(self, key: int, value: parser):
+        self.data.insert(key, value)
+
+    def __delitem__(self, key: int):
+        self.data.remove(key)
+
+    def __getitem__(self, item: int):
+        return self.data[item]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __setitem__(self, key: int, value: parser):
+        self.data[key] = value
+
+
 class Genius:
     """
     The base class for pre-built and custom genius objects.
@@ -106,29 +170,21 @@ class Genius:
         Returns: steps if they are all valid.
 
         """
-        def _validation_loop(_steps, mono_format=False):
-            results = []
-            formats = set()
-            for s in _steps:
-                if u.validate_parser(s):
-                    formats.add(s.requires_format)
-                    results.append(s)
-                elif isinstance(s, (list, tuple)):
-                    results.append(_validation_loop(s, True))
-                else:
-                    raise ValueError(
-                        f'Genius objects only take parser '
-                        f'functions as steps. Invalid '
-                        f'step={s}')
-            print(formats)
-            if len(formats) > 1 and mono_format:
+        results = []
+        for s in steps:
+            if hasattr(s, 'priority'):
+                results.append(s)
+            elif isinstance(s, (list, tuple)):
                 raise ValueError(
-                    f'Sets of parsers must all have the '
-                    f'same value for requires_format. '
-                    f'requires_formats = {formats}'
+                    f'If you are trying to use a subset of parsers pass'
+                    f'a ParserSubset object instead of a list/tuple. '
+                    f'Invalid step={s}.'
                 )
-            return results
-        return _validation_loop(steps)
+            else:
+                raise ValueError(
+                    f'Genius objects only take parser functions or '
+                    f'ParserSubsets as steps. Invalid step={s}')
+        return results
 
     @staticmethod
     def order_parsers(parsers: (list, tuple)):
@@ -260,7 +316,7 @@ class Genius:
             return results
 
     @staticmethod
-    def eval_condition(row: (list, OrderedDict),
+    def eval_condition(row: (list, col.OrderedDict),
                        c: (str, None)) -> bool:
         """
         Takes a string formatted as a python conditional, with the
@@ -440,8 +496,8 @@ class Clean(Genius):
 
     @staticmethod
     @parser(takes_args=True, uses_cache=True)
-    def extrapolate(x: OrderedDict, cols: list,
-                    cache: OrderedDict = None):
+    def extrapolate(x: col.OrderedDict, cols: list,
+                    cache: col.OrderedDict = None):
         """
         Uses the values in a cached row to fill in values in the current
         row by index. Useful when your dataset has grouped rows.

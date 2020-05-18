@@ -39,24 +39,59 @@ def test_parser():
     assert p(3) == 4
 
 
+class TestParserSubset:
+    def test_general(self):
+        parsers = (
+            ge.parser(lambda x: x + 1),
+            ge.parser(lambda y: y * 2)
+        )
+
+        subset = ge.ParserSubset(*parsers)
+        assert tuple(subset) == parsers
+
+        assert [*subset] == list(parsers)
+
+    def test_validate_steps(self):
+        parsers = (
+            ge.parser(lambda x: x + 1),
+            ge.parser(lambda y: y * 2)
+        )
+        assert tuple(ge.ParserSubset.validate_steps(parsers)) == parsers
+        with pytest.raises(
+            ValueError, match='only take parser functions'
+        ):
+            ge.ParserSubset.validate_steps(('string', parsers))
+
+        with pytest.raises(
+                ValueError, match='same value for requires_format'):
+            ge.ParserSubset.validate_steps((
+                ge.parser(lambda z: z ** 2, requires_format='lists'),
+                *parsers
+            ))
+
+
 class TestGenius:
     def test_validate_steps(self):
         parsers = (
             ge.parser(lambda x: x + 1),
             ge.parser(lambda y: y * 2)
         )
-        assert tuple(ge.Genius.validate_steps(parsers)) == parsers
+        subset = ge.ParserSubset(*parsers)
+        assert tuple(ge.Genius.validate_steps(
+            (*parsers, subset))) == (*parsers, subset)
         with pytest.raises(
-                ValueError, match='only take parser functions'):
+            ValueError,
+            match='only take parser functions or ParserSubset'
+        ):
             ge.Genius.validate_steps(('string', parsers))
-            ge.Genius.validate_steps(('string', (1, *parsers)))
 
         with pytest.raises(
-                ValueError, match='same value for requires_format'):
-            ge.Genius.validate_steps(((
-                ge.parser(lambda z: z ** 2, requires_format='lists'),
-                *parsers
-            ),))
+            ValueError, match='ParserSubset object'
+        ):
+            ge.Genius.validate_steps((
+                ge.parser(lambda z: z * 10),
+                parsers
+            ))
 
     def test_order_parsers(self):
         x2 = ge.parser(lambda x: x)
