@@ -102,7 +102,6 @@ def gaps_totals():
 @pytest.fixture
 def needs_extrapolation():
     return [
-        ['product_id', 'vendor_name', 'product_name'],
         [1, 'StrexCorp', 'Teeth'],
         [2, '', 'Radio Equipment'],
         [3, 'KVX Bank', 'Bribe'],

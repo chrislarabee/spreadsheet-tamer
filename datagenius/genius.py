@@ -176,7 +176,7 @@ class Genius:
                 results.append(s)
             elif isinstance(s, (list, tuple)):
                 raise ValueError(
-                    f'If you are trying to use a subset of parsers pass'
+                    f'If you are trying to use a subset of parsers pass '
                     f'a ParserSubset object instead of a list/tuple. '
                     f'Invalid step={s}.'
                 )
@@ -201,19 +201,23 @@ class Genius:
             order.
 
         """
-        result = [parsers[0]]
-        if len(parsers) > 1:
-            for p in parsers[1:]:
-                idx = -1
-                for j, r in enumerate(result):
-                    if p.priority > r.priority:
-                        idx = j
-                        break
-                if idx >= 0:
-                    result.insert(idx, p)
-                else:
-                    result.append(p)
-        return result
+        if len(parsers) > 0:
+            result = [parsers[0]]
+            if len(parsers) > 1:
+                for p in parsers[1:]:
+                    idx = -1
+                    for j, r in enumerate(result):
+                        if p.priority > r.priority:
+                            idx = j
+                            break
+                    if idx >= 0:
+                        result.insert(idx, p)
+                    else:
+                        result.append(p)
+            return result
+        else:
+            return parsers
+
 
     def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
@@ -367,7 +371,6 @@ class Genius:
                 else:
                     antecedent = str(antecedent)
                 components[0] = antecedent
-                print(components)
                 condition = ' '.join(components)
             return eval(condition)
 
@@ -477,26 +480,42 @@ class Preprocess(Genius):
 
 
 class Clean(Genius):
-    def __init__(self, *custom_steps, extrapolate: list = None):
+    def __init__(self, *custom_steps):
         """
 
         Args:
-            *custom_steps:
-            extrapolate: A list of strings corresponding to
-                values in the Dataset's header. Any rows
-                with nulls in those columns will get values
-                from the previous row.
+            *custom_steps: Any number of parser functions or
+                ParserSubsets.
         """
+        super(Clean, self).__init__(*self.order_parsers(custom_steps))
 
-        clean_steps = []
-        if extrapolate:
-            clean_steps.append(self.extrapolate)
-        clean_steps += custom_steps
-        super(Clean, self).__init__(clean_steps)
+    def go(self, dset: e.Dataset, **options) -> e.Dataset:
+        """
+        Executes the clean steps on the Dataset.
+
+        Args:
+            dset: A Dataset object.
+            **options: Keywords for customizing the functionality of go.
+                Currently in use keywords:
+                    extrapolate: A list/tuple of strings corresponding
+                        to columns iin the Dataset, which will trigger
+                        Clean to add its extrapolate parser to its
+                        steps and pass the strings in extrapolate to it.
+
+        Returns: The Dataset object, or a copy of it.
+
+        """
+        parser_args = dict()
+        if options.get('extrapolate'):
+            parser_args['extrapolate'] = {'cols': options.get('extrapolate')}
+            self.steps.append(self.extrapolate)
+        options = {**options, 'parser_args': parser_args}
+        self.steps = self.order_parsers(self.steps)
+        return super(Clean, self).go(dset, **options)
 
     @staticmethod
     @parser(takes_args=True, uses_cache=True)
-    def extrapolate(x: col.OrderedDict, cols: list,
+    def extrapolate(x: col.OrderedDict, cols: (list, tuple),
                     cache: col.OrderedDict = None):
         """
         Uses the values in a cached row to fill in values in the current

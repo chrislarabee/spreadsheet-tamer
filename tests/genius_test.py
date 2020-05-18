@@ -256,17 +256,23 @@ class TestClean:
             OrderedDict(a=1, b='Foo', c='Bar')
         ) == OrderedDict(a=2, b='Foo', c='Bar')
 
-#     def test_go_w_extrapolate(self, needs_extrapolation):
-#         d = Dataset(needs_extrapolation)
-#         expected = [
-#             [1, 'StrexCorp', 'Teeth'],
-#             [2, 'StrexCorp', 'Radio Equipment'],
-#             [3, 'KVX Bank', 'Bribe'],
-#             [4, 'KVX Bank', 'Not candy or pens']
-#         ]
-#
-#         assert ge.Preprocess().go(
-#             d,
-#             parser_args={'cleanse_gap': {'threshold': 1}},
-#             extrapolate=['vendor_name']
-#         ) == expected
+    def test_go_w_extrapolate(self, needs_extrapolation):
+        d = Dataset(needs_extrapolation)
+        d.header = ['product_id', 'vendor_name', 'product_name']
+        expected = [
+            OrderedDict(
+                product_id=1, vendor_name='StrexCorp', product_name='Teeth'),
+            OrderedDict(
+                product_id=2, vendor_name='StrexCorp',
+                product_name='Radio Equipment'),
+            OrderedDict(
+                product_id=3, vendor_name='KVX Bank', product_name='Bribe'),
+            OrderedDict(
+                product_id=4, vendor_name='KVX Bank',
+                product_name='Not candy or pens')
+        ]
+
+        assert ge.Clean().go(
+            d,
+            extrapolate=['vendor_name']
+        ) == expected
