@@ -4,7 +4,7 @@ from datagenius.io.odbc import ODBConnector
 import datagenius.element as e
 
 # These tests all share a single ODBConnector.
-p = 'tests/samples/test.db'
+p = 'tests/samples/odbc_test.db'
 o = ODBConnector()
 o._db_path = p
 

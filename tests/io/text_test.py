@@ -29,7 +29,7 @@ def test_read_sheet(simple_data, gaps_totals):
 
 
 def test_write_csv():
-    p = 'tests/samples/test.csv'
+    p = 'tests/samples/text_test.csv'
     d = [
         {'id': '0001', 'name': 'Herman'},
         {'id': '0002', 'name': 'Fatima'}
@@ -40,4 +40,4 @@ def test_write_csv():
         ['0001', 'Herman'],
         ['0002', 'Fatima']
     ]
-    assert text.read_csv(p)['test'] == expected
+    assert text.read_csv(p)['text_test'] == expected
