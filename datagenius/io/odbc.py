@@ -36,6 +36,28 @@ class ODBConnector:
         self._tables[table].create(self.engine)
         self._schemas[table] = schema
 
+    def drop_tbl(self, table: str) -> bool:
+        """
+        Drops the passed table from the connected db.
+
+        Args:
+            table: A string, the name of a table in the connected db
+                and the ODBConnector's attributes.
+
+        Returns: A boolean indicating whether the table was found and
+            deleted.
+
+        """
+        if self._tables.get(table) is not None:
+            t = self._tables[table]
+            t.drop(self.engine)
+            t.metadata.remove(t)
+            self._tables.pop(table)
+            self._schemas.pop(table)
+            return True
+        else:
+            return False
+
     def insert(self, table: str, records, schema=None) -> None:
         """
         Takes the records in a list or DataFrame and inserts them into

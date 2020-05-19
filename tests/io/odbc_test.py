@@ -16,7 +16,7 @@ class TestODBConnector:
         o.setup(p)
         assert os.path.exists(p)
 
-    def test_new_table(self):
+    def test_new_tbl(self):
         sales_schema = dict(
             location=str,
             region=str,
@@ -29,5 +29,10 @@ class TestODBConnector:
         d = e.Dataset(sales[1], sales[0])
         o.insert('sales', d.to_dicts())
         assert o.select('sales') == d
+
+    def test_drop_tbl(self):
+        assert o.drop_tbl('sales')
+        assert o._tables.get('sales') is None
+        assert o._schemas.get('sales') is None
 
 

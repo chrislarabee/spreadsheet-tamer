@@ -1,6 +1,9 @@
+import os
+
 import pytest
 
 import datagenius.element as e
+from datagenius.io import odbc
 
 
 class TestDataset:
@@ -94,6 +97,35 @@ class TestDataset:
         assert d.meta_data['test'] == {
             'a': 1, 'b': 2, 'c': 3
         }
+
+    def test_to_file_sqlite(self, sales):
+        d = e.Dataset(sales[1], sales[0])
+        # No meta_data should raise an error:
+        with pytest.raises(ValueError, match='Discrepancy between meta'):
+            d.to_file('tests/samples', 'sales')
+        # Now add meta_data:
+        d.meta_data = dict(
+            location=dict(prob_type='string'),
+            region=dict(prob_type='string'),
+            sales=dict(prob_type='integer')
+        )
+        o = odbc.ODBConnector()
+        d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
+        d2 = e.Dataset(o.select('sales'))
+        assert d2.data == d.data
+
+    def test_to_file_csv(self, customers, simple_data):
+        p = 'tests/samples/customers.csv'
+        if os.path.exists(p):
+            os.remove(p)
+        d = e.Dataset(customers[1], customers[0])
+        d.to_file('tests/samples', 'customers', to='csv')
+        d2 = e.Dataset.from_file(p)
+        assert d2.data == simple_data()
+
+
+
+
 
 
 class TestMappingRule:

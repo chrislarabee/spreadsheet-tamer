@@ -1,7 +1,8 @@
 import collections as col
+import os
 from abc import ABC
 
-from datagenius.io import text
+from datagenius.io import text, odbc
 
 
 class Element(col.abc.Sequence, ABC):
@@ -98,25 +99,28 @@ class Dataset(Element):
                 convenience attribute for testing.
         """
         struct_error_msg = ('Dataset data must be instantiated as a '
-                            'list of lists.')
+                            'list of lists or OrderedDicts.')
+        self.header = None
+        self.format = None
+        # Stores results from Explore objects.
+        self.meta_data = dict()
         if isinstance(data, list):
-            if isinstance(data[0], list):
-                self.col_ct = len(data[0])
-                for d in data:
-                    if len(d) != self.col_ct:
-                        raise ValueError(f'All rows must have the '
-                                         f'same length. Invalid row= '
-                                         f'{d}')
-                super(Dataset, self).__init__(data)
+            row1 = data[0]
+            self.col_ct = len(row1)
+            if isinstance(row1, list):
                 self.header = header
                 self.format = 'lists'
-                # Stores results from Explore objects.
-                self.meta_data = dict()
-                # Attributes to allow iteration.
-                self.cur_idx = -1
-                self.max_idx = len(data)
+            elif isinstance(row1, col.OrderedDict):
+                self.header = list(row1.keys())
+                self.format = 'dicts'
             else:
                 raise ValueError(struct_error_msg)
+            for row in data:
+                if len(row) != self.col_ct:
+                    raise ValueError(f'All rows must have the '
+                                     f'same length. Invalid row= '
+                                     f'{row}')
+            super(Dataset, self).__init__(data)
         else:
             raise ValueError(struct_error_msg)
 
@@ -257,6 +261,59 @@ class Dataset(Element):
         if not self.meta_data.get(column):
             self.meta_data[column] = dict()
         self.meta_data[column] = {**self.meta_data[column], **kwargs}
+
+    def to_file(self, dir_path: str, output_name: str, to: str = 'sqlite',
+                **options):
+        """
+        Converts the dataset into dicts format and then writes its data
+        to a local sqlite db or to a csv file.
+
+        Args:
+            dir_path: A string, the directory to locate the sqlite db
+                or csv file.
+            output_name: A string, the name of the csv file or table in
+                the sqlite db to use.
+            to: A string, either 'sqlite' or 'csv'.
+            **options: Key-value options to alter to_file's behavior.
+                Currently in use options:
+                    db_conn: An io.odbc.ODBConnector object if you have
+                        one already, otherwise to_file will create one.
+                    db_name: A string to specifically name the db to
+                        output to. Default is 'datasets'
+
+        Returns:
+
+        """
+        self.to_dicts()
+        f, ext = os.path.splitext(output_name)
+        if to == 'csv':
+            ext = 'csv' if ext == '' else ext
+            p = os.path.join(dir_path, f + '.' + ext)
+            text.write_csv(p, self.data, self.header)
+        elif to == 'sqlite':
+            p = os.path.join(dir_path, options.get('db_name', 'datasets') + '.db')
+            type_map = {
+                'numeric': float,
+                'string': str,
+                'integer': int
+            }
+            if len(self.meta_data) != len(self.header):
+                raise ValueError(
+                    'Discrepancy between meta_data and header. Pass '
+                    'this Dataset through genius.Explore to generate '
+                    'meta_data or supply prob_type meta_data for each '
+                    'column manually.')
+            else:
+                schema = {
+                    k: type_map[v['prob_type']] for k, v in self.meta_data.items()}
+                o = options.get('db_conn', odbc.ODBConnector())
+                o.setup(p)
+                o.drop_tbl(f)
+                o.insert(f, self, schema)
+        else:
+            raise ValueError(
+                f'Unrecognized "to": {to}'
+            )
 
 
 class MappingRule(Element):
