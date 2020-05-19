@@ -293,6 +293,7 @@ class Dataset(Element):
         elif to == 'sqlite':
             p = os.path.join(dir_path, options.get('db_name', 'datasets') + '.db')
             type_map = {
+                'uncertain': str,
                 'numeric': float,
                 'string': str,
                 'integer': int

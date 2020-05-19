@@ -105,7 +105,7 @@ class TestDataset:
             d.to_file('tests/samples', 'sales')
         # Now add meta_data:
         d.meta_data = dict(
-            location=dict(probable_type='string'),
+            location=dict(probable_type='uncertain'),
             region=dict(probable_type='string'),
             sales=dict(probable_type='integer')
         )
