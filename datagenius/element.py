@@ -305,7 +305,7 @@ class Dataset(Element):
                     'column manually.')
             else:
                 schema = {
-                    k: type_map[v['prob_type']] for k, v in self.meta_data.items()}
+                    k: type_map[v['probable_type']] for k, v in self.meta_data.items()}
                 o = options.get('db_conn', odbc.ODBConnector())
                 o.setup(p)
                 o.drop_tbl(f)

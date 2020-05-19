@@ -105,9 +105,9 @@ class TestDataset:
             d.to_file('tests/samples', 'sales')
         # Now add meta_data:
         d.meta_data = dict(
-            location=dict(prob_type='string'),
-            region=dict(prob_type='string'),
-            sales=dict(prob_type='integer')
+            location=dict(probable_type='string'),
+            region=dict(probable_type='string'),
+            sales=dict(probable_type='integer')
         )
         o = odbc.ODBConnector()
         d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
