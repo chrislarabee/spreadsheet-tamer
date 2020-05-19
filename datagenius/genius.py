@@ -398,6 +398,18 @@ class Genius:
                 condition = ' '.join(components)
             return eval(condition)
 
+    def display_execute_plan(self) -> None:
+        """
+        Prints the step names in the Genius' steps attribute so the
+        end-user can QA prioritization.
+
+        Returns: None
+
+        """
+        print('priority\tstep name')
+        for s in self.steps:
+            print(f'{s.priority}\t\t\t{s.__name__}')
+
 # TODO: Add a Genius object that can deal with excel workbooks
 #       that have multiple sheets.
 
@@ -606,7 +618,18 @@ class Clean(Genius):
 
 
 class Explore(Genius):
+    """
+    A Genius designed to create meta_data for a Dataset and help guide
+    creation of Clean steps.
+    """
     def __init__(self, *custom_steps):
+        """
+
+        Args:
+            *custom_steps: Any number of functions, which must take a
+                single list argument.
+        """
+
         self.report_steps = [
             self.uniques_report,
             self.types_report,
@@ -615,6 +638,16 @@ class Explore(Genius):
         super(Explore, self).__init__()
 
     def go(self, dset: e.Dataset, **options) -> e.Dataset:
+        """
+        Executes the explore steps on the Dataset.
+
+        Args:
+            dset: A Dataset object.
+            **options: Keywords for customizing the functionality of go.
+                Currently in use keywords:
+
+        Returns: The Dataset object, or a copy of it.
+        """
         for v in dset.header:
             column = self.get_column(dset, v)
             for rs in self.report_steps:
