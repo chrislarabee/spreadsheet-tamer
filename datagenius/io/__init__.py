@@ -1,3 +1,3 @@
-from . import reader, odbc
+from . import text, odbc
 
-__all__ = ['reader', 'odbc']
+__all__ = ['text.py', 'odbc']

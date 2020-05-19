@@ -1,7 +1,7 @@
 import collections as col
 from abc import ABC
 
-from datagenius.io import reader
+from datagenius.io import text
 
 
 class Element(col.abc.Sequence, ABC):
@@ -170,7 +170,7 @@ class Dataset(Element):
             data, it will return a Dataset object.
 
         """
-        raw = reader.read_file(file_path)
+        raw = text.read_file(file_path)
         if len(raw.keys()) == 1:
             return Dataset(list(raw.values())[0])
         else:
