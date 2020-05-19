@@ -96,3 +96,24 @@ def read_sheet(sheet: xlrd.sheet) -> list:
             row.append(sheet.cell_value(i, j))
         result.append(row)
     return result
+
+
+def write_csv(file_path: str, data: list, header: list) -> None:
+    """
+    Simple csv writing function.
+
+    Args:
+        file_path: A valid file path to write to.
+        data: A list of dictionaries.
+        header: A list of strings to use as the header row.
+
+    Returns: None
+
+    """
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    with open(file_path, 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=header)
+        w.writeheader()
+        for d in data:
+            w.writerow(d)
