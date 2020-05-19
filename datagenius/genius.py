@@ -676,8 +676,12 @@ class Explore(Genius):
                 types.append(0)
         type_sum = sum(types)
         value_ct = len(column)
-        str_pct = round((value_ct - type_sum) / value_ct, 2)
-        num_pct = round(type_sum / value_ct, 2)
+        if value_ct > 0:
+            str_pct = round((value_ct - type_sum) / value_ct, 2)
+            num_pct = round(type_sum / value_ct, 2)
+        else:
+            str_pct = 0
+            num_pct = 0
         if num_pct > str_pct:
             prob_type = 'numeric'
         elif str_pct > num_pct:

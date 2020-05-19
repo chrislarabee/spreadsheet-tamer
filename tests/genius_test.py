@@ -298,6 +298,10 @@ class TestExplore:
             'str_pct': 0.67, 'num_pct': 0.33, 'probable_type': 'string'
         }
 
+        assert ge.Explore.types_report([]) == {
+            'str_pct': 0, 'num_pct': 0, 'probable_type': 'uncertain'
+        }
+
     def test_uniques_report(self):
         assert ge.Explore.uniques_report([1, 2, 3, 4]) == {
             'unique_ct': 4, 'unique_values': 'primary_key'
