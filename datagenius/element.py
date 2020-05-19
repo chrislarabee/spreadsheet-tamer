@@ -102,6 +102,8 @@ class Dataset(Element):
                             'list of lists or OrderedDicts.')
         self.header = None
         self.format = None
+        # Stores rows when parsers reject them and need to store them:
+        self.rejects = []
         # Stores results from Explore objects.
         self.meta_data = dict()
         if isinstance(data, list):
@@ -315,6 +317,63 @@ class Dataset(Element):
             raise ValueError(
                 f'Unrecognized "to": {to}'
             )
+
+    def meta_data_report(self, *options):
+        width, height = os.get_terminal_size()
+        wp = 0
+
+        def _compare_widest_printout(x):
+            nonlocal wp
+            wp = len(x) if len(x) > wp else wp
+            return x
+
+        if '-v' in options:
+            list_limit = 10
+        elif '-vv' in options:
+            list_limit = None
+        else:
+            list_limit = 5
+        printouts = []
+        for k, v in self.meta_data.items():
+            printout = [k]
+            _compare_widest_printout(k)
+            for md_k, md_v in v.items():
+                _compare_widest_printout(md_k)
+                if isinstance(md_v, (list, tuple)):
+                    printout.append(md_k)
+                    md_v = [
+                        _compare_widest_printout('\t' + str(i)) for i in md_v[0:list_limit]
+                    ]
+                else:
+                    _compare_widest_printout(f'{md_k}: {md_v}')
+                printout.append((md_k, md_v))
+            printouts.append(printout)
+        title = ' Dataset Meta Data '
+        top_border = '=' * int((width - len(title)) / 2)
+        bot_border = '=' * width
+        features = [
+            f'Dataset size=({len(self.data)} x {self.col_ct})',
+            f'# Rejected rows={len(self.rejects)}',
+            # f'# Values in rejected rows={sum([1 if ])}'
+        ]
+        print(f'{top_border}{title}{top_border}')
+        row = ''
+        features_printed = False
+        for f in features:
+            r = row + f'{f}\t|\t'
+            if len(r) + 8 >= width:
+                print(row)
+                row = ''
+                features_printed = False
+            else:
+                row = r
+        else:
+            if not features_printed:
+                print(row)
+        print(bot_border)
+
+
+
 
 
 class MappingRule(Element):

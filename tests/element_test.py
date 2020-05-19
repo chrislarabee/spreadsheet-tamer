@@ -124,10 +124,6 @@ class TestDataset:
         assert d2.data == simple_data()
 
 
-
-
-
-
 class TestMappingRule:
     def test_basics(self):
         mr = e.MappingRule('test_col', 1234)

@@ -16,7 +16,8 @@ def parser(func=None, *,
            uses_cache: bool = False,
            uses_meta_data: bool = False,
            condition: (str, None) = None,
-           priority: int = 10):
+           priority: int = 10,
+           collect_rejects: bool = False):
     """
     Acts as a wrapper for other functions so that functions passed
     to Genius.loop_dataset have all the necessary attributes for
@@ -49,6 +50,9 @@ def parser(func=None, *,
             parser execution plan. Parsers at the same priority
             will be placed in the plan in the order they are
             passed to the Genius object on instantiation.
+        collect_rejects: A boolean indicating that this parser's
+            rejected rows should be collected in the Dataset's rejects
+            attribute.
 
     Returns: Passed func, but decorated.
 
@@ -68,6 +72,7 @@ def parser(func=None, *,
         wrapper_parser.condition = condition
         wrapper_parser.priority = priority
         wrapper_parser.uses_meta_data = uses_meta_data
+        wrapper_parser.collect_rejects = collect_rejects
         if set_parser and uses_cache:
             raise ValueError('set_parsers cannot use cache.')
         else:
@@ -312,6 +317,8 @@ class Genius:
                             outer_break = p.breaks_loop
                             break
                     else:
+                        if p.collect_rejects:
+                            dset.rejects.append(row)
                         passes_all = False
             if passes_all:
                 results.append(row)
@@ -466,7 +473,7 @@ class Preprocess(Genius):
         return wdset
 
     @staticmethod
-    @parser(requires_format='lists', takes_args=True)
+    @parser(requires_format='lists', takes_args=True, collect_rejects=True)
     def cleanse_gap(x: list, threshold: int = None):
         """
         Checks a list to see if it has sufficient non-null values.

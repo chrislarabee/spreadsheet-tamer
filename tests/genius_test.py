@@ -187,6 +187,7 @@ class TestPreprocess:
         assert r == d
         assert r == customers[1]
         assert d.header == customers[0]
+        assert d.rejects == []
 
         d = Dataset(gaps)
         r = p.go(d, overwrite=False)
@@ -194,11 +195,26 @@ class TestPreprocess:
         assert r != d
         assert d.header is None
         assert r.header == customers[0]
+        assert r.rejects == [
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', '']
+        ]
 
         d = Dataset(gaps_totals)
         r = p.go(d)
         assert r == sales[1]
         assert r.header == sales[0]
+        assert r.rejects == [
+            ['Sales by Location Report', '', ''],
+            ['Grouping: Region', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', 800],
+            ['', '', 1200]
+        ]
 
         # Sanity check to ensure threshold works:
         d = Dataset(gaps)
