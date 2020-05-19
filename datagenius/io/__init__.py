@@ -1,3 +1,3 @@
-from . import reader
+from . import reader, odbc
 
-__all__ = ['reader']
+__all__ = ['reader', 'odbc']
