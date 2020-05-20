@@ -311,6 +311,30 @@ class TestClean:
 
 
 class TestExplore:
+    def test_go(self):
+        d = Dataset([
+            [1, 2, 'a'],
+            [4, 5, 'b'],
+            [None, 7, 'c']
+        ])
+
+        ge.Explore().go(d)
+
+        assert d.meta_data == {
+            '1': {
+                'unique_ct': 2, 'unique_values': 'primary_key', 'str_pct': 0.0,
+                'num_pct': 1.0, 'probable_type': 'numeric'
+            },
+            '2': {
+                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
+                'num_pct': 1.0, 'probable_type': 'numeric'
+            },
+            '3': {
+                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 1.0,
+                'num_pct': 0.0, 'probable_type': 'string'
+            }
+        }
+
     def test_types_report(self):
         assert ge.Explore.types_report([1, 2, 3, '4']) == {
             'str_pct': 0, 'num_pct': 1, 'probable_type': 'numeric'
