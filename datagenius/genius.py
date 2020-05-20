@@ -302,6 +302,8 @@ class Genius:
             outer_break = False
             for p in parsers:
                 if Genius.eval_condition(row, p.condition):
+                    # TODO: Change this handling so parser_args can be
+                    #       passed as kwargs.
                     if parser_args and p.takes_args:
                         p_args = parser_args.get(p.__name__)
                     else:
@@ -334,20 +336,22 @@ class Genius:
             return results
 
     @staticmethod
-    def get_column(dset: e.Dataset, column: str) -> list:
+    def get_column(dset: e.Dataset, column: (str, int)) -> list:
         """
         Gathers all the values in a given column of a Dataset.
 
         Args:
             dset: A Dataset object.
-            column: A string, a value in dset.header.
+            column: A string, a value in dset.header, or an integer, a
+                column index.
 
         Returns: A list of values from the column.
 
         """
+        _format = 'lists' if isinstance(column, int) else 'dicts'
         return Genius.loop_dataset(
             dset,
-            parser(lambda x: x[column])
+            parser(lambda x: x[column], requires_format=_format)
         )
 
     @staticmethod
@@ -519,6 +523,8 @@ class Preprocess(Genius):
         else:
             return None
 
+    # TODO: Add a parser to convert '' to None.
+
 
 class Clean(Genius):
     """
@@ -655,11 +661,28 @@ class Explore(Genius):
 
         Returns: The Dataset object, or a copy of it.
         """
-        for v in dset.header:
+        for v in self.gen_dset_header(dset):
             column = self.get_column(dset, v)
             for rs in self.report_steps:
-                dset.update_meta_data(v, **rs(column))
+                dset.update_meta_data(str(v), **rs(column))
         return dset
+
+    @staticmethod
+    def gen_dset_header(dset: e.Dataset) -> list:
+        """
+        Gets the header of the passed Dataset object or creates a temp
+        header to apply meta_data to.
+
+        Args:
+            dset: A Dataset object.
+
+        Returns: A list of strings as long as the dset is wide.
+
+        """
+        if len(dset.header) > 0:
+            return dset.header
+        else:
+            return [i for i in range(1, dset.col_ct + 1)]
 
     @staticmethod
     def types_report(column: list) -> dict:

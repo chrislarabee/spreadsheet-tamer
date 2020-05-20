@@ -153,6 +153,16 @@ class TestGenius:
             [3, 4, 5]
         ]
 
+    def test_get_column(self):
+        d = Dataset([
+            [1, 2, 3],
+            [4, 5, 6]
+        ])
+        assert ge.Genius.get_column(d, 0) == [1, 4]
+
+        d.header = ['a', 'b', 'c']
+        assert ge.Genius.get_column(d, 'b') == [2, 5]
+
     def test_eval_condition(self):
         row = [1, 2, 3]
         assert ge.Genius.eval_condition(row, '0 > 0')
