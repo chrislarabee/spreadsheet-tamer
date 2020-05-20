@@ -24,10 +24,10 @@ def test_parser():
     assert g.breaks_loop
     assert g.null_val is None
 
-    # Check set_parser/uses_cache conflict:
+    # Check set parser/uses cache conflict:
     with pytest.raises(ValueError,
-                       match='set_parsers cannot use cache'):
-        ge.parser(lambda x: x + 1, uses_cache=True, set_parser=True)
+                       match='Set parsers cannot use cache'):
+        ge.parser(lambda x: x + 1, uses='cache', parses='set')
 
     # Sanity check to ensure pre-built parsers work:
     assert not ge.Preprocess.cleanse_gap.breaks_loop
@@ -69,6 +69,13 @@ class TestParserSubset:
                 *parsers
             ))
 
+        with pytest.raises(
+                ValueError, match='same value for parses'):
+            ge.ParserSubset.validate_steps((
+                ge.parser(lambda w: w / 100, parses='set'),
+                *parsers
+            ))
+
 
 class TestGenius:
     def test_validate_steps(self):
@@ -102,8 +109,33 @@ class TestGenius:
 
         assert ge.Genius.order_parsers([x2, x3, x1]) == expected
 
-    def test_loop_dataset(self, simple_data):
-        # Test simple filtering loop_dataset:
+    def test_apply_parsers(self):
+        d = Dataset([
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9]
+        ])
+        # Test simple binary filtering parser:
+        p = ge.parser(lambda x: x if x[1] <= 2 else None,
+                      requires_format='lists', collect_rejects=True)
+        assert ge.Genius.apply_parsers(
+            d[0], p) == (False, True, True, [1, 2, 3])
+        assert ge.Genius.apply_parsers(
+            d[1], p) == (False, False, True, [4, 5, 6])
+
+        # Test evaluative parser with args:
+        p = ge.parser(lambda x, threshold: 1 if x[2] > threshold else 0,
+                      requires_format='lists')
+        assert ge.Genius.apply_parsers(
+            d[0], p, threshold=5) == (False, True, False, 0)
+        assert ge.Genius.apply_parsers(
+            d[1], p, threshold=5) == (False, True, False, 1)
+        # Ensure apply_parsers can handle parser_args:
+        assert ge.Genius.apply_parsers(
+            d[2], p, threshold=9, unused_kwarg=True) == (False, True, False, 0)
+
+    def test_loop_rows(self, simple_data):
+        # Test simple filtering loop_rows:
         expected = [
             ['1', 'Yancy', 'Cordwainer', '00025'],
             ['2', 'Muhammad', 'El-Kanan', '00076'],
@@ -112,13 +144,13 @@ class TestGenius:
         d = Dataset(simple_data())
         p = ge.parser(lambda x: (x if len(x[2]) > 5 else None),
                       requires_format='lists')
-        assert ge.Genius.loop_dataset(d, p) == expected
+        assert ge.Genius.loop_rows(d, p) == expected
 
-        # Test loop_dataset that generates new values:
+        # Test loop_rows that generates new values:
         p = ge.parser(lambda x: 1 if len(x[2]) > 5 else 0,
                       requires_format='lists')
         expected = [0, 1, 1, 1, 0]
-        assert ge.Genius.loop_dataset(d, p) == expected
+        assert ge.Genius.loop_rows(d, p) == expected
 
         # Test breaks_loop
         d = Dataset([
@@ -129,29 +161,17 @@ class TestGenius:
 
         p = ge.parser(lambda x: x if x[0] > 1 else None,
                       requires_format='lists', breaks_loop=True)
-        assert ge.Genius.loop_dataset(d, p) == [[2, 3, 4]]
+        assert ge.Genius.loop_rows(d, p) == [[2, 3, 4]]
 
         # Test args:
-        @ge.parser(requires_format='lists', takes_args=True)
-        def arg_parser(x, y):
-            return x if x[0] > y else None
-        assert ge.Genius.loop_dataset(
-            d, arg_parser, parser_args={
-                'arg_parser': {'y': 2}}
-        ) == [[3, 4, 5]]
+        p = ge.parser(lambda x, y: x if x[0] > y else None,
+                      requires_format='lists')
+        assert ge.Genius.loop_rows(d, p, y=2) == [[3, 4, 5]]
 
         # Test condition:
-        @ge.parser(requires_format='lists', condition='0 <= 2')
-        def conditional_parser(x):
-            x.append(0)
-            return x
-        assert ge.Genius.loop_dataset(
-            d, conditional_parser
-        ) == [
-            [1, 2, 3, 0],
-            [2, 3, 4, 0],
-            [3, 4, 5]
-        ]
+        p = ge.parser(lambda x: x[0] + 1, requires_format='lists',
+                      condition='0 <= 2')
+        assert ge.Genius.loop_rows(d, p) == [2, 3, [3, 4, 5]]
 
     def test_get_column(self):
         d = Dataset([
@@ -228,9 +248,7 @@ class TestPreprocess:
 
         # Sanity check to ensure threshold works:
         d = Dataset(gaps)
-        r = p.go(
-            d, parser_args={'cleanse_gap': {'threshold': 0}},
-            manual_header=['a', 'b', 'c', 'd'])
+        r = p.go(d, threshold=0, manual_header=['a', 'b', 'c', 'd'])
         assert r == gaps
 
     def test_custom_go(self):
@@ -276,7 +294,7 @@ class TestPreprocess:
 class TestClean:
     def test_extrapolate(self):
         assert ge.Clean.extrapolate(
-            OrderedDict(a=2, b=None, c= None),
+            OrderedDict(a=2, b=None, c=None),
             ['b', 'c'],
             OrderedDict(a=1, b='Foo', c='Bar')
         ) == OrderedDict(a=2, b='Foo', c='Bar')

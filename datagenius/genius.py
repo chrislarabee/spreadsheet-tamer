@@ -1,3 +1,4 @@
+import inspect
 import re
 import collections as col
 import functools
@@ -10,17 +11,16 @@ import datagenius.util as u
 def parser(func=None, *,
            breaks_loop: bool = False,
            null_val=None,
-           set_parser: bool = False,
+           parses: str = 'row',
            requires_format: str = 'dicts',
            takes_args: bool = False,
-           uses_cache: bool = False,
-           uses_meta_data: bool = False,
+           uses: (list, str, None) = None,
            condition: (str, None) = None,
            priority: int = 10,
            collect_rejects: bool = False):
     """
     Acts as a wrapper for other functions so that functions passed
-    to Genius.loop_dataset have all the necessary attributes for
+    to Genius.loop_rows have all the necessary attributes for
     successfully managing the loop.
 
     Args:
@@ -29,18 +29,21 @@ def parser(func=None, *,
             successfully executes in a loop, the loop should break.
         null_val: Leave this as None unless you need your parser
             to return None on a successful execution.
-        set_parser: A boolean, indicates whether this parser should be
-            run on the full dataset and not with a loop over the rows.
+        parses: A string, indicates whether this parser expects to
+            receive a 'row' of a Dataset, a 'column' of a Dataset, or
+            'set' for the entire Dataset.
         requires_format: A string, indicates what format this
             parser needs the Dataset to be in to process it.
         takes_args: A boolean, indicates whether this parser can
             be run with arguments beyond one positional argument.
-        uses_cache: A boolean, indicates whether this parser needs
-            to reference the previous result of the parser to
-            execute successfully. Cannot be True if set_parser
-            is also True.
-        uses_meta_data: A boolean, indicates wehther this parser needs
-            to reference the meta_data attribute of the dataset.
+        uses: A string or list of strings, which indicate that this
+            parser needs to reference certain pieces of data outside
+            the row/column/set. In-built values:
+                cache: Indicates this parser needs to reference the
+                    previous result of the parser. Cannot be included
+                    if parses is not 'row'.
+                meta_data: Indicates this parser needs to reference the
+                    meta_data attribute of the Dataset.
         condition: A string in the format of a python conditional,
             with the antecedent of the conditional being a key
             or index that the parser function can find in the
@@ -64,19 +67,26 @@ def parser(func=None, *,
         def wrapper_parser(*args, **kwargs):
             return _func(*args, **kwargs)
         # Attributes of parser functions expected by other objects:
+        wrapper_parser.args = inspect.getfullargspec(_func).args
         wrapper_parser.breaks_loop = breaks_loop
         wrapper_parser.null_val = null_val
-        wrapper_parser.set_parser = set_parser
+        valid_parses = ['row', 'column', 'set']
+        if parses not in valid_parses:
+            raise ValueError(
+                f'Invalid parses passed: {parses}. Must pass one of '
+                f'{valid_parses}')
+        else:
+            wrapper_parser.parses = parses
         wrapper_parser.requires_format = requires_format
         wrapper_parser.takes_args = takes_args
         wrapper_parser.condition = condition
         wrapper_parser.priority = priority
-        wrapper_parser.uses_meta_data = uses_meta_data
         wrapper_parser.collect_rejects = collect_rejects
-        if set_parser and uses_cache:
-            raise ValueError('set_parsers cannot use cache.')
+        _uses = [uses] if not isinstance(uses, list) else uses
+        if parses == 'set' and 'cache' in _uses:
+            raise ValueError('Set parsers cannot use cache.')
         else:
-            wrapper_parser.uses_cache = uses_cache
+            wrapper_parser.uses = _uses
         wrapper_parser.is_parser = True
         return wrapper_parser
     # Allows parser to be used without arguments:
@@ -118,19 +128,22 @@ class ParserSubset(col.abc.MutableSequence, ABC):
         """
         results = []
         formats = set()
+        parses = set()
         for s in steps:
             if u.validate_parser(s):
+                parses.add(s.parses)
                 formats.add(s.requires_format)
                 results.append(s)
             else:
                 raise ValueError(
                     f'ParserSubset objects only take parser functions. '
                     f'Invalid object={s}')
+        msg = ('ParserSubset parsers must all have the same value for '
+               '{0}. {0} = {1}')
         if len(formats) > 1:
-            raise ValueError(
-                f'ParserSubset parsers must all have the same value '
-                f'for requires_format. requires_formats = {formats}'
-            )
+            raise ValueError(msg.format('requires_format', formats))
+        if len(parses) > 1:
+            raise ValueError(msg.format('parses', parses))
         return results
 
     def insert(self, key: int, value: parser):
@@ -239,7 +252,7 @@ class Genius:
                         overwrite the contents of dset with the
                         results of the loops.
                     parser_args: A dictionary containing parser_args
-                        for loop_dataset's use (see loop_dataset
+                        for loop_rows's use (see loop_rows
                         for more info).
 
         Returns: The Dataset or a copy of it.
@@ -249,23 +262,72 @@ class Genius:
             wdset = dset
         else:
             wdset = dset.copy()
+
         for step in self.steps:
-            if u.validate_parser(step, 'set_parser'):
+            if u.validate_parser(step, 'parses', 'set'):
                 step(wdset)
             else:
                 if u.validate_parser(step):
                     s = [step]
                 else:
                     s = step
-                wdset.data = self.loop_dataset(
+                wdset.data = self.loop_rows(
                     wdset, *s,
-                    parser_args=options.get('parser_args')
+                    **options
                 )
         return wdset
 
     @staticmethod
-    def loop_dataset(dset: e.Dataset, *parsers, one_return: bool = False,
-                     parser_args: dict = None) -> (list or None):
+    def apply_parsers(x: (list, col.OrderedDict), *parsers, **parser_args):
+        """
+        Applies an arbitrary number of parsers to an object and returns the
+        results.
+
+        Args:
+           x: A list or OrderedDict.
+            *parsers: Any number of parser functions.
+            **parser_args: Any number of kwargs. Keys that match the
+                keyword arguments used by the parsers will be passed to
+                them.
+
+        Returns: A tuple containing the following:
+            A boolean indicating whether to break any loop that
+                apply parsers is in:
+            A boolean indicating whether x passed through all the
+                parsers successfully.
+            A boolean indicating whether, if x did not pass through all
+                the parsers successfully, it should be collected in
+                its parent Dataset's rejects set.
+            And finally, x.
+
+        """
+        cache = parser_args.get('cache')
+        meta_data = parser_args.get('meta_data')
+        _break = False
+        passes_all = True
+        collect_reject = False
+        for p in parsers:
+            if Genius.eval_condition(x, p.condition):
+                if p.collect_rejects:
+                    collect_reject = True
+                _break = p.breaks_loop
+                p_args = {k: v for k, v in parser_args.items() if k in p.args}
+                if 'cache' in p.uses and cache is not None:
+                    p_args['cache'] = cache
+                if 'meta_data' in p.uses and meta_data not in (None, {}):
+                    p_args['meta_data'] = meta_data
+                parse_result = p(x, **p_args)
+                if parse_result != p.null_val:
+                    x = parse_result
+                    if _break:
+                        break
+                else:
+                    passes_all = False
+        return _break, passes_all, collect_reject, x
+
+    @staticmethod
+    def loop_rows(dset: e.Dataset, *parsers, one_return: bool = False,
+                  **parser_args) -> (list or None):
         """
         Loops over all the rows in the passed Dataset and passes
         each to the passed parsers.
@@ -273,65 +335,43 @@ class Genius:
         Args:
             dset: A Dataset object.
             parsers: One or more parser functions.
-            one_return: A boolean, tells loop_dataset that the
-                parsers will only result in a single
-                object to return, so no need to wrap it
-                in an outer list.
-            parser_args: A dictionary containing keys matching
-                the names of any of the parser functions, with
-                each key being assigned a kwargs dictionary that
-                the parser function can accept.
+            one_return: A boolean, tells loop_rows that the parsers
+                will only result in a single object to return, so no
+                need to wrap it in an outer list.
+            parser_args: A dictionary containing keys matching the
+                names of any of the parser functions, with each key
+                being assigned a kwargs dictionary that the parser
+                function can accept.
 
         Returns: A list containing the results of the parsers'
             evaluation of each row in dset.
 
         """
         results = []
-        cache = None
-        # loop_dataset can change the Datasets format using the format
+        # loop_rows can change the Datasets format using the format
         # of the first parser in parsers if required:
         first_format = parsers[0].requires_format
         if dset.format != first_format:
             dset.to_format(first_format)
 
+        parser_args['cache'] = None
+        parser_args['meta_data'] = dset.meta_data
+
         for i in dset:
             row = i.copy()
-            passes_all = True
-            # Used to break the outer loop too if a breaks_loop
-            # parser evaluates successfully:
-            outer_break = False
-            for p in parsers:
-                if Genius.eval_condition(row, p.condition):
-                    # TODO: Change this handling so parser_args can be
-                    #       passed as kwargs.
-                    if parser_args and p.takes_args:
-                        p_args = parser_args.get(p.__name__)
-                    else:
-                        p_args = dict()
-                    if p.uses_cache and cache is not None:
-                        p_args['cache'] = cache
-                    if p.uses_meta_data:
-                        p_args['meta_data'] = dset.meta_data
-                    parse_result = p(row, **p_args)
-                    if parse_result != p.null_val:
-                        row = parse_result
-                        if p.breaks_loop:
-                            outer_break = p.breaks_loop
-                            break
-                    else:
-                        if p.collect_rejects:
-                            dset.rejects.append(row)
-                        passes_all = False
+            outer_break, passes_all, collect, row = Genius.apply_parsers(
+                row, *parsers, **parser_args
+            )
+            if collect and not passes_all:
+                dset.rejects.append(row)
             if passes_all:
                 results.append(row)
                 if outer_break:
                     break
-                cache = row
+                parser_args['cache'] = row
+
         if one_return:
-            if len(results) > 0:
-                return results[0]
-            else:
-                return None
+            return results[0] if len(results) > 0 else None
         else:
             return results
 
@@ -349,13 +389,13 @@ class Genius:
 
         """
         _format = 'lists' if isinstance(column, int) else 'dicts'
-        return Genius.loop_dataset(
+        return Genius.loop_rows(
             dset,
             parser(lambda x: x[column], requires_format=_format)
         )
 
     @staticmethod
-    def eval_condition(row: (list, col.OrderedDict),
+    def eval_condition(data: (list, col.OrderedDict),
                        c: (str, None)) -> bool:
         """
         Takes a string formatted as a python conditional, with the
@@ -366,7 +406,7 @@ class Genius:
         *** USE INNER QUOTES ON STRINGS WITHIN c! ***
 
         Args:
-            row: A list or OrderedDict.
+            data: A list or OrderedDict.
             c: A string or None, which must be a python
                 conditional statement like "'key' == 'value'".
 
@@ -397,9 +437,9 @@ class Genius:
                 i = components[0]
                 # Make sure i is the proper data type for row's
                 # data type:
-                if isinstance(row, list):
+                if isinstance(data, list):
                     i = int(i)
-                antecedent = row[i]
+                antecedent = data[i]
                 # Make val a string that will pass eval:
                 if isinstance(antecedent, str):
                     antecedent = '"' + antecedent + '"'
@@ -467,7 +507,7 @@ class Preprocess(Genius):
         if options.get('manual_header'):
             wdset.header = options.get('manual_header')
         else:
-            wdset.header = self.loop_dataset(
+            wdset.header = self.loop_rows(
                 wdset,
                 options.get('header_func', self.detect_header),
                 one_return=True
@@ -492,15 +532,9 @@ class Preprocess(Genius):
             non-null values than the threshold, otherwise None.
 
         """
-        if threshold is None:
-            w = len(x)
-        else:
-            w = threshold
+        w = len(x) if threshold is None else threshold
         nn = u.non_null_count(x)
-        if nn >= w:
-            return x
-        else:
-            return None
+        return x if nn >= w else None
 
     @staticmethod
     @parser(requires_format='lists', breaks_loop=True)
@@ -556,16 +590,14 @@ class Clean(Genius):
         Returns: The Dataset object, or a copy of it.
 
         """
-        parser_args = dict()
         if options.get('extrapolate'):
-            parser_args['extrapolate'] = {'cols': options.get('extrapolate')}
+            options['cols'] = options.get('extrapolate')
             self.steps.append(self.extrapolate)
-        options = {**options, 'parser_args': parser_args}
         self.steps = self.order_parsers(self.steps)
         return super(Clean, self).go(dset, **options)
 
     @staticmethod
-    @parser(takes_args=True, uses_cache=True)
+    @parser(takes_args=True, uses='cache')
     def extrapolate(x: col.OrderedDict, cols: (list, tuple),
                     cache: col.OrderedDict = None):
         """
@@ -591,7 +623,7 @@ class Clean(Genius):
         return result
 
     @staticmethod
-    @parser(uses_meta_data=True)
+    @parser(uses='meta_data')
     def clean_typos(x: dict, meta_data: dict):
         typo_funcs = {
             'numeric': Clean.clean_numeric_typos
@@ -664,7 +696,7 @@ class Explore(Genius):
         for v in self.gen_dset_header(dset):
             column = self.get_column(dset, v)
             for rs in self.report_steps:
-                dset.update_meta_data(str(v), **rs(column))
+                dset.update_meta_data(str(v + 1), **rs(column))
         return dset
 
     @staticmethod
@@ -679,10 +711,16 @@ class Explore(Genius):
         Returns: A list of strings as long as the dset is wide.
 
         """
-        if len(dset.header) > 0:
+        if dset.header is not None:
             return dset.header
         else:
-            return [i for i in range(1, dset.col_ct + 1)]
+            return [i for i in range(dset.col_ct)]
+
+    @staticmethod
+    def nulls_report(column: list) -> dict:
+        return {
+            'null_ct': sum([1 if val in ('', None) else 0 for val in column])
+        }
 
     @staticmethod
     def types_report(column: list) -> dict:
