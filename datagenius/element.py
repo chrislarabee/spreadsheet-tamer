@@ -5,6 +5,70 @@ from abc import ABC
 from datagenius.io import text, odbc
 
 
+class MetaData(col.abc.MutableMapping, ABC):
+    """
+    Stores meta data on the columns of a Dataset object and provides
+    convenience methods for updating and interacting with the meta
+    data.
+    """
+    def __init__(self, data: dict = None):
+        """
+
+        Args:
+            data: A dictionary.
+        """
+        self.data: dict = data if data is not None else dict()
+
+    def clear(self, column: str = None) -> None:
+        """
+        Clears all the meta data for the given column or the entire
+        MetaData object if no column is passed.
+
+        Args:
+            column: A string, a key found in self.data.
+
+        Returns: None
+
+        """
+        if column is None:
+            self.data = dict()
+        else:
+            self.pop(column)
+
+    def update(self, column: str, **kwargs) -> None:
+        """
+        Convenience method for updating the MetaData's information
+        for a given column. Can add as many key-value pairs as desired
+        to the column's entry in self.data.
+
+        Args:
+            column: A string.
+            **kwargs: Key value pairs to add to the sub-dictionary
+                found in self.data[column]
+
+        Returns: None
+
+        """
+        if not self.get(column):
+            self.data[column] = dict()
+        self[column] = {**self[column], **kwargs}
+
+    def __delitem__(self, key):
+        self.data.pop(key)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    def __iter__(self):
+        return self.data.__iter__()
+
+    def __len__(self):
+        return len(self.data)
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+
 class Element(col.abc.Sequence, ABC):
     """
     A superclass for Element objects, which allows implementation
@@ -17,7 +81,7 @@ class Element(col.abc.Sequence, ABC):
             data: A list, dict, or OrderedDict (depends on the
                 exact specifications of the Element child class).
         """
-        self.data = data
+        self.data: (list, dict, col.OrderedDict) = data
 
     def element_comparison(self, other,
                            eq_result: bool = True) -> bool:
@@ -100,17 +164,17 @@ class Dataset(Element):
         """
         struct_error_msg = ('Dataset data must be instantiated as a '
                             'list of lists or OrderedDicts.')
-        self.header = None
-        self.format = None
+        self.header: (list, None) = None
+        self.format: (str, None) = None
         # Stores rows when parsers reject them and need to store them:
-        self.rejects = []
+        self.rejects: list = []
         # Stores results from Explore objects.
-        self.meta_data = dict()
+        self.meta_data: MetaData = MetaData()
         if isinstance(data, list):
             row1 = data[0]
             self.col_ct = len(row1)
             if isinstance(row1, list):
-                self.header = header
+                self.header = self._gen_temp_header(header)
                 self.format = 'lists'
             elif isinstance(row1, col.OrderedDict):
                 self.header = list(row1.keys())
@@ -125,6 +189,17 @@ class Dataset(Element):
             super(Dataset, self).__init__(data)
         else:
             raise ValueError(struct_error_msg)
+
+    def _gen_temp_header(self, manual_header: list) -> list:
+        """
+
+        Returns: A list of numbers as strings as long as the dset is wide.
+
+        """
+        if manual_header:
+            return manual_header
+        elif self.header is None:
+            return [str(i) for i in range(self.col_ct)]
 
     def copy(self):
         """
@@ -245,25 +320,6 @@ class Dataset(Element):
             self.format = 'lists'
         return self
 
-    def update_meta_data(self, column: str, **kwargs) -> None:
-        """
-        Convenience function for updating the Dataset's meta_data
-        attribute, since a Dataset's meta_data may or may not be
-        populate with the particular column that meta_data is
-        being collected on.
-
-        Args:
-            column: A string.
-            **kwargs: Any number of key-value pairs, which will be
-                added to the meta_data for the passed column.
-
-        Returns: None
-
-        """
-        if not self.meta_data.get(column):
-            self.meta_data[column] = dict()
-        self.meta_data[column] = {**self.meta_data[column], **kwargs}
-
     def to_file(self, dir_path: str, output_name: str, to: str = 'sqlite',
                 **options):
         """
@@ -371,9 +427,6 @@ class Dataset(Element):
             if not features_printed:
                 print(row)
         print(bot_border)
-
-
-
 
 
 class MappingRule(Element):

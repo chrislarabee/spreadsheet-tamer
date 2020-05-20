@@ -6,6 +6,21 @@ import datagenius.element as e
 from datagenius.io import odbc
 
 
+class TestMetaData:
+    def test_update_and_clear(self):
+        md = e.MetaData()
+
+        md.update('test', a=1)
+        assert md['test']['a'] == 1
+        md.update('test', b=2, c=3)
+        assert md['test'] == {
+            'a': 1, 'b': 2, 'c': 3
+        }
+
+        md.clear('test')
+        assert md == {}
+
+
 class TestDataset:
     def test_from_file(self, simple_data):
         d = e.Dataset.from_file('tests/samples/csv/simple.csv')
@@ -85,21 +100,9 @@ class TestDataset:
         assert d == [[1, 2, 3], [4, 5, 6]]
         assert d != [[0, 0, 0], [9, 9, 9]]
 
-    def test_update_meta_data(self):
-        d = e.Dataset([
-            [1, 2, 3],
-            [4, 5, 6]
-        ])
-
-        d.update_meta_data('test', a=1)
-        assert d.meta_data['test']['a'] == 1
-        d.update_meta_data('test', b=2, c=3)
-        assert d.meta_data['test'] == {
-            'a': 1, 'b': 2, 'c': 3
-        }
-
     def test_to_file_sqlite(self, sales):
         d = e.Dataset(sales[1], sales[0])
+        d.to_format('dicts')
         # No meta_data should raise an error:
         with pytest.raises(ValueError, match='Discrepancy between meta'):
             d.to_file('tests/samples', 'sales')
@@ -119,6 +122,7 @@ class TestDataset:
         if os.path.exists(p):
             os.remove(p)
         d = e.Dataset(customers[1], customers[0])
+        d.to_format('dicts')
         d.to_file('tests/samples', 'customers', to='csv')
         d2 = e.Dataset.from_file(p)
         assert d2.data == simple_data()

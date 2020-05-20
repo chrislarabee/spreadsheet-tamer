@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 import pytest
 
-from datagenius.element import Dataset
+from datagenius.element import Dataset, MetaData
 import datagenius.genius as ge
 
 
@@ -223,7 +223,7 @@ class TestPreprocess:
         r = p.go(d, overwrite=False)
         assert r == customers[1]
         assert r != d
-        assert d.header is None
+        assert d.header == ['0', '1', '2', '3']
         assert r.header == customers[0]
         assert r.rejects == [
             ['', '', '', ''],
@@ -339,42 +339,50 @@ class TestExplore:
         ge.Explore().go(d)
 
         assert d.meta_data == {
-            '1': {
+            '0': {
                 'unique_ct': 2, 'unique_values': 'primary_key', 'str_pct': 0.0,
                 'num_pct': 1.0, 'probable_type': 'numeric'
             },
-            '2': {
+            '1': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
                 'num_pct': 1.0, 'probable_type': 'numeric'
             },
-            '3': {
+            '2': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 1.0,
                 'num_pct': 0.0, 'probable_type': 'string'
             }
         }
 
     def test_types_report(self):
-        assert ge.Explore.types_report([1, 2, 3, '4']) == {
+        md = MetaData()
+        ge.Explore.types_report([1, 2, 3, '4'], 'prob_numeric', md)
+        assert md['prob_numeric'] == {
             'str_pct': 0, 'num_pct': 1, 'probable_type': 'numeric'
         }
 
-        assert ge.Explore.types_report([1, 2, 'x']) == {
+        ge.Explore.types_report([1, 2, 'x'], 'less_prob_num', md)
+        assert md['less_prob_num'] == {
             'str_pct': 0.33, 'num_pct': 0.67, 'probable_type': 'numeric'
         }
 
-        assert ge.Explore.types_report([1, 'x', 'y']) == {
+        ge.Explore.types_report([1, 'x', 'y'], 'prob_str', md)
+        assert md['prob_str'] == {
             'str_pct': 0.67, 'num_pct': 0.33, 'probable_type': 'string'
         }
 
-        assert ge.Explore.types_report([]) == {
+        ge.Explore.types_report([], 'uncertain', md)
+        assert md['uncertain'] == {
             'str_pct': 0, 'num_pct': 0, 'probable_type': 'uncertain'
         }
 
     def test_uniques_report(self):
-        assert ge.Explore.uniques_report([1, 2, 3, 4]) == {
+        md = MetaData()
+        ge.Explore.uniques_report([1, 2, 3, 4], 'id', md)
+        assert md['id'] == {
             'unique_ct': 4, 'unique_values': 'primary_key'
         }
 
-        assert ge.Explore.uniques_report(['x', 'x', 'y', 'y']) == {
+        ge.Explore.uniques_report(['x', 'x', 'y', 'y'], 'vars', md)
+        assert md['vars'] == {
             'unique_ct': 2, 'unique_values': {'x', 'y'}
         }

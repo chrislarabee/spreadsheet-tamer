@@ -283,10 +283,10 @@ class Genius:
                     s = [step]
                 else:
                     s = step
-                wdset.data = self.loop_rows(
-                    wdset, *s,
-                    **options
-                )
+                if u.validate_parser(step, 'parses', 'column'):
+                    wdset.data = self.loop_columns(wdset, *s, **options)
+                else:
+                    wdset.data = self.loop_rows(wdset, *s, **options)
         return wdset
 
     @staticmethod
@@ -338,6 +338,11 @@ class Genius:
         return _break, passes_all, collect_reject, x
 
     @staticmethod
+    def align_dset_format(dset: e.Dataset, _format: str = 'dicts'):
+        if dset.format != _format:
+            dset.to_format(_format)
+
+    @staticmethod
     def loop_rows(dset: e.Dataset, *parsers, one_return: bool = False,
                   **parser_args) -> (list or None):
         """
@@ -362,9 +367,7 @@ class Genius:
         results = []
         # loop_rows can change the Datasets format using the format
         # of the first parser in parsers if required:
-        first_format = parsers[0].requires_format
-        if dset.format != first_format:
-            dset.to_format(first_format)
+        Genius.align_dset_format(dset, parsers[0].requires_format)
 
         parser_args['cache'] = None
         parser_args['meta_data'] = dset.meta_data
@@ -401,10 +404,36 @@ class Genius:
 
         """
         _format = 'lists' if isinstance(column, int) else 'dicts'
+        print(dset[0])
         return Genius.loop_rows(
             dset,
             parser(lambda x: x[column], requires_format=_format)
         )
+
+    @staticmethod
+    def loop_columns(dset: e.Dataset, *parsers, **parser_args) -> (list or None):
+        results = []
+
+        # loop_columns can change the Datasets format using the format
+        # of the first parser in parsers if required:
+        Genius.align_dset_format(dset, parsers[0].requires_format)
+
+        parser_args['cache'] = None
+        parser_args['meta_data'] = dset.meta_data
+
+        for v in dset.header:
+            print(v, isinstance(v, str))
+            column = Genius.get_column(dset, v)
+            parser_args['col_name'] = v
+            outer_break, passes_all, collect, row = Genius.apply_parsers(
+                column, *parsers, **parser_args
+            )
+            if passes_all:
+                results.append(column)
+                if outer_break:
+                    break
+                parser_args['cache'] = column
+        return results
 
     @staticmethod
     def eval_condition(data: (list, col.OrderedDict),
@@ -687,12 +716,12 @@ class Explore(Genius):
                 single list argument.
         """
 
-        self.report_steps = [
+        explore_steps = [
             self.uniques_report,
             self.types_report,
             *custom_steps
         ]
-        super(Explore, self).__init__()
+        super(Explore, self).__init__(*self.order_parsers(explore_steps))
 
     def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
@@ -705,28 +734,7 @@ class Explore(Genius):
 
         Returns: The Dataset object, or a copy of it.
         """
-        for v in self.gen_dset_header(dset):
-            column = self.get_column(dset, v)
-            for rs in self.report_steps:
-                dset.update_meta_data(str(v + 1), **rs(column))
-        return dset
-
-    @staticmethod
-    def gen_dset_header(dset: e.Dataset) -> list:
-        """
-        Gets the header of the passed Dataset object or creates a temp
-        header to apply meta_data to.
-
-        Args:
-            dset: A Dataset object.
-
-        Returns: A list of strings as long as the dset is wide.
-
-        """
-        if dset.header is not None:
-            return dset.header
-        else:
-            return [i for i in range(dset.col_ct)]
+        return super(Explore, self).go(dset, **options)
 
     @staticmethod
     def nulls_report(column: list) -> dict:
@@ -735,15 +743,19 @@ class Explore(Genius):
         }
 
     @staticmethod
-    def types_report(column: list) -> dict:
+    @parser('uses_meta_data', parses='column')
+    def types_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
         """
         Takes a list and creates a dictionary report on the types of
-        data found in the list.
+        data found in the list and uses it to update meta_data.
 
         Args:
             column: A list.
+            col_name: A string indicating the name of the column this
+                data came from.
+            meta_data: A MetaData object.
 
-        Returns: A dictionary of meta_data about the list's data types.
+        Returns: column
 
         """
         types = []
@@ -768,23 +780,25 @@ class Explore(Genius):
             prob_type = 'string'
         else:
             prob_type = 'uncertain'
-        return {
-            'str_pct': str_pct,
-            'num_pct': num_pct,
-            'probable_type': prob_type
-        }
+        meta_data.update(
+            col_name, str_pct=str_pct, num_pct=num_pct, probable_type=prob_type)
+        return column
 
     @staticmethod
-    def uniques_report(column: list) -> dict:
+    @parser('uses_meta_data', parses='column')
+    def uniques_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
         """
         Takes a list and creates a dictionary report on the unique
-        values of data found in the list.
+        values of data found in the list and uses it to update
+        meta_data.
 
         Args:
             column: A list.
+            col_name: A string indicating the name of the column this
+                data came from.
+            meta_data: A MetaData object.
 
-        Returns: A dictionary of meta_data about the list's unique
-            values.
+        Returns: column
 
         """
         uniques = set(column)
@@ -793,7 +807,6 @@ class Explore(Genius):
             unique_vals = 'primary_key'
         else:
             unique_vals = uniques
-        return {
-            'unique_ct': unique_ct,
-            'unique_values': unique_vals
-        }
+        meta_data.update(
+            col_name, unique_ct=unique_ct, unique_values=unique_vals)
+        return column
