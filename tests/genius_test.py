@@ -17,7 +17,7 @@ def test_parser():
     assert f.null_val is None
 
     # Decorator with arguments:
-    @ge.parser(breaks_loop=True)
+    @ge.parser('breaks_loop')
     def g(x):
         return x + 1
 
@@ -27,7 +27,7 @@ def test_parser():
     # Check set parser/uses cache conflict:
     with pytest.raises(ValueError,
                        match='Set parsers cannot use cache'):
-        ge.parser(lambda x: x + 1, uses='cache', parses='set')
+        ge.parser(lambda x: x + 1, 'uses_cache', parses='set')
 
     # Sanity check to ensure pre-built parsers work:
     assert not ge.Preprocess.cleanse_gap.breaks_loop
@@ -117,7 +117,7 @@ class TestGenius:
         ])
         # Test simple binary filtering parser:
         p = ge.parser(lambda x: x if x[1] <= 2 else None,
-                      requires_format='lists', collect_rejects=True)
+                      'collect_rejects', requires_format='lists')
         assert ge.Genius.apply_parsers(
             d[0], p) == (False, True, True, [1, 2, 3])
         assert ge.Genius.apply_parsers(
@@ -160,7 +160,7 @@ class TestGenius:
         ])
 
         p = ge.parser(lambda x: x if x[0] > 1 else None,
-                      requires_format='lists', breaks_loop=True)
+                      'breaks_loop', requires_format='lists')
         assert ge.Genius.loop_rows(d, p) == [[2, 3, 4]]
 
         # Test args:
@@ -259,8 +259,8 @@ class TestPreprocess:
         )
         hf = ge.parser(
             lambda x: x if x[0] == 'odd' else None,
-            requires_format='lists',
-            breaks_loop=True
+            'breaks_loop',
+            requires_format='lists'
         )
         d = Dataset([
             ['', '', ''],

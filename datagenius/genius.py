@@ -3,21 +3,18 @@ import re
 import collections as col
 import functools
 from abc import ABC
+import typing
 
 import datagenius.element as e
 import datagenius.util as u
 
 
-def parser(func=None, *,
-           breaks_loop: bool = False,
+def parser(func=None, *tags,
            null_val=None,
            parses: str = 'row',
            requires_format: str = 'dicts',
-           takes_args: bool = False,
-           uses: (list, str, None) = None,
            condition: (str, None) = None,
-           priority: int = 10,
-           collect_rejects: bool = False):
+           priority: int = 10):
     """
     Acts as a wrapper for other functions so that functions passed
     to Genius.loop_rows have all the necessary attributes for
@@ -25,8 +22,20 @@ def parser(func=None, *,
 
     Args:
         func: A callable object.
-        breaks_loop: A boolean, indicates that when the parser
-            successfully executes in a loop, the loop should break.
+        tags: Any number of strings which are valid tags to change
+            how the parser is handled by Genius objects. Valid tags
+            currently include:
+                breaks_loop: Indicates that when the parser
+                    successfully executes in a loop, the loop should
+                    break.
+                collect_rejects: Indicates that this parser's rejected
+                    rows should be collected in the Dataset's rejects
+                    attribute.
+                uses_cache: Indicates this parser needs to reference the
+                    previous result of the parser. Cannot be included
+                    if parses is not 'row'.
+                uses_meta_data: Indicates this parser needs to reference
+                    the meta_data attribute of the Dataset.
         null_val: Leave this as None unless you need your parser
             to return None on a successful execution.
         parses: A string, indicates whether this parser expects to
@@ -34,16 +43,6 @@ def parser(func=None, *,
             'set' for the entire Dataset.
         requires_format: A string, indicates what format this
             parser needs the Dataset to be in to process it.
-        takes_args: A boolean, indicates whether this parser can
-            be run with arguments beyond one positional argument.
-        uses: A string or list of strings, which indicate that this
-            parser needs to reference certain pieces of data outside
-            the row/column/set. In-built values:
-                cache: Indicates this parser needs to reference the
-                    previous result of the parser. Cannot be included
-                    if parses is not 'row'.
-                meta_data: Indicates this parser needs to reference the
-                    meta_data attribute of the Dataset.
         condition: A string in the format of a python conditional,
             with the antecedent of the conditional being a key
             or index that the parser function can find in the
@@ -53,9 +52,6 @@ def parser(func=None, *,
             parser execution plan. Parsers at the same priority
             will be placed in the plan in the order they are
             passed to the Genius object on instantiation.
-        collect_rejects: A boolean indicating that this parser's
-            rejected rows should be collected in the Dataset's rejects
-            attribute.
 
     Returns: Passed func, but decorated.
 
@@ -68,7 +64,6 @@ def parser(func=None, *,
             return _func(*args, **kwargs)
         # Attributes of parser functions expected by other objects:
         wrapper_parser.args = inspect.getfullargspec(_func).args
-        wrapper_parser.breaks_loop = breaks_loop
         wrapper_parser.null_val = null_val
         valid_parses = ['row', 'column', 'set']
         if parses not in valid_parses:
@@ -78,19 +73,36 @@ def parser(func=None, *,
         else:
             wrapper_parser.parses = parses
         wrapper_parser.requires_format = requires_format
-        wrapper_parser.takes_args = takes_args
         wrapper_parser.condition = condition
         wrapper_parser.priority = priority
-        wrapper_parser.collect_rejects = collect_rejects
-        _uses = [uses] if not isinstance(uses, list) else uses
-        if parses == 'set' and 'cache' in _uses:
-            raise ValueError('Set parsers cannot use cache.')
-        else:
-            wrapper_parser.uses = _uses
+        # Allocate tags:
+        valid_tags = dict(
+            uses_cache='uses',
+            uses_meta_data='uses',
+            collect_rejects='tag',
+            breaks_loop='tag'
+        )
+        wrapper_parser.uses = []
+        wrapper_parser.breaks_loop = False
+        wrapper_parser.collect_rejects = False
+        for t in tags:
+            if t in valid_tags.keys():
+                if valid_tags[t] == 'uses':
+                    if t == 'uses_cache' and parses == 'set':
+                        raise ValueError('Set parsers cannot use cache.')
+                    wrapper_parser.uses.append(t[5:])
+                else:
+                    wrapper_parser.__dict__[t] = True
+            else:
+                raise ValueError(
+                    f'{t} is not a valid tag. Valid tags include '
+                    f'{valid_tags}'
+                )
         wrapper_parser.is_parser = True
         return wrapper_parser
     # Allows parser to be used without arguments:
-    if func is None:
+    if not isinstance(func, typing.Callable):
+        tags = [func, *tags]
         return decorator_parser
     else:
         return decorator_parser(func)
@@ -517,7 +529,7 @@ class Preprocess(Genius):
         return wdset
 
     @staticmethod
-    @parser(requires_format='lists', takes_args=True, collect_rejects=True)
+    @parser('collect_rejects', requires_format='lists')
     def cleanse_gap(x: list, threshold: int = None):
         """
         Checks a list to see if it has sufficient non-null values.
@@ -537,7 +549,7 @@ class Preprocess(Genius):
         return x if nn >= w else None
 
     @staticmethod
-    @parser(requires_format='lists', breaks_loop=True)
+    @parser('breaks_loop', requires_format='lists')
     def detect_header(x: list):
         """
         Checks a list to see if it contains only strings. If it
@@ -597,7 +609,7 @@ class Clean(Genius):
         return super(Clean, self).go(dset, **options)
 
     @staticmethod
-    @parser(takes_args=True, uses='cache')
+    @parser('uses_cache')
     def extrapolate(x: col.OrderedDict, cols: (list, tuple),
                     cache: col.OrderedDict = None):
         """
@@ -623,7 +635,7 @@ class Clean(Genius):
         return result
 
     @staticmethod
-    @parser(uses='meta_data')
+    @parser('uses_meta_data')
     def clean_typos(x: dict, meta_data: dict):
         typo_funcs = {
             'numeric': Clean.clean_numeric_typos
