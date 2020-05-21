@@ -3,7 +3,7 @@ import re
 import collections as col
 import functools
 from abc import ABC
-import typing
+from typing import Callable
 
 import datagenius.element as e
 import datagenius.util as u
@@ -17,7 +17,7 @@ def parser(func=None, *tags,
            priority: int = 10):
     """
     Acts as a wrapper for other functions so that functions passed
-    to Genius.loop_rows have all the necessary attributes for
+    to Genius.loop_dataset have all the necessary attributes for
     successfully managing the loop.
 
     Args:
@@ -101,7 +101,7 @@ def parser(func=None, *tags,
         wrapper_parser.is_parser = True
         return wrapper_parser
     # Allows parser to be used without arguments:
-    if not isinstance(func, typing.Callable):
+    if not isinstance(func, Callable):
         tags = [func, *tags]
         return decorator_parser
     else:
@@ -122,8 +122,10 @@ class ParserSubset(col.abc.MutableSequence, ABC):
             priority: An integer, indicates the priority this subset of
                 parsers should take in a Genius object's parsing order.
         """
-        self.data = self.validate_steps(data)
-        self.priority = priority
+        self.priority: int = priority
+        self.parses: (str, None) = None
+        self.requires_format: (str, None) = None
+        self.data, self.parses, self.requires_format = self.validate_steps(data)
 
     @staticmethod
     def validate_steps(steps: tuple):
@@ -156,7 +158,7 @@ class ParserSubset(col.abc.MutableSequence, ABC):
             raise ValueError(msg.format('requires_format', formats))
         if len(parses) > 1:
             raise ValueError(msg.format('parses', parses))
-        return results
+        return results, list(parses)[0], list(formats)[0]
 
     def insert(self, key: int, value: parser):
         self.data.insert(key, value)
@@ -264,7 +266,7 @@ class Genius:
                         overwrite the contents of dset with the
                         results of the loops.
                     parser_args: A dictionary containing parser_args
-                        for loop_rows's use (see loop_rows
+                        for loop_dataset's use (see loop_dataset
                         for more info).
 
         Returns: The Dataset or a copy of it.
@@ -279,14 +281,12 @@ class Genius:
             if u.validate_parser(step, 'parses', 'set'):
                 step(wdset)
             else:
-                if u.validate_parser(step):
-                    s = [step]
-                else:
-                    s = step
-                if u.validate_parser(step, 'parses', 'column'):
-                    wdset.data = self.loop_columns(wdset, *s, **options)
-                else:
-                    wdset.data = self.loop_rows(wdset, *s, **options)
+                s = [step] if u.validate_parser(step) else step
+                parses = step.parses
+                if (u.validate_parser(step, 'parses', parses) and
+                        wdset.data_orientation != parses):
+                    wdset.transpose()
+                wdset.data = self.loop_dataset(wdset, *s, **options)
         return wdset
 
     @staticmethod
@@ -343,8 +343,8 @@ class Genius:
             dset.to_format(_format)
 
     @staticmethod
-    def loop_rows(dset: e.Dataset, *parsers, one_return: bool = False,
-                  **parser_args) -> (list or None):
+    def loop_dataset(dset: e.Dataset, *parsers, one_return: bool = False,
+                     **parser_args) -> (list or None):
         """
         Loops over all the rows in the passed Dataset and passes
         each to the passed parsers.
@@ -352,7 +352,7 @@ class Genius:
         Args:
             dset: A Dataset object.
             parsers: One or more parser functions.
-            one_return: A boolean, tells loop_rows that the parsers
+            one_return: A boolean, tells loop_dataset that the parsers
                 will only result in a single object to return, so no
                 need to wrap it in an outer list.
             parser_args: A dictionary containing keys matching the
@@ -365,15 +365,17 @@ class Genius:
 
         """
         results = []
-        # loop_rows can change the Datasets data_format using the
+        # loop_dataset can change the Datasets data_format using the
         # data_format of the first parser in parsers if required:
         Genius.align_dset_format(dset, parsers[0].requires_format)
 
         parser_args['cache'] = None
         parser_args['meta_data'] = dset.meta_data
 
-        for i in dset:
-            row = i.copy()
+        for i, r in enumerate(dset):
+            if dset.data_orientation == 'column':
+                parser_args['col_name'] = dset.header[i]
+            row = r.copy()
             outer_break, passes_all, collect, row = Genius.apply_parsers(
                 row, *parsers, **parser_args
             )
@@ -389,51 +391,6 @@ class Genius:
             return results[0] if len(results) > 0 else None
         else:
             return results
-
-    @staticmethod
-    def get_column(dset: e.Dataset, column: (str, int)) -> list:
-        """
-        Gathers all the values in a given column of a Dataset.
-
-        Args:
-            dset: A Dataset object.
-            column: A string, a value in dset.header, or an integer, a
-                column index.
-
-        Returns: A list of values from the column.
-
-        """
-        _format = 'lists' if isinstance(column, int) else 'dicts'
-        print(dset[0])
-        return Genius.loop_rows(
-            dset,
-            parser(lambda x: x[column], requires_format=_format)
-        )
-
-    @staticmethod
-    def loop_columns(dset: e.Dataset, *parsers, **parser_args) -> (list or None):
-        results = []
-
-        # loop_columns can change the Datasets data_format using the
-        # data_format of the first parser in parsers if required:
-        Genius.align_dset_format(dset, parsers[0].requires_format)
-
-        parser_args['cache'] = None
-        parser_args['meta_data'] = dset.meta_data
-
-        for v in dset.header:
-            print(v, isinstance(v, str))
-            column = Genius.get_column(dset, v)
-            parser_args['col_name'] = v
-            outer_break, passes_all, collect, row = Genius.apply_parsers(
-                column, *parsers, **parser_args
-            )
-            if passes_all:
-                results.append(column)
-                if outer_break:
-                    break
-                parser_args['cache'] = column
-        return results
 
     @staticmethod
     def eval_condition(data: (list, col.OrderedDict),
@@ -548,7 +505,7 @@ class Preprocess(Genius):
         if options.get('manual_header'):
             wdset.header = options.get('manual_header')
         else:
-            wdset.header = self.loop_rows(
+            wdset.header = self.loop_dataset(
                 wdset,
                 options.get('header_func', self.detect_header),
                 one_return=True
@@ -743,7 +700,7 @@ class Explore(Genius):
         }
 
     @staticmethod
-    @parser('uses_meta_data', parses='column')
+    @parser('uses_meta_data', parses='column', requires_format='lists')
     def types_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
         """
         Takes a list and creates a dictionary report on the types of
@@ -785,7 +742,7 @@ class Explore(Genius):
         return column
 
     @staticmethod
-    @parser('uses_meta_data', parses='column')
+    @parser('uses_meta_data', parses='column', requires_format='lists')
     def uniques_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
         """
         Takes a list and creates a dictionary report on the unique

@@ -56,7 +56,10 @@ class TestParserSubset:
             ge.parser(lambda x: x + 1),
             ge.parser(lambda y: y * 2)
         )
-        assert tuple(ge.ParserSubset.validate_steps(parsers)) == parsers
+        p, ps, rf = ge.ParserSubset.validate_steps(parsers)
+        assert tuple(p) == parsers
+        assert ps == 'row'
+        assert rf == 'dicts'
         with pytest.raises(
             ValueError, match='only take parser functions'
         ):
@@ -134,8 +137,8 @@ class TestGenius:
         assert ge.Genius.apply_parsers(
             d[2], p, threshold=9, unused_kwarg=True) == (False, True, False, 0)
 
-    def test_loop_rows(self, simple_data):
-        # Test simple filtering loop_rows:
+    def test_loop_dataset(self, simple_data):
+        # Test simple filtering loop_dataset:
         expected = [
             ['1', 'Yancy', 'Cordwainer', '00025'],
             ['2', 'Muhammad', 'El-Kanan', '00076'],
@@ -144,13 +147,13 @@ class TestGenius:
         d = Dataset(simple_data())
         p = ge.parser(lambda x: (x if len(x[2]) > 5 else None),
                       requires_format='lists')
-        assert ge.Genius.loop_rows(d, p) == expected
+        assert ge.Genius.loop_dataset(d, p) == expected
 
-        # Test loop_rows that generates new values:
+        # Test loop_dataset that generates new values:
         p = ge.parser(lambda x: 1 if len(x[2]) > 5 else 0,
                       requires_format='lists')
         expected = [0, 1, 1, 1, 0]
-        assert ge.Genius.loop_rows(d, p) == expected
+        assert ge.Genius.loop_dataset(d, p) == expected
 
         # Test breaks_loop
         d = Dataset([
@@ -161,27 +164,17 @@ class TestGenius:
 
         p = ge.parser(lambda x: x if x[0] > 1 else None,
                       'breaks_loop', requires_format='lists')
-        assert ge.Genius.loop_rows(d, p) == [[2, 3, 4]]
+        assert ge.Genius.loop_dataset(d, p) == [[2, 3, 4]]
 
         # Test args:
         p = ge.parser(lambda x, y: x if x[0] > y else None,
                       requires_format='lists')
-        assert ge.Genius.loop_rows(d, p, y=2) == [[3, 4, 5]]
+        assert ge.Genius.loop_dataset(d, p, y=2) == [[3, 4, 5]]
 
         # Test condition:
         p = ge.parser(lambda x: x[0] + 1, requires_format='lists',
                       condition='0 <= 2')
-        assert ge.Genius.loop_rows(d, p) == [2, 3, [3, 4, 5]]
-
-    def test_get_column(self):
-        d = Dataset([
-            [1, 2, 3],
-            [4, 5, 6]
-        ])
-        assert ge.Genius.get_column(d, 0) == [1, 4]
-
-        d.header = ['a', 'b', 'c']
-        assert ge.Genius.get_column(d, 'b') == [2, 5]
+        assert ge.Genius.loop_dataset(d, p) == [2, 3, [3, 4, 5]]
 
     def test_eval_condition(self):
         row = [1, 2, 3]
@@ -338,10 +331,10 @@ class TestExplore:
 
         ge.Explore().go(d)
 
-        assert d.meta_data == {
+        assert d.meta_data.data == {
             '0': {
-                'unique_ct': 2, 'unique_values': 'primary_key', 'str_pct': 0.0,
-                'num_pct': 1.0, 'probable_type': 'numeric'
+                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
+                'num_pct': 0.67, 'probable_type': 'numeric'
             },
             '1': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
