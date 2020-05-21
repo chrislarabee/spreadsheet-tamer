@@ -1,4 +1,5 @@
 import os
+from collections import OrderedDict as od
 
 import pytest
 
@@ -135,6 +136,19 @@ class TestDataset:
         d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
         d2 = e.Dataset(o.select('sales'))
         assert d2.data == d.data
+
+        # Check meta data tables:
+        assert e.Dataset(o.select('sales_col_meta_data')) == [
+            od(column='location', probable_type='uncertain'),
+            od(column='region', probable_type='string'),
+            od(column='sales', probable_type='integer')
+        ]
+        assert e.Dataset(o.select('sales_dset_meta_data')) == [
+            od(feature='Number of columns', value='3'),
+            od(feature='Number of rows', value='4'),
+            od(feature='Number of rejected rows', value='0'),
+            od(feature='Number of values in rejected rows', value='0'),
+        ]
 
     def test_to_file_csv(self, customers, simple_data):
         p = 'tests/samples/customers.csv'

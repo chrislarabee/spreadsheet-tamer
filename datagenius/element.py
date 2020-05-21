@@ -3,6 +3,7 @@ import os
 from abc import ABC
 
 from datagenius.io import text, odbc
+import datagenius.util as u
 
 
 class MetaData(col.abc.MutableMapping, ABC):
@@ -355,9 +356,11 @@ class Dataset(Element):
                     db_name: A string to specifically name the db to
                         output to. Default is 'datasets'
 
-        Returns:
+        Returns: None
 
         """
+        if self.data_orientation != 'row':
+            self.transpose()
         self.to_dicts()
         f, ext = os.path.splitext(output_name)
         if to == 'csv':
@@ -385,64 +388,68 @@ class Dataset(Element):
                 o.setup(p)
                 o.drop_tbl(f)
                 o.insert(f, self, schema)
+                # Add meta_data tables for this dataset:
+                dset_md_tbl = f + '_dset_meta_data'
+                col_md_tbl = f + '_col_meta_data'
+                o.drop_tbl(dset_md_tbl)
+                o.drop_tbl(col_md_tbl)
+                (dset_md, dset_md_schema,
+                 col_md, col_md_schema) = self.meta_data_report()
+                o.insert(dset_md_tbl, dset_md, dset_md_schema)
+                o.insert(col_md_tbl, col_md, col_md_schema)
         else:
             raise ValueError(
                 f'Unrecognized "to": {to}'
             )
 
-    def meta_data_report(self, *options):
-        width, height = os.get_terminal_size()
-        wp = 0
+    def meta_data_report(self):
+        """
+        Produces a tuple of values related to the Dataset's meta_data
+        attribute and meta data on the Dataset itself, as well as
+        schemas for each of those objects so that they can be easily
+        written to sqlite if desired.
 
-        def _compare_widest_printout(x):
-            nonlocal wp
-            wp = len(x) if len(x) > wp else wp
-            return x
+        Returns: A tuple of:
+            dataset_md: A list of dictionaries containing meta data
+                features of the Dataset.
+            dataset_md_schema: A dictionary schema for dataset_md.
+            column_md: A list of dictionaries containing meta data for
+                each column described in self.meta_data.
+            column_md_schema: A dictionary schema for column_md.
 
-        if '-v' in options:
-            list_limit = 10
-        elif '-vv' in options:
-            list_limit = None
-        else:
-            list_limit = 5
-        printouts = []
+        """
+        column_md = []
+        column_md_schema = dict()
         for k, v in self.meta_data.items():
-            printout = [k]
-            _compare_widest_printout(k)
-            for md_k, md_v in v.items():
-                _compare_widest_printout(md_k)
-                if isinstance(md_v, (list, tuple)):
-                    printout.append(md_k)
-                    md_v = [
-                        _compare_widest_printout('\t' + str(i)) for i in md_v[0:list_limit]
-                    ]
+            column_md_schema['column'] = str
+            result = col.OrderedDict(
+                column=k
+            )
+            for vk, vv in v.items():
+                column_md_schema[vk] = str
+                if isinstance(vv, (list, tuple)):
+                    result[vk] = str(vv)[:30]
                 else:
-                    _compare_widest_printout(f'{md_k}: {md_v}')
-                printout.append((md_k, md_v))
-            printouts.append(printout)
-        title = ' Dataset Meta Data '
-        top_border = '=' * int((width - len(title)) / 2)
-        bot_border = '=' * width
-        features = [
-            f'Dataset size=({len(self.data)} x {self.col_ct})',
-            f'# Rejected rows={len(self.rejects)}',
-            # f'# Values in rejected rows={sum([1 if ])}'
+                    result[vk] = vv
+            if len(column_md) > 0:
+                if set(result.keys()) != set(column_md[-1].keys()):
+                    raise ValueError(
+                        f'Inconsistent keys for column meta_data. '
+                        f'Invalid meta_data info = {k, v}')
+            column_md.append(result)
+
+        reject_val_ct = sum([u.non_null_count(x) for x in self.rejects])
+        dataset_md_features = {
+            'Number of columns': f'{self.col_ct}',
+            'Number of rows': f'{self.row_ct}',
+            'Number of rejected rows': f'{len(self.rejects)}',
+            'Number of values in rejected rows': f'{reject_val_ct}'
+        }
+        dataset_md = [
+            {'feature': k, 'value': v} for k, v in dataset_md_features.items()
         ]
-        print(f'{top_border}{title}{top_border}')
-        row = ''
-        features_printed = False
-        for f in features:
-            r = row + f'{f}\t|\t'
-            if len(r) + 8 >= width:
-                print(row)
-                row = ''
-                features_printed = False
-            else:
-                row = r
-        else:
-            if not features_printed:
-                print(row)
-        print(bot_border)
+        dataset_md_schema = {'feature': str, 'value': str}
+        return dataset_md, dataset_md_schema, column_md, column_md_schema
 
 
 class MappingRule(Element):
