@@ -1,16 +1,18 @@
+from collections import OrderedDict
 
 
-def non_null_count(x: list) -> int:
+def non_null_count(x: (list, OrderedDict, dict)) -> int:
     """
-    Takes a list and returns the number of values in it that are
-    not None or ''.
+    Takes a list or dictionary and returns the number of values in it
+    that are not None or ''.
 
     Args:
-        x: A list.
+        x: A list or dictionary.
 
     Returns: An integer, the count of non-nulls in the list.
 
     """
+    x = list(x.values()) if isinstance(x, (OrderedDict, dict)) else x
     return sum([0 if y in (None, '') else 1 for y in x])
 
 
