@@ -41,7 +41,7 @@ def parser(func=None, *tags,
         parses: A string, indicates whether this parser expects to
             receive a 'row' of a Dataset, a 'column' of a Dataset, or
             'set' for the entire Dataset.
-        requires_format: A string, indicates what format this
+        requires_format: A string, indicates what data_format this
             parser needs the Dataset to be in to process it.
         condition: A string in the format of a python conditional,
             with the antecedent of the conditional being a key
@@ -128,9 +128,9 @@ class ParserSubset(col.abc.MutableSequence, ABC):
     @staticmethod
     def validate_steps(steps: tuple):
         """
-        Ensures that the passed tuple of steps are all
-        parser functions, and that any sets of steps all expect
-        the same format for the Dataset they will process.
+        Ensures that the passed tuple of steps are all parser
+        functions, and that any sets of steps all expect the same
+        data_format for the Dataset they will process.
 
         Args:
             steps: A tuple of parser functions.
@@ -195,7 +195,7 @@ class Genius:
         """
         Ensures that the passed tuple of steps are all
         parser functions, and that any sets of steps all expect
-        the same format for the Dataset they will process.
+        the same data_format for the Dataset they will process.
 
         Args:
             steps: A tuple of parser functions.
@@ -339,7 +339,7 @@ class Genius:
 
     @staticmethod
     def align_dset_format(dset: e.Dataset, _format: str = 'dicts'):
-        if dset.format != _format:
+        if dset.data_format != _format:
             dset.to_format(_format)
 
     @staticmethod
@@ -365,8 +365,8 @@ class Genius:
 
         """
         results = []
-        # loop_rows can change the Datasets format using the format
-        # of the first parser in parsers if required:
+        # loop_rows can change the Datasets data_format using the
+        # data_format of the first parser in parsers if required:
         Genius.align_dset_format(dset, parsers[0].requires_format)
 
         parser_args['cache'] = None
@@ -414,8 +414,8 @@ class Genius:
     def loop_columns(dset: e.Dataset, *parsers, **parser_args) -> (list or None):
         results = []
 
-        # loop_columns can change the Datasets format using the format
-        # of the first parser in parsers if required:
+        # loop_columns can change the Datasets data_format using the
+        # data_format of the first parser in parsers if required:
         Genius.align_dset_format(dset, parsers[0].requires_format)
 
         parser_args['cache'] = None

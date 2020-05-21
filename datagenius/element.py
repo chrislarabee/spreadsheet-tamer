@@ -162,30 +162,33 @@ class Dataset(Element):
             header: A list, the header of the Dataset. Mostly used as a
                 convenience attribute for testing.
         """
-        struct_error_msg = ('Dataset data must be instantiated as a '
-                            'list of lists or OrderedDicts.')
+        struct_error_msg = (
+            'Dataset data must be instantiated as a list of lists or '
+            'OrderedDicts.')
         self.header: (list, None) = None
-        self.format: (str, None) = None
+        self.data_format: (str, None) = None
+        self.data_orientation: str = 'rows'
         # Stores rows when parsers reject them and need to store them:
         self.rejects: list = []
         # Stores results from Explore objects.
         self.meta_data: MetaData = MetaData()
         if isinstance(data, list):
             row1 = data[0]
-            self.col_ct = len(row1)
+            self.row_ct: int = len(data)
+            self.col_ct: int = len(row1)
             if isinstance(row1, list):
                 self.header = self._gen_temp_header(header)
-                self.format = 'lists'
+                self.data_format = 'lists'
             elif isinstance(row1, col.OrderedDict):
                 self.header = list(row1.keys())
-                self.format = 'dicts'
+                self.data_format = 'dicts'
             else:
                 raise ValueError(struct_error_msg)
             for row in data:
                 if len(row) != self.col_ct:
-                    raise ValueError(f'All rows must have the '
-                                     f'same length. Invalid row= '
-                                     f'{row}')
+                    raise ValueError(
+                        f'All rows must have the same length. '
+                        f'Invalid row={row}')
             super(Dataset, self).__init__(data)
         else:
             raise ValueError(struct_error_msg)
@@ -193,7 +196,8 @@ class Dataset(Element):
     def _gen_temp_header(self, manual_header: list) -> list:
         """
 
-        Returns: A list of numbers as strings as long as the dset is wide.
+        Returns: A list of numbers as strings as long as the dset is
+        wide.
 
         """
         if manual_header:
@@ -203,8 +207,7 @@ class Dataset(Element):
 
     def copy(self):
         """
-        Creates a copy of the Dataset with the same data
-        and header.
+        Creates a copy of the Dataset with the same data and header.
 
         Returns: A copy of the Dataset object.
 
@@ -214,9 +217,24 @@ class Dataset(Element):
             d.header = self.header.copy()
         return d
 
+    def transpose(self) -> None:
+        """
+        Transposes the Dataset's data, making the columns rows and the
+        rows columns.
+
+        Returns: None
+
+        """
+        self.to_format('lists')
+        self.data = list(map(list, zip(*self.data)))
+        if self.data_orientation == 'rows':
+            self.data_orientation = 'columns'
+        else:
+            self.data_orientation = 'rows'
+
     def to_format(self, to: str) -> bool:
         """
-        Triggers the passed format change.
+        Triggers the passed data_format change.
 
         Args:
             to: A string found in format_funcs dict, below.
@@ -229,12 +247,9 @@ class Dataset(Element):
             'dicts': self.to_dicts,
             'lists': self.to_lists
         }
-        prev_format = self.format
+        prev_format = self.data_format
         format_funcs[to]()
-        if prev_format != self.format:
-            return True
-        else:
-            return False
+        return True if prev_format != self.data_format else False
 
     @staticmethod
     def from_file(file_path: str):
@@ -271,11 +286,12 @@ class Dataset(Element):
         """
         if isinstance(key, int):
             self.data.pop(key)
-        elif isinstance(key, list):
+        elif isinstance(key, (list, col.OrderedDict)):
             self.data.remove(key)
         else:
-            raise ValueError('Dataset.remove can only take int '
-                             'or list arguments.')
+            raise ValueError(
+                'Dataset.remove can only take int or list/OrderedDict '
+                'arguments.')
 
     def to_dicts(self):
         """
@@ -287,10 +303,10 @@ class Dataset(Element):
 
         """
         if self.header is None:
-            raise AttributeError('This Dataset has no header. '
-                                 'Cannot convert to dicts format '
-                                 'without a header.')
-        elif self.format == 'lists':
+            raise AttributeError(
+                'This Dataset has no header. Cannot convert to dicts '
+                'data_format without a header.')
+        elif self.data_format == 'lists':
             results = []
             for row in self:
                 d = col.OrderedDict()
@@ -298,7 +314,7 @@ class Dataset(Element):
                     d[h] = row[i]
                 results.append(d)
             self.data = results
-            self.format = 'dicts'
+            self.data_format = 'dicts'
         return self
 
     def to_lists(self):
@@ -311,20 +327,20 @@ class Dataset(Element):
             lists.
 
         """
-        if self.format == 'dicts':
+        if self.data_format == 'dicts':
             results = []
             self.header = list(self[0].keys())
             for row in self:
                 results.append([*list(row.values())])
             self.data = results
-            self.format = 'lists'
+            self.data_format = 'lists'
         return self
 
     def to_file(self, dir_path: str, output_name: str, to: str = 'sqlite',
                 **options):
         """
-        Converts the dataset into dicts format and then writes its data
-        to a local sqlite db or to a csv file.
+        Converts the dataset into dicts data_format and then writes its
+        data to a local sqlite db or to a csv file.
 
         Args:
             dir_path: A string, the directory to locate the sqlite db
@@ -479,7 +495,7 @@ class Mapping(Element):
         """
         Args:
             template: A list or tuple of strings, the header
-                of the target format you want a Dataset to be
+                of the target data_format you want a Dataset to be
                 converted into.
             rules: A dict or OrderedDict with keys from template
                 and values being strings or MappingRules indicating
@@ -489,22 +505,22 @@ class Mapping(Element):
         super(Mapping, self).__init__(dict())
         self.template = template
         """
-        Don't be tempted to make rules into **rules! Too many
-        datasets have column names with spaces in them, and your
-        target format might require that!
+        Don't be tempted to make rules into **rules! Too many datasets 
+        have column names with spaces in them, and your target 
+        data_format might require that!
         """
         for k, v in rules.items():
             if k not in self.template:
-                raise ValueError(f'All passed rule keys must '
-                                 f'be in the passed template. Bad '
-                                 f'key: {k}')
+                raise ValueError(
+                    f'All passed rule keys must be in the passed '
+                    f'template. Bad key: {k}')
             elif not isinstance(v, MappingRule):
                 if isinstance(v, str):
                     r = MappingRule(v)
                 else:
-                    raise ValueError(f'Passed values must be '
-                                     f'strings or MappingRule '
-                                     f'objects. Bad kv pair: {k, v}')
+                    raise ValueError(
+                        f'Passed values must be strings or MappingRule '
+                        f'objects. Bad kv pair: {k, v}')
             else:
                 r = v
             self.data[k] = r

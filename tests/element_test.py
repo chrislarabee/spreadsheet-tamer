@@ -22,6 +22,25 @@ class TestMetaData:
 
 
 class TestDataset:
+    def test_transpose(self):
+        data = [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9]
+        ]
+        d = e.Dataset(data)
+        assert d.data_orientation == 'rows'
+        d.transpose()
+        assert d == [
+            [1, 4, 7],
+            [2, 5, 8],
+            [3, 6, 9]
+        ]
+        assert d.data_orientation == 'columns'
+        d.transpose()
+        assert d == data
+        assert d.data_orientation == 'rows'
+
     def test_from_file(self, simple_data):
         d = e.Dataset.from_file('tests/samples/csv/simple.csv')
         assert isinstance(d, e.Dataset)
