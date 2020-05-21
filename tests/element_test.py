@@ -29,17 +29,17 @@ class TestDataset:
             [7, 8, 9]
         ]
         d = e.Dataset(data)
-        assert d.data_orientation == 'rows'
+        assert d.data_orientation == 'row'
         d.transpose()
         assert d == [
             [1, 4, 7],
             [2, 5, 8],
             [3, 6, 9]
         ]
-        assert d.data_orientation == 'columns'
+        assert d.data_orientation == 'column'
         d.transpose()
         assert d == data
-        assert d.data_orientation == 'rows'
+        assert d.data_orientation == 'row'
 
     def test_from_file(self, simple_data):
         d = e.Dataset.from_file('tests/samples/csv/simple.csv')

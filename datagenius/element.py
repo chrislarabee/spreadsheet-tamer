@@ -167,7 +167,7 @@ class Dataset(Element):
             'OrderedDicts.')
         self.header: (list, None) = None
         self.data_format: (str, None) = None
-        self.data_orientation: str = 'rows'
+        self.data_orientation: str = 'row'
         # Stores rows when parsers reject them and need to store them:
         self.rejects: list = []
         # Stores results from Explore objects.
@@ -227,10 +227,10 @@ class Dataset(Element):
         """
         self.to_format('lists')
         self.data = list(map(list, zip(*self.data)))
-        if self.data_orientation == 'rows':
-            self.data_orientation = 'columns'
+        if self.data_orientation == 'row':
+            self.data_orientation = 'column'
         else:
-            self.data_orientation = 'rows'
+            self.data_orientation = 'row'
 
     def to_format(self, to: str) -> bool:
         """
