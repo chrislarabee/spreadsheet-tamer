@@ -2,6 +2,7 @@ import inspect
 import re
 import collections as col
 import functools
+import statistics
 from abc import ABC
 from typing import Callable
 
@@ -86,7 +87,9 @@ def parser(func=None, *tags,
         wrapper_parser.breaks_loop = False
         wrapper_parser.collect_rejects = False
         for t in tags:
-            if t in valid_tags.keys():
+            if t is None:
+                pass
+            elif t in valid_tags.keys():
                 if valid_tags[t] == 'uses':
                     if t == 'uses_cache' and parses == 'set':
                         raise ValueError('Set parsers cannot use cache.')
@@ -96,7 +99,7 @@ def parser(func=None, *tags,
             else:
                 raise ValueError(
                     f'{t} is not a valid tag. Valid tags include '
-                    f'{valid_tags}'
+                    f'{list(valid_tags.keys())}'
                 )
         wrapper_parser.is_parser = True
         return wrapper_parser
@@ -515,8 +518,8 @@ class Preprocess(Genius):
         return wdset
 
     @staticmethod
-    @parser('collect_rejects', requires_format='lists')
-    def cleanse_gap(x: list, threshold: int = None):
+    @parser('collect_rejects', 'uses_meta_data', requires_format='lists')
+    def cleanse_gap(x: list, meta_data: e.MetaData, threshold: int = None):
         """
         Checks a list to see if it has sufficient non-null values.
 
@@ -674,8 +677,10 @@ class Explore(Genius):
         """
 
         explore_steps = [
-            self.uniques_report,
-            self.types_report,
+            ParserSubset(
+                self.uniques_report,
+                self.types_report,
+            ),
             *custom_steps
         ]
         super(Explore, self).__init__(*self.order_parsers(explore_steps))
@@ -694,10 +699,69 @@ class Explore(Genius):
         return super(Explore, self).go(dset, **options)
 
     @staticmethod
-    def nulls_report(column: list) -> dict:
-        return {
-            'null_ct': sum([1 if val in ('', None) else 0 for val in column])
-        }
+    @parser('uses_meta_data', parses='column')
+    def nulls_report(column: list, col_name: str,
+                     meta_data: e.MetaData) -> list:
+        """
+        Takes a list and creates a dictionary report on the null values
+        found in the list and uses it to update meta_data.
+
+        Args:
+            column: A list.
+            col_name: A string indicating the name of the column this
+                data came from.
+            meta_data: A MetaData object.
+
+        Returns: column
+
+        """
+        nn_ct = u.non_null_count(column)
+        c = len(column)
+        meta_data.update(
+            col_name,
+            null_ct=c - nn_ct,
+            nullable=True if nn_ct != len(column) else False
+        )
+        return column
+
+    @staticmethod
+    @parser('uses_meta_data')
+    def gather_row_null_cts(row: (list, col.OrderedDict),
+                            meta_data: e.MetaData) -> list:
+        """
+        Takes a list and adds the count of null values in it to
+        meta_data's row_null_cts list attribute.
+
+        Args:
+            row: A list.
+            meta_data: A MetaData object.
+
+        Returns: row
+
+        """
+        # Calculate null count for the row:
+        null_ct = len(row) - u.non_null_count(row)
+        meta_data.update_attr('row_null_cts', null_ct, list)
+        return row
+
+    @staticmethod
+    @parser(parses='set')
+    def compile_meta_data(dset: e.Dataset) -> None:
+        """
+        Takes a Dataset and uses its meta_data's Dataset-level
+        meta_data attributes to calculate meta_data about the Dataset
+        as a whole.
+
+        Args:
+            dset: A Dataset object
+
+        Returns: None
+
+        """
+        row_null_cts = getattr(dset.meta_data, 'row_null_cts', None)
+        if row_null_cts is not None:
+            dset.meta_data.update_attr(
+                'avg_null_ct', int(statistics.mean(row_null_cts)))
 
     @staticmethod
     @parser('uses_meta_data', parses='column', requires_format='lists')

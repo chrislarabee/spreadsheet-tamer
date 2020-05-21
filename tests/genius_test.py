@@ -24,6 +24,11 @@ def test_parser():
     assert g.breaks_loop
     assert g.null_val is None
 
+    @ge.parser(parses='set')
+    def e(x):
+        return x - 3
+    assert e.parses == 'set'
+
     # Check set parser/uses cache conflict:
     with pytest.raises(ValueError,
                        match='Set parsers cannot use cache'):
@@ -188,13 +193,14 @@ class TestGenius:
 
 class TestPreprocess:
     def test_cleanse_gap(self):
+        md = MetaData()
         pp = ge.Preprocess()
         # First test doesn't use pp to verify staticmethod status.
-        assert ge.Preprocess.cleanse_gap([1, 2, 3]) == [1, 2, 3]
-        assert pp.cleanse_gap(['', '', '']) is None
-        assert pp.cleanse_gap(['', '', ''], 0) == ['', '', '']
-        assert pp.cleanse_gap([1, 2, None], 3) is None
-        assert pp.cleanse_gap([1, 2, None], 2) == [1, 2, None]
+        assert ge.Preprocess.cleanse_gap([1, 2, 3], md) == [1, 2, 3]
+        assert pp.cleanse_gap(['', '', ''], md) is None
+        assert pp.cleanse_gap(['', '', ''], md, 0) == ['', '', '']
+        assert pp.cleanse_gap([1, 2, None], md, 3) is None
+        assert pp.cleanse_gap([1, 2, None], md, 2) == [1, 2, None]
 
     def test_detect_header(self):
         pp = ge.Preprocess()
@@ -331,7 +337,7 @@ class TestExplore:
 
         ge.Explore().go(d)
 
-        assert d.meta_data.data == {
+        assert d.meta_data.col_data == {
             '0': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
                 'num_pct': 0.67, 'probable_type': 'numeric'
@@ -345,6 +351,17 @@ class TestExplore:
                 'num_pct': 0.0, 'probable_type': 'string'
             }
         }
+
+    def test_gather_row_null_cts(self, gaps_totals):
+        d = Dataset(gaps_totals)
+        ge.Explore.gather_row_null_cts(d[0], d.meta_data)
+        assert d.meta_data.row_null_cts == [2]
+
+    def test_compile_meta_data(self, gaps_totals):
+        d = Dataset(gaps_totals)
+        d.meta_data.row_null_cts = [2, 2, 3, 3, 0, 0, 0, 2, 0, 0, 2]
+        ge.Explore.compile_meta_data(d)
+        assert d.meta_data.avg_null_ct == 1
 
     def test_types_report(self):
         md = MetaData()
