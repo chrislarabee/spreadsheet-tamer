@@ -1,5 +1,6 @@
 import os
 from collections import OrderedDict as od
+import statistics
 
 import pytest
 
@@ -18,8 +19,56 @@ class TestMetaData:
             'a': 1, 'b': 2, 'c': 3
         }
 
-        md.clear('test')
+        md.clear_col_data('test')
         assert md == {}
+
+    def test_calculate(self):
+        md = e.MetaData(
+            dict(
+                a={'null_ct': 5},
+                b={'null_ct': 7},
+                c={'null_ct': 3},
+            )
+        )
+        assert md.calculate(
+            sum,
+            'null_ct'
+        ) == 15
+        # Ensure no attribute was added by calculate:
+        assert list(md.__dict__.keys()) == ['col_data']
+
+        assert md.calculate(
+            statistics.mean,
+            'null_ct',
+            'avg_null_ct'
+        ) == 5
+        assert md.avg_null_ct == 5
+
+    def test_check_key(self):
+        md = e.MetaData(dict(
+            a={'x': 1},
+            b={'x': 2},
+            c={'x': 3}
+        ))
+        assert md.check_key('x')
+        assert not md.check_key('y')
+
+    def test_update_attr(self):
+        md = e.MetaData()
+        md.update_attr('test_list', 1, list)
+        assert md.test_list == [1]
+        md.update_attr('test_list', 2)
+        assert md.test_list == [1, 2]
+        md.update_attr('test_dict', {'a': 1}, dict)
+        assert md.test_dict == {'a': 1}
+        md.update_attr('test_dict', {'b': 2})
+        assert md.test_dict == {'a': 1, 'b': 2}
+        md.update_attr('test_odict', od(c=3), od)
+        assert md.test_odict == od(c=3)
+        md.update_attr('test_odict', od(d=4))
+        assert md.test_odict == od(c=3, d=4)
+        md.update_attr('test_other', 1)
+        assert md.test_other == 1
 
 
 class TestDataset:

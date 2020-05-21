@@ -18,9 +18,46 @@ class MetaData(col.abc.MutableMapping, ABC):
         Args:
             data: A dictionary.
         """
-        self.data: dict = data if data is not None else dict()
+        self.col_data: dict = data if data is not None else dict()
 
-    def clear(self, column: str = None) -> None:
+    def calculate(self, func, key: str, attr: (str, None) = None):
+        """
+        Applies the passed function to all the values in
+        self.col_data's dictionaries stored at the passed key.
+
+        Args:
+            func: Any function that takes a single list argument.
+            key: A string, the key of the values you want to pull from
+                the dictionary of meta data for each column in
+                self.col_data.
+            attr: A string, the name of the attribute you wish to
+                create on MetaData that will store the result of func's
+                calculation. If None, the value will not be stored in an
+                attribute.
+
+        Returns: The return of func.
+
+        """
+        f = func([v[key] for v in self.col_data.values()])
+        setattr(self, attr, f) if attr is not None else None
+        return f
+
+    def check_key(self, key: str) -> bool:
+        """
+        Checks all the column dictionaries in self.col_data and returns
+        True if they all have the passed key and False if any of them
+        don't.
+
+        Args:
+            key: A string, a key in self.col_data.
+
+        Returns: A boolean.
+
+        """
+        x = {True if v.get(key) else False for v in self.values()}
+        return len(x) == 1 and list(x)[0]
+
+    def clear_col_data(self, column: str = None) -> None:
         """
         Clears all the meta data for the given column or the entire
         MetaData object if no column is passed.
@@ -32,7 +69,7 @@ class MetaData(col.abc.MutableMapping, ABC):
 
         """
         if column is None:
-            self.data = dict()
+            self.col_data = dict()
         else:
             self.pop(column)
 
@@ -51,23 +88,59 @@ class MetaData(col.abc.MutableMapping, ABC):
 
         """
         if not self.get(column):
-            self.data[column] = dict()
+            self.col_data[column] = dict()
         self[column] = {**self[column], **kwargs}
 
+    def update_attr(self, attr: str, value, _type=None) -> None:
+        """
+        Takes an attribute and a value, and optionally a type, and
+        uses them to update an attribute on the MetaData object, or to
+        create a new attribute.
+        Args:
+            attr: A string, the name of the target attribute.
+            value: An object, the value to set attr to or to update
+                attr with.
+            _type: None, collections.OrderedDict, list, or dict. Pass
+                one of the latter three to tell update_attr to create
+                and empty attribute of that type and/or add value to
+                that attribute rather than setting directly.
+
+        Returns: None
+
+        """
+        update_funcs = {
+            'dict_like': lambda x: setattr(
+                self, attr, {**getattr(self, attr), **x}),
+            'list': lambda x: getattr(self, attr).append(x),
+            'other': lambda x: setattr(self, attr, x)
+        }
+        a = getattr(self, attr, None)
+        t = 'other'
+        if _type is None and a is not None:
+            if isinstance(a, (col.OrderedDict, dict)):
+                t = 'dict_like'
+            elif isinstance(a, list):
+                t = 'list'
+        elif a is None and _type is not None:
+            if _type in (col.OrderedDict, dict, list):
+                setattr(self, attr, _type())
+                t = 'list' if _type == list else 'dict_like'
+        update_funcs[t](value)
+
     def __delitem__(self, key):
-        self.data.pop(key)
+        self.col_data.pop(key)
 
     def __getitem__(self, item):
-        return self.data[item]
+        return self.col_data[item]
 
     def __iter__(self):
-        return self.data.__iter__()
+        return self.col_data.__iter__()
 
     def __len__(self):
-        return len(self.data)
+        return len(self.col_data)
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        self.col_data[key] = value
 
 
 class Element(col.abc.Sequence, ABC):
