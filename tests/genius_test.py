@@ -393,14 +393,17 @@ class TestExplore:
         assert d.meta_data == {
             '0': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
-                'num_pct': 0.67, 'probable_type': 'numeric'
+                'num_pct': 0.67, 'probable_type': 'numeric', 'null_ct': 1,
+                'nullable': True
             },
             '1': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
-                'num_pct': 1.0, 'probable_type': 'numeric'
+                'num_pct': 1.0, 'probable_type': 'numeric', 'null_ct': 0,
+                'nullable': False
             },
             '2': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 1.0,
-                'num_pct': 0.0, 'probable_type': 'string'
+                'num_pct': 0.0, 'probable_type': 'string', 'null_ct': 0,
+                'nullable': False
             }
         }

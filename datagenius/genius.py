@@ -728,6 +728,7 @@ class Explore(Genius):
             ParserSubset(
                 self.uniques_report,
                 self.types_report,
+                self.nulls_report
             ),
             *custom_steps
         ]
@@ -747,7 +748,7 @@ class Explore(Genius):
         return super(Explore, self).go(dset, **options)
 
     @staticmethod
-    @parser('uses_meta_data', parses='column')
+    @parser('uses_meta_data', parses='column', requires_format='any')
     def nulls_report(column: list, col_name: str,
                      meta_data: e.MetaData) -> list:
         """
