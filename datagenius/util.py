@@ -52,27 +52,6 @@ def count_true_str(x: list) -> int:
     )
 
 
-def nullify_empty_vals(x: (list, dict, OrderedDict),
-                       *ignore) -> (list, dict, OrderedDict):
-    """
-    Takes a list, dict, or OrderedDict and ensures that any of its
-    values that are empty strings are replaced by None, unless the
-    index or key is in *ignore.
-    Args:
-        x: A list, dict, or OrderedDict.
-        ignore: An arbitrary list of keys/indices to NOT nullify.
-
-    Returns: An object of the same type as x.
-
-    """
-    indices = range(len(x)) if isinstance(x, list) else list(x.keys())
-    result = [None if x[i] == '' and i not in ignore else x[i] for i in indices]
-    if isinstance(x, (dict, OrderedDict)):
-        return type(x)(zip(indices, result))
-    else:
-        return result
-
-
 def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:
     """
     Takes an object and checks its attributes. Designed to see

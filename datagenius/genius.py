@@ -2,7 +2,7 @@ import inspect
 import re
 import collections as col
 import functools
-import statistics
+import warnings
 from abc import ABC
 from typing import Callable
 
@@ -149,7 +149,8 @@ class ParserSubset(col.abc.MutableSequence, ABC):
         for s in steps:
             if u.validate_parser(s):
                 parses.add(s.parses)
-                formats.add(s.requires_format)
+                if s.requires_format != 'any':
+                    formats.add(s.requires_format)
                 results.append(s)
             else:
                 raise ValueError(
@@ -281,14 +282,11 @@ class Genius:
             wdset = dset.copy()
 
         for step in self.steps:
-            if u.validate_parser(step, 'parses', 'set'):
-                step(wdset)
+            wdset.transpose(step.parses)
+            s = [step] if u.validate_parser(step) else step
+            if step.parses == 'set':
+                self.loop_dataset(wdset, *s, **options)
             else:
-                s = [step] if u.validate_parser(step) else step
-                parses = step.parses
-                if (u.validate_parser(step, 'parses', parses) and
-                        wdset.data_orientation != parses):
-                    wdset.transpose()
                 wdset.data = self.loop_dataset(wdset, *s, **options)
         return wdset
 
@@ -346,8 +344,7 @@ class Genius:
             dset.to_format(_format)
 
     @staticmethod
-    def loop_dataset(dset: e.Dataset, *parsers, one_return: bool = False,
-                     **parser_args) -> (list or None):
+    def loop_dataset(dset: e.Dataset, *parsers, **parser_args) -> (list or None):
         """
         Loops over all the rows in the passed Dataset and passes
         each to the passed parsers.
@@ -355,13 +352,8 @@ class Genius:
         Args:
             dset: A Dataset object.
             parsers: One or more parser functions.
-            one_return: A boolean, tells loop_dataset that the parsers
-                will only result in a single object to return, so no
-                need to wrap it in an outer list.
             parser_args: A dictionary containing keys matching the
-                names of any of the parser functions, with each key
-                being assigned a kwargs dictionary that the parser
-                function can accept.
+                args of any of the parser functions.
 
         Returns: A list containing the results of the parsers'
             evaluation of each row in dset.
@@ -377,7 +369,7 @@ class Genius:
 
         for i, r in enumerate(dset):
             if dset.data_orientation == 'column':
-                parser_args['col_name'] = dset.header[i]
+                parser_args['col_name'] = dset.meta_data.header[i]
             row = r.copy()
             outer_break, passes_all, collect, row = Genius.apply_parsers(
                 row, *parsers, **parser_args
@@ -389,11 +381,7 @@ class Genius:
                 if outer_break:
                     break
                 parser_args['cache'] = row
-
-        if one_return:
-            return results[0] if len(results) > 0 else None
-        else:
-            return results
+        return results
 
     @staticmethod
     def eval_condition(data: (list, col.OrderedDict),
@@ -472,20 +460,29 @@ class Preprocess(Genius):
     such as spreadsheets with gaps or other formatting that was
     designed for humans and not computers.
     """
-    def __init__(self, *custom_steps):
+    def __init__(self, *custom_steps, header_func=None):
         """
 
         Args:
-            *custom_steps: Any number of parser functions, which
-                will be executed after Preprocess' pre-built
-                parsers.
+            *custom_steps: Any number of parser functions, which will
+                be executed along with Preprocess' pre-built parsers.
+            header_func: A parser function, overrides pre-built
+                detect_header parser.
         """
+        if u.validate_parser(header_func) and header_func.priority >= 100:
+            warnings.warn(
+                f'It is *highly* recommended that you let Preprocess '
+                f'execute cleanse_gaps and nullify_empty_vals before '
+                f'executing a header-finding function. Current '
+                f'header_func priority = {header_func.priority}. '
+                f'Consider reducing it below 100')
         preprocess_steps = [
-            self.cleanse_gap,
+            self.cleanse_gaps,
+            self.nullify_empty_vals,
+            self.detect_header if header_func is None else header_func,
             *custom_steps
         ]
-        super(Preprocess, self).__init__(
-            *preprocess_steps)
+        super(Preprocess, self).__init__(*self.order_parsers(preprocess_steps))
 
     def go(self, dset: e.Dataset, **options) -> e.Dataset:
         """
@@ -499,66 +496,89 @@ class Preprocess(Genius):
                     manual_header: A list. Use this when your
                         data doesn't have a header and you are
                         manually creating one.
-                    header_func: A parser, used if you need to
-                        overwrite the default detect_header parser.
+                    ignore: A tuple, a list of indices in your dataset
+                        with meaningful empty strings that should NOT
+                        be converted to NoneType.
         Returns: The Dataset object, or a copy of it.
 
         """
         wdset = super(Preprocess, self).go(dset, **options)
-        if options.get('manual_header'):
-            wdset.header = options.get('manual_header')
-        else:
-            wdset.header = self.loop_dataset(
-                wdset,
-                options.get('header_func', self.detect_header),
-                one_return=True
-            )
-            if wdset.header is not None:
-                wdset.remove(wdset.header)
+        if wdset.meta_data.header in wdset:
+            wdset.remove(wdset.meta_data.header)
         return wdset
 
     @staticmethod
-    @parser('collect_rejects', 'uses_meta_data', requires_format='lists')
-    def cleanse_gap(x: list, meta_data: e.MetaData, threshold: int = None):
+    @parser(requires_format='lists', priority=100)
+    def cleanse_gaps(row: list) -> (None, list):
         """
-        Checks a list to see if it has sufficient non-null values.
+        Checks a list to see if it contains only null values.
 
         Args:
-            x: A list.
-            threshold: An integer, indicates the number of # of
-                values in the list that must be non-nulls. If None,
-                uses the length of the list.
+            row: A list.
 
-        Returns: The list if it contains equal to or greater
-            non-null values than the threshold, otherwise None.
+        Returns: None if the list contains only null values, else the
+            list.
 
         """
-        w = len(x) if threshold is None else threshold
-        nn = u.non_null_count(x)
-        return x if nn >= w else None
+        return None if u.count_nulls(row) == len(row) else row
 
     @staticmethod
-    @parser('breaks_loop', requires_format='lists')
-    def detect_header(x: list):
+    @parser('breaks_loop', 'uses_meta_data', parses='set',
+            requires_format='lists')
+    def detect_header(row: list, meta_data: e.MetaData,
+                      manual_header: (list, None) = None):
         """
         Checks a list to see if it contains only strings. If it
         does, then it could probably be a header row.
 
         Args:
-            x: A list
+            row: A list
+            meta_data: A MetaData object.
+            manual_header: A list, which will be used to override any
+                automatically detected header. Useful if the Dataset
+                has no discernible header.
 
         Returns: The list if it contains only non-null strings,
             otherwise None.
 
         """
-        w = len(x)
-        ts = u.true_str_count(x)
-        if ts == w:
-            return x
+        if manual_header is not None:
+            meta_data.header = manual_header
+            return row
         else:
-            return None
+            w = len(row)
+            ts = u.count_true_str(row)
+            if ts == w:
+                meta_data.header = row
+                return row
+            else:
+                return None
 
-    # TODO: Add a parser to convert '' to None.
+    @staticmethod
+    @parser(requires_format='any', priority=100)
+    def nullify_empty_vals(
+            row: (list, dict, col.OrderedDict),
+            ignore: (tuple, None) = None) -> (list, dict, col.OrderedDict):
+        """
+        Takes a list, dict, or OrderedDict and ensures that any of its
+        values that are empty strings are replaced by None, unless the
+        index or key is in *ignore.
+        Args:
+            row: A list, dict, or OrderedDict.
+            ignore: A tuple of keys/indices to NOT nullify.
+
+        Returns: An object of the same type as row.
+
+        """
+        indices = range(len(row)) if isinstance(row, list) else list(row.keys())
+        ignore = tuple() if ignore is None else ignore
+        result = [
+            None if row[i] == '' and i not in ignore else row[i] for i in indices
+        ]
+        if isinstance(row, (dict, col.OrderedDict)):
+            return type(row)(zip(indices, result))
+        else:
+            return result
 
 
 class Clean(Genius):
@@ -598,25 +618,31 @@ class Clean(Genius):
         return super(Clean, self).go(dset, **options)
 
     @staticmethod
+    @parser(priority=9)
+    def cleanse_incomplete_rows(row: col.OrderedDict, meta_data: e.MetaData):
+        if meta_data.check_key('nullable'):
+            pass
+
+    @staticmethod
     @parser('uses_cache')
-    def extrapolate(x: col.OrderedDict, cols: (list, tuple),
+    def extrapolate(row: col.OrderedDict, cols: (list, tuple),
                     cache: col.OrderedDict = None):
         """
         Uses the values in a cached row to fill in values in the current
         row by index. Useful when your dataset has grouped rows.
 
         Args:
-            x: An OrderedDict.
-            cols: A list of keys, which must be found in x.
+            row: An OrderedDict.
+            cols: A list of keys, which must be found in row.
             cache: An OrderedDict, which contains values to be
-                pulled by key in cols into x. If cache is None,
-                extrapolate will just return a copy of x.
+                pulled by key in cols into row. If cache is None,
+                extrapolate will just return a copy of row.
 
-        Returns: x with null values overwritten with populated
+        Returns: row with null values overwritten with populated
             values from the cached OrderedDict.
 
         """
-        result = x.copy()
+        result = row.copy()
         if cache is not None:
             for c in cols:
                 if result[c] in (None, ''):
@@ -625,12 +651,12 @@ class Clean(Genius):
 
     @staticmethod
     @parser('uses_meta_data')
-    def clean_typos(x: dict, meta_data: dict):
+    def clean_typos(row: dict, meta_data: dict):
         typo_funcs = {
             'numeric': Clean.clean_numeric_typos
         }
         result = dict()
-        for k, v in x.items():
+        for k, v in row.items():
             f = typo_funcs.get(
                 meta_data[k]['probable_type'],
                 lambda y: y
@@ -715,53 +741,13 @@ class Explore(Genius):
         Returns: column
 
         """
-        nn_ct = u.non_null_count(column)
-        c = len(column)
+        null_ct = u.count_nulls(column)
         meta_data.update(
             col_name,
-            null_ct=c - nn_ct,
-            nullable=True if nn_ct != len(column) else False
+            null_ct=null_ct,
+            nullable=True if null_ct > 0 else False
         )
         return column
-
-    @staticmethod
-    @parser('uses_meta_data')
-    def gather_row_null_cts(row: (list, col.OrderedDict),
-                            meta_data: e.MetaData) -> list:
-        """
-        Takes a list and adds the count of null values in it to
-        meta_data's row_null_cts list attribute.
-
-        Args:
-            row: A list.
-            meta_data: A MetaData object.
-
-        Returns: row
-
-        """
-        # Calculate null count for the row:
-        null_ct = len(row) - u.non_null_count(row)
-        meta_data.update_attr('row_null_cts', null_ct, list)
-        return row
-
-    @staticmethod
-    @parser(parses='set')
-    def compile_meta_data(dset: e.Dataset) -> None:
-        """
-        Takes a Dataset and uses its meta_data's Dataset-level
-        meta_data attributes to calculate meta_data about the Dataset
-        as a whole.
-
-        Args:
-            dset: A Dataset object
-
-        Returns: None
-
-        """
-        row_null_cts = getattr(dset.meta_data, 'row_null_cts', None)
-        if row_null_cts is not None:
-            dset.meta_data.update_attr(
-                'avg_null_ct', int(statistics.mean(row_null_cts)))
 
     @staticmethod
     @parser('uses_meta_data', parses='column', requires_format='lists')
@@ -802,7 +788,11 @@ class Explore(Genius):
         else:
             prob_type = 'uncertain'
         meta_data.update(
-            col_name, str_pct=str_pct, num_pct=num_pct, probable_type=prob_type)
+            col_name,
+            str_pct=str_pct,
+            num_pct=num_pct,
+            probable_type=prob_type
+        )
         return column
 
     @staticmethod

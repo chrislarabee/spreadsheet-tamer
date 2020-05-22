@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict as od
 
 import pytest
 
@@ -35,7 +35,7 @@ def test_parser():
         ge.parser(lambda x: x + 1, 'uses_cache', parses='set')
 
     # Sanity check to ensure pre-built parsers work:
-    assert not ge.Preprocess.cleanse_gap.breaks_loop
+    assert not ge.Preprocess.cleanse_gaps.breaks_loop
 
     # Sanity check to ensure lambda function parsers work:
     p = ge.parser(lambda x: x + 1, null_val=0)
@@ -192,63 +192,63 @@ class TestGenius:
 
 
 class TestPreprocess:
-    def test_cleanse_gap(self):
-        md = MetaData()
+    def test_cleanse_gaps(self):
         pp = ge.Preprocess()
         # First test doesn't use pp to verify staticmethod status.
-        assert ge.Preprocess.cleanse_gap([1, 2, 3], md) == [1, 2, 3]
-        assert pp.cleanse_gap(['', '', ''], md) is None
-        assert pp.cleanse_gap(['', '', ''], md, 0) == ['', '', '']
-        assert pp.cleanse_gap([1, 2, None], md, 3) is None
-        assert pp.cleanse_gap([1, 2, None], md, 2) == [1, 2, None]
+        assert ge.Preprocess.cleanse_gaps([1, 2, 3]) == [1, 2, 3]
+        assert pp.cleanse_gaps(['', '', '']) is None
+        assert pp.cleanse_gaps([1, 2, None]) == [1, 2, None]
 
     def test_detect_header(self):
         pp = ge.Preprocess()
+        md = MetaData()
         # First test doesn't use pp to verify staticmethod status.
-        assert ge.Preprocess.detect_header([1, 2, 3]) is None
-        assert pp.detect_header(['a', 'b', 'c']) == ['a', 'b', 'c']
+        assert ge.Preprocess.detect_header([1, 2, 3], md) is None
+        assert pp.detect_header(['a', 'b', 'c'], md) == ['a', 'b', 'c']
+        assert md.header == ['a', 'b', 'c']
+        assert pp.detect_header([1, 2, 3], md, ['x', 'y', 'z']) == [1, 2, 3]
+        assert md.header == ['x', 'y', 'z']
 
-    def test_basic_go(self, customers, sales, simple_data, gaps,
-                      gaps_totals):
+    def test_nullify_empty_vals(self):
+        expected = [None, 1, 'a', None]
+        x = ge.Preprocess.nullify_empty_vals([None, 1, 'a', ''])
+        assert x == expected
+        assert isinstance(x, list)
+
+        expected = od(a=None, b=None, c=1, d='foo')
+        x = ge.Preprocess.nullify_empty_vals(od(a='', b='', c=1, d='foo'))
+        assert x == expected
+        assert isinstance(x, od)
+
+        expected = dict(a=None, b=None, c=1)
+        x = ge.Preprocess.nullify_empty_vals(dict(a='', b=None, c=1))
+        assert x == expected
+        assert isinstance(x, dict)
+
+        # Test ignore functionality:
+        expected = ['', None, 1, 'a']
+        x = ge.Preprocess.nullify_empty_vals(['', '', 1, 'a'], ignore=(0,))
+        assert x == expected
+
+        expected = dict(a='', b=None, c=1)
+        x = ge.Preprocess.nullify_empty_vals(dict(a='', b='', c=1), ignore=('a',))
+        assert x == expected
+
+    def test_basic_go(self, customers, simple_data, gaps):
         p = ge.Preprocess()
         d = Dataset(simple_data())
         r = p.go(d)
         assert r == d
         assert r == customers[1]
-        assert d.header == customers[0]
+        assert d.meta_data.header == customers[0]
         assert d.rejects == []
 
         d = Dataset(gaps)
         r = p.go(d, overwrite=False)
         assert r == customers[1]
         assert r != d
-        assert d.header == ['0', '1', '2', '3']
-        assert r.header == customers[0]
-        assert r.rejects == [
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', '']
-        ]
-
-        d = Dataset(gaps_totals)
-        r = p.go(d)
-        assert r == sales[1]
-        assert r.header == sales[0]
-        assert r.rejects == [
-            ['Sales by Location Report', '', ''],
-            ['Grouping: Region', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', 800],
-            ['', '', 1200]
-        ]
-
-        # Sanity check to ensure threshold works:
-        d = Dataset(gaps)
-        r = p.go(d, threshold=0, manual_header=['a', 'b', 'c', 'd'])
-        assert r == gaps
+        assert r.meta_data != d.meta_data
+        assert r.meta_data.header == customers[0]
 
     def test_custom_go(self):
         # Test custom preprocess step and header_func:
@@ -256,11 +256,16 @@ class TestPreprocess:
             lambda x: [str(x[0]), *x[1:]],
             requires_format='lists'
         )
-        hf = ge.parser(
-            lambda x: x if x[0] == 'odd' else None,
-            'breaks_loop',
-            requires_format='lists'
-        )
+
+        @ge.parser('uses_meta_data', 'breaks_loop', requires_format='lists',
+                   parses='set')
+        def hf(x, meta_data):
+            if x[0] == 'odd':
+                meta_data.header = x
+                return x
+            else:
+                return None
+
         d = Dataset([
             ['', '', ''],
             ['odd', 1, 'header'],
@@ -269,11 +274,11 @@ class TestPreprocess:
             [4, 5, 6]
         ])
 
-        assert ge.Preprocess(pr).go(d, header_func=hf) == [
+        assert ge.Preprocess(pr, header_func=hf).go(d) == [
             ['1', 2, 3],
             ['4', 5, 6]
         ]
-        assert d.header == ['odd', 1, 'header']
+        assert d.meta_data.header == ['odd', 1, 'header']
 
         # Test manual_header:
         d = Dataset([
@@ -287,16 +292,16 @@ class TestPreprocess:
             [1, 2, 3],
             [4, 5, 6]
         ]
-        assert d.header == ['a', 'b', 'c']
+        assert d.meta_data.header == ['a', 'b', 'c']
 
 
 class TestClean:
     def test_extrapolate(self):
         assert ge.Clean.extrapolate(
-            OrderedDict(a=2, b=None, c=None),
+            od(a=2, b=None, c=None),
             ['b', 'c'],
-            OrderedDict(a=1, b='Foo', c='Bar')
-        ) == OrderedDict(a=2, b='Foo', c='Bar')
+            od(a=1, b='Foo', c='Bar')
+        ) == od(a=2, b='Foo', c='Bar')
 
     def test_clean_numeric_typos(self):
         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
@@ -307,16 +312,16 @@ class TestClean:
 
     def test_go_w_extrapolate(self, needs_extrapolation):
         d = Dataset(needs_extrapolation[1])
-        d.header = needs_extrapolation[0]
+        d.meta_data.header = needs_extrapolation[0]
         expected = [
-            OrderedDict(
+            od(
                 product_id=1, vendor_name='StrexCorp', product_name='Teeth'),
-            OrderedDict(
+            od(
                 product_id=2, vendor_name='StrexCorp',
                 product_name='Radio Equipment'),
-            OrderedDict(
+            od(
                 product_id=3, vendor_name='KVX Bank', product_name='Bribe'),
-            OrderedDict(
+            od(
                 product_id=4, vendor_name='KVX Bank',
                 product_name='Not candy or pens')
         ]
@@ -336,8 +341,9 @@ class TestExplore:
         ])
 
         ge.Explore().go(d)
+        assert d.data_orientation == 'column'
 
-        assert d.meta_data.col_data == {
+        assert d.meta_data == {
             '0': {
                 'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
                 'num_pct': 0.67, 'probable_type': 'numeric'
@@ -351,17 +357,6 @@ class TestExplore:
                 'num_pct': 0.0, 'probable_type': 'string'
             }
         }
-
-    def test_gather_row_null_cts(self, gaps_totals):
-        d = Dataset(gaps_totals)
-        ge.Explore.gather_row_null_cts(d[0], d.meta_data)
-        assert d.meta_data.row_null_cts == [2]
-
-    def test_compile_meta_data(self, gaps_totals):
-        d = Dataset(gaps_totals)
-        d.meta_data.row_null_cts = [2, 2, 3, 3, 0, 0, 0, 2, 0, 0, 2]
-        ge.Explore.compile_meta_data(d)
-        assert d.meta_data.avg_null_ct == 1
 
     def test_types_report(self):
         md = MetaData()

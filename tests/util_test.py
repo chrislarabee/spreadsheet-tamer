@@ -21,32 +21,6 @@ def test_count_nulls():
     assert u.count_nulls(dict(a='t', b='u', c='')) == 1
 
 
-def test_nullify_empty_vals():
-    expected = [None, 1, 'a', None]
-    x = u.nullify_empty_vals([None, 1, 'a', ''])
-    assert x == expected
-    assert isinstance(x, list)
-
-    expected = od(a=None, b=None, c=1, d='foo')
-    x = u.nullify_empty_vals(od(a='', b='', c=1, d='foo'))
-    assert x == expected
-    assert isinstance(x, od)
-
-    expected = dict(a=None, b=None, c=1)
-    x = u.nullify_empty_vals(dict(a='', b=None, c=1))
-    assert x == expected
-    assert isinstance(x, dict)
-
-    # Test ignore functionality:
-    expected = ['', None, 1, 'a']
-    x = u.nullify_empty_vals(['', '', 1, 'a'], 0)
-    assert x == expected
-
-    expected = dict(a='', b=None, c=1)
-    x = u.nullify_empty_vals(dict(a='', b='', c=1), 'a')
-    assert x == expected
-
-
 def test_count_true_str():
     assert u.count_true_str(['', '', '']) == 0
     assert u.count_true_str(['a', 'test', 1]) == 2
