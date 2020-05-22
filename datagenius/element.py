@@ -6,168 +6,7 @@ from datagenius.io import text, odbc
 import datagenius.util as u
 
 
-class MetaData(col.abc.MutableMapping, ABC):
-    """
-    Stores meta data on the columns of a Dataset object and provides
-    convenience methods for updating and interacting with the meta
-    data.
-    """
-    def __init__(self, data: dict = None):
-        """
-
-        Args:
-            data: A dictionary.
-        """
-        self.col_data: dict = data if data is not None else dict()
-        self.header: list = list()
-
-    def gen_temp_header(self, x: int,
-                        manual_header: (list, None) = None) -> None:
-        """
-        Assigns a manual_header to self.header if passed, otherwise
-        creates a temporary header with indices as strings.
-
-        Returns: None
-
-        """
-        if manual_header:
-            self.header = manual_header
-        else:
-            self.header = [str(i) for i in range(x)]
-
-    def copy(self):
-        """
-        Returns: A copy of the MetaData object.
-
-        """
-        md = MetaData(self.col_data.copy())
-        md.header = self.header.copy()
-        return md
-
-    def calculate(self, func, key: str, attr: (str, None) = None):
-        """
-        Applies the passed function to all the values in
-        self.col_data's dictionaries stored at the passed key.
-
-        Args:
-            func: Any function that takes a single list argument.
-            key: A string, the key of the values you want to pull from
-                the dictionary of meta data for each column in
-                self.col_data.
-            attr: A string, the name of the attribute you wish to
-                create on MetaData that will store the result of func's
-                calculation. If None, the value will not be stored in an
-                attribute.
-
-        Returns: The return of func.
-
-        """
-        f = func([v[key] for v in self.col_data.values()])
-        setattr(self, attr, f) if attr is not None else None
-        return f
-
-    def check_key(self, key: str) -> bool:
-        """
-        Checks all the column dictionaries in self.col_data and returns
-        True if they all have the passed key and False if any of them
-        don't.
-
-        Args:
-            key: A string, a key in self.col_data.
-
-        Returns: A boolean.
-
-        """
-        x = {True if v.get(key) else False for v in self.values()}
-        return len(x) == 1 and list(x)[0]
-
-    def clear_col_data(self, column: str = None) -> None:
-        """
-        Clears all the meta data for the given column or the entire
-        MetaData object if no column is passed.
-
-        Args:
-            column: A string, a key found in self.data.
-
-        Returns: None
-
-        """
-        if column is None:
-            self.col_data = dict()
-        else:
-            self.pop(column)
-
-    def update(self, column: str, **kwargs) -> None:
-        """
-        Convenience method for updating the MetaData's information
-        for a given column. Can add as many key-value pairs as desired
-        to the column's entry in self.data.
-
-        Args:
-            column: A string.
-            **kwargs: Key value pairs to add to the sub-dictionary
-                found in self.data[column]
-
-        Returns: None
-
-        """
-        if not self.get(column):
-            self.col_data[column] = dict()
-        self[column] = {**self[column], **kwargs}
-
-    def update_attr(self, attr: str, value, _type=None) -> None:
-        """
-        Takes an attribute and a value, and optionally a type, and
-        uses them to update an attribute on the MetaData object, or to
-        create a new attribute.
-        Args:
-            attr: A string, the name of the target attribute.
-            value: An object, the value to set attr to or to update
-                attr with.
-            _type: None, collections.OrderedDict, list, or dict. Pass
-                one of the latter three to tell update_attr to create
-                and empty attribute of that type and/or add value to
-                that attribute rather than setting directly.
-
-        Returns: None
-
-        """
-        update_funcs = {
-            'dict_like': lambda x: setattr(
-                self, attr, {**getattr(self, attr), **x}),
-            'list': lambda x: getattr(self, attr).append(x),
-            'other': lambda x: setattr(self, attr, x)
-        }
-        a = getattr(self, attr, None)
-        t = 'other'
-        if _type is None and a is not None:
-            if isinstance(a, (col.OrderedDict, dict)):
-                t = 'dict_like'
-            elif isinstance(a, list):
-                t = 'list'
-        elif a is None and _type is not None:
-            if _type in (col.OrderedDict, dict, list):
-                setattr(self, attr, _type())
-                t = 'list' if _type == list else 'dict_like'
-        update_funcs[t](value)
-
-    def __delitem__(self, key):
-        self.col_data.pop(key)
-
-    def __getitem__(self, item):
-        return self.col_data[item]
-
-    def __iter__(self):
-        return self.col_data.__iter__()
-
-    def __len__(self):
-        return len(self.col_data)
-
-    def __setitem__(self, key, value):
-        self.col_data[key] = value
-
-
-class Element(col.abc.Sequence, ABC):
+class Element(ABC):
     """
     A superclass for Element objects, which allows implementation
     of some methods needed by all the objects in this module.
@@ -246,7 +85,154 @@ class Element(col.abc.Sequence, ABC):
         return len(self.data)
 
 
-class Dataset(Element):
+class MetaData(Element, col.abc.MutableMapping):
+    """
+    Stores meta data on the columns of a Dataset object and provides
+    convenience methods for updating and interacting with the meta
+    data.
+    """
+    def __init__(self, data: dict = None):
+        """
+
+        Args:
+            data: A dictionary.
+        """
+        data = data if data is not None else dict()
+        super(MetaData, self).__init__(data)
+        self.header: list = list()
+
+    def gen_temp_header(self, x: int,
+                        manual_header: (list, None) = None) -> None:
+        """
+        Assigns a manual_header to self.header if passed, otherwise
+        creates a temporary header with indices as strings.
+
+        Returns: None
+
+        """
+        if manual_header:
+            self.header = manual_header
+        else:
+            self.header = [str(i) for i in range(x)]
+
+    def calculate(self, func, key: str, attr: (str, None) = None):
+        """
+        Applies the passed function to all the values in
+        self.col_data's dictionaries stored at the passed key.
+
+        Args:
+            func: Any function that takes a single list argument.
+            key: A string, the key of the values you want to pull from
+                the dictionary of meta data for each column in
+                self.col_data.
+            attr: A string, the name of the attribute you wish to
+                create on MetaData that will store the result of func's
+                calculation. If None, the value will not be stored in an
+                attribute.
+
+        Returns: The return of func.
+
+        """
+        f = func([v[key] for v in self.data.values()])
+        setattr(self, attr, f) if attr is not None else None
+        return f
+
+    def check_key(self, key: str) -> bool:
+        """
+        Checks all the column dictionaries in self.col_data and returns
+        True if they all have the passed key and False if any of them
+        don't.
+
+        Args:
+            key: A string, a key in self.col_data.
+
+        Returns: A boolean.
+
+        """
+        x = {True if v.get(key) else False for v in self.values()}
+        return len(x) == 1 and list(x)[0]
+
+    def clear_col_data(self, column: str = None) -> None:
+        """
+        Clears all the meta data for the given column or the entire
+        MetaData object if no column is passed.
+
+        Args:
+            column: A string, a key found in self.data.
+
+        Returns: None
+
+        """
+        if column is None:
+            self.data.clear()
+        else:
+            self.pop(column)
+
+    def update(self, column: str, **kwargs) -> None:
+        """
+        Convenience method for updating the MetaData's information
+        for a given column. Can add as many key-value pairs as desired
+        to the column's entry in self.data.
+
+        Args:
+            column: A string.
+            **kwargs: Key value pairs to add to the sub-dictionary
+                found in self.data[column]
+
+        Returns: None
+
+        """
+        if not self.get(column):
+            self[column] = dict()
+        self[column] = {**self[column], **kwargs}
+
+    def update_attr(self, attr: str, value, _type=None) -> None:
+        """
+        Takes an attribute and a value, and optionally a type, and
+        uses them to update an attribute on the MetaData object, or to
+        create a new attribute.
+        Args:
+            attr: A string, the name of the target attribute.
+            value: An object, the value to set attr to or to update
+                attr with.
+            _type: None, collections.OrderedDict, list, or dict. Pass
+                one of the latter three to tell update_attr to create
+                and empty attribute of that type and/or add value to
+                that attribute rather than setting directly.
+
+        Returns: None
+
+        """
+        update_funcs = {
+            'dict_like': lambda x: setattr(
+                self, attr, {**getattr(self, attr), **x}),
+            'list': lambda x: getattr(self, attr).append(x),
+            'other': lambda x: setattr(self, attr, x)
+        }
+        a = getattr(self, attr, None)
+        t = 'other'
+        if _type is None and a is not None:
+            if isinstance(a, (col.OrderedDict, dict)):
+                t = 'dict_like'
+            elif isinstance(a, list):
+                t = 'list'
+        elif a is None and _type is not None:
+            if _type in (col.OrderedDict, dict, list):
+                setattr(self, attr, _type())
+                t = 'list' if _type == list else 'dict_like'
+        update_funcs[t](value)
+
+    def __delitem__(self, key):
+        self.data.pop(key)
+
+    def __iter__(self):
+        return self.data.__iter__()
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+
+class Dataset(Element, col.abc.Sequence):
     """
     A wrapper object for lists of lists. Datasets are the primary
     data-containing object for datagenius.
@@ -298,23 +284,31 @@ class Dataset(Element):
 
         """
         d = Dataset(self.data.copy())
-        d.meta_data = self.meta_data.copy()
+        md = MetaData(self.meta_data.data.copy())
+        md.header = self.meta_data.header.copy()
+        d.meta_data = md
         return d
 
-    def transpose(self) -> None:
+    def transpose(self, orientation: str) -> None:
         """
         Transposes the Dataset's data, making the columns rows and the
         rows columns.
 
+        Args:
+            orientation: A string, indicates what the desired
+                data_orientation value is.
+
         Returns: None
 
         """
+        orientation = 'row' if orientation == 'set' else orientation
         self.to_format('lists')
-        self.data = list(map(list, zip(*self.data)))
-        if self.data_orientation == 'row':
-            self.data_orientation = 'column'
-        else:
-            self.data_orientation = 'row'
+        if self.data_orientation != orientation:
+            self.data = list(map(list, zip(*self.data)))
+            if self.data_orientation == 'row':
+                self.data_orientation = 'column'
+            else:
+                self.data_orientation = 'row'
 
     def to_format(self, to: str) -> bool:
         """
@@ -331,9 +325,12 @@ class Dataset(Element):
             'dicts': self.to_dicts,
             'lists': self.to_lists
         }
-        prev_format = self.data_format
-        format_funcs[to]()
-        return True if prev_format != self.data_format else False
+        if to == 'any':
+            return False
+        else:
+            prev_format = self.data_format
+            format_funcs[to]()
+            return True if prev_format != self.data_format else False
 
     @staticmethod
     def from_file(file_path: str):
@@ -442,8 +439,7 @@ class Dataset(Element):
         Returns: None
 
         """
-        if self.data_orientation != 'row':
-            self.transpose()
+        self.transpose('row')
         self.to_dicts()
         f, ext = os.path.splitext(output_name)
         if to == 'csv':
@@ -535,7 +531,7 @@ class Dataset(Element):
         return dataset_md, dataset_md_schema, column_md, column_md_schema
 
 
-class MappingRule(Element):
+class MappingRule(Element, col.abc.Sequence):
     """
         A fairly simple object for encoding what string value an object
         corresponds to and what default value should be used if a given row
@@ -575,7 +571,7 @@ class MappingRule(Element):
         return self.to, v
 
 
-class Mapping(Element):
+class Mapping(Element, col.abc.Sequence):
     """
     Provides a quick way for creating many MappingRules from
     a target format template and from explicitly detailed rules.

@@ -35,7 +35,7 @@ class TestMetaData:
             'null_ct'
         ) == 15
         # Ensure no attribute was added by calculate:
-        assert list(md.__dict__.keys()) == ['col_data', 'header']
+        assert list(md.__dict__.keys()) == ['data', 'header']
 
         assert md.calculate(
             statistics.mean,
@@ -72,6 +72,13 @@ class TestMetaData:
 
 
 class TestDataset:
+    def test_copy(self, customers):
+        d = e.Dataset(customers[1], customers[0])
+
+        d2 = d.copy()
+        assert d2 != d
+        assert d2.meta_data != d.meta_data
+
     def test_transpose(self):
         data = [
             [1, 2, 3],
@@ -80,14 +87,14 @@ class TestDataset:
         ]
         d = e.Dataset(data)
         assert d.data_orientation == 'row'
-        d.transpose()
+        d.transpose('column')
         assert d == [
             [1, 4, 7],
             [2, 5, 8],
             [3, 6, 9]
         ]
         assert d.data_orientation == 'column'
-        d.transpose()
+        d.transpose('set')
         assert d == data
         assert d.data_orientation == 'row'
 
