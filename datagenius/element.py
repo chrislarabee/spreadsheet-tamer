@@ -149,7 +149,7 @@ class MetaData(Element, col.abc.MutableMapping):
         Returns: A boolean.
 
         """
-        x = {True if v.get(key) else False for v in self.values()}
+        x = {True if v.get(key) is not None else False for v in self.values()}
         return len(x) == 1 and list(x)[0]
 
     def clear_col_data(self, column: str = None) -> None:

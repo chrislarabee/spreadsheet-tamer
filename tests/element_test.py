@@ -46,12 +46,14 @@ class TestMetaData:
 
     def test_check_key(self):
         md = e.MetaData(dict(
-            a={'x': 1},
-            b={'x': 2},
-            c={'x': 3}
+            a={'w': True, 'x': 1},
+            b={'w': False, 'x': 2},
+            c={'w': True, 'x': 3}
         ))
         assert md.check_key('x')
         assert not md.check_key('y')
+        # Ensure boolean values still evaluate properly:
+        assert md.check_key('w')
 
     def test_update_attr(self):
         md = e.MetaData()
