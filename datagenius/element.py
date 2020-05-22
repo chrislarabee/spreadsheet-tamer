@@ -18,7 +18,7 @@ class Element(ABC):
             data: A list, dict, or OrderedDict (depends on the
                 exact specifications of the Element child class).
         """
-        self.data: (list, dict, col.OrderedDict) = data
+        self._data: (list, dict, col.OrderedDict) = data
 
     def element_comparison(self, other,
                            eq_result: bool = True) -> bool:
@@ -42,7 +42,7 @@ class Element(ABC):
             else:
                 result = not eq_result
         else:
-            if self.data == other:
+            if self._data == other:
                 result = eq_result
             else:
                 result = not eq_result
@@ -51,13 +51,13 @@ class Element(ABC):
     def __eq__(self, other) -> bool:
         """
         Overrides built-in object equality so that Elements
-        used in == statements compare the value in self.data
+        used in == statements compare the value in self._data
         rather than the Element object itself.
 
         Args:
             other: Any object.
 
-        Returns: A boolean indicating whether the value of self.data
+        Returns: A boolean indicating whether the value of self._data
             is equivalent to other.
 
         """
@@ -66,23 +66,23 @@ class Element(ABC):
     def __ne__(self, other) -> bool:
         """
         Overrides built-in object inequality so that Elements
-        used in != statements compare the value in self.data
+        used in != statements compare the value in self._data
         rather than the Element object itself.
 
         Args:
             other: Any object.
 
-        Returns: A  boolean indicating whether the value of self.data
+        Returns: A  boolean indicating whether the value of self._data
             is not equivalent to other.
 
         """
         return self.element_comparison(other, False)
 
     def __getitem__(self, item):
-        return self.data[item]
+        return self._data[item]
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
 
 class MetaData(Element, col.abc.MutableMapping):
@@ -91,7 +91,7 @@ class MetaData(Element, col.abc.MutableMapping):
     convenience methods for updating and interacting with the meta
     data.
     """
-    def __init__(self, data: dict = None):
+    def __init__(self, data: dict = None, **init_attrs):
         """
 
         Args:
@@ -100,6 +100,26 @@ class MetaData(Element, col.abc.MutableMapping):
         data = data if data is not None else dict()
         super(MetaData, self).__init__(data)
         self.header: list = list()
+        self.init_row_ct: (int, None) = None
+        self.init_col_ct: (int, None) = None
+        for k, v in init_attrs.items():
+            if k in self.__dict__.keys():
+                setattr(self, k, v)
+
+    def copy(self):
+        """
+        Creates a copy of the MetaData.
+
+        Returns: A copy of the MetaData object.
+
+        """
+        md = MetaData(
+            self._data.copy(),
+            header=self.header.copy(),
+            init_row_ct=self.init_row_ct,
+            init_col_ct=self.init_col_ct
+        )
+        return md
 
     def gen_temp_header(self, x: int,
                         manual_header: (list, None) = None) -> None:
@@ -118,13 +138,13 @@ class MetaData(Element, col.abc.MutableMapping):
     def calculate(self, func, key: str, attr: (str, None) = None):
         """
         Applies the passed function to all the values in
-        self.col_data's dictionaries stored at the passed key.
+        self._data's dictionaries stored at the passed key.
 
         Args:
             func: Any function that takes a single list argument.
             key: A string, the key of the values you want to pull from
                 the dictionary of meta data for each column in
-                self.col_data.
+                self._data.
             attr: A string, the name of the attribute you wish to
                 create on MetaData that will store the result of func's
                 calculation. If None, the value will not be stored in an
@@ -133,18 +153,18 @@ class MetaData(Element, col.abc.MutableMapping):
         Returns: The return of func.
 
         """
-        f = func([v[key] for v in self.data.values()])
+        f = func([v[key] for v in self._data.values()])
         setattr(self, attr, f) if attr is not None else None
         return f
 
     def check_key(self, key: str) -> bool:
         """
-        Checks all the column dictionaries in self.col_data and returns
+        Checks all the column dictionaries in self._data and returns
         True if they all have the passed key and False if any of them
         don't.
 
         Args:
-            key: A string, a key in self.col_data.
+            key: A string, a key in self._data.
 
         Returns: A boolean.
 
@@ -158,13 +178,13 @@ class MetaData(Element, col.abc.MutableMapping):
         MetaData object if no column is passed.
 
         Args:
-            column: A string, a key found in self.data.
+            column: A string, a key found in self._data.
 
         Returns: None
 
         """
         if column is None:
-            self.data.clear()
+            self._data.clear()
         else:
             self.pop(column)
 
@@ -172,12 +192,12 @@ class MetaData(Element, col.abc.MutableMapping):
         """
         Convenience method for updating the MetaData's information
         for a given column. Can add as many key-value pairs as desired
-        to the column's entry in self.data.
+        to the column's entry in self._data.
 
         Args:
             column: A string.
             **kwargs: Key value pairs to add to the sub-dictionary
-                found in self.data[column]
+                found in self._data[column]
 
         Returns: None
 
@@ -223,13 +243,13 @@ class MetaData(Element, col.abc.MutableMapping):
         update_funcs[t](value)
 
     def __delitem__(self, key):
-        self.data.pop(key)
+        self._data.pop(key)
 
     def __iter__(self):
-        return self.data.__iter__()
+        return self._data.__iter__()
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        self._data[key] = value
 
 
 class Dataset(Element, col.abc.Sequence):
@@ -252,10 +272,10 @@ class Dataset(Element, col.abc.Sequence):
         self.data_format: (str, None) = None
         self.data_orientation: str = 'row'
         # Stores rows when parsers reject them and need to store them:
-        self.rejects: list = []
+        self.rejects: set = set()
         # Stores results from Explore objects.
         self.meta_data: MetaData = MetaData()
-        if isinstance(data, list):
+        if isinstance(data, (tuple, list)):
             row1 = data[0]
             self.row_ct: int = len(data)
             self.col_ct: int = len(row1)
@@ -283,10 +303,8 @@ class Dataset(Element, col.abc.Sequence):
         Returns: A copy of the Dataset object.
 
         """
-        d = Dataset(self.data.copy())
-        md = MetaData(self.meta_data.data.copy())
-        md.header = self.meta_data.header.copy()
-        d.meta_data = md
+        d = Dataset(self._data.copy())
+        d.meta_data = self.meta_data.copy()
         return d
 
     def transpose(self, orientation: str) -> None:
@@ -304,7 +322,7 @@ class Dataset(Element, col.abc.Sequence):
         orientation = 'row' if orientation == 'set' else orientation
         self.to_format('lists')
         if self.data_orientation != orientation:
-            self.data = list(map(list, zip(*self.data)))
+            self._data = list(map(list, zip(*self._data)))
             if self.data_orientation == 'row':
                 self.data_orientation = 'column'
             else:
@@ -359,16 +377,16 @@ class Dataset(Element, col.abc.Sequence):
         an exact match of the rows contents.
 
         Args:
-            key: An integer corresponding to an index in self.data
-                or a list corresponding to a row in self.data.
+            key: An integer corresponding to an index in self._data
+                or a list corresponding to a row in self._data.
 
         Returns: None
 
         """
         if isinstance(key, int):
-            self.data.pop(key)
+            self._data.pop(key)
         elif isinstance(key, (list, col.OrderedDict)):
-            self.data.remove(key)
+            self._data.remove(key)
         else:
             raise ValueError(
                 'Dataset.remove can only take int or list/OrderedDict '
@@ -376,10 +394,10 @@ class Dataset(Element, col.abc.Sequence):
 
     def to_dicts(self):
         """
-        Uses self.header and self.data to convert self.data into
+        Uses self.header and self._data to convert self._data into
         a list of OrderedDicts instead of a list of lists.
 
-        Returns: self, with self.data modified to be a list of
+        Returns: self, with self._data modified to be a list of
             OrderedDicts.
 
         """
@@ -394,17 +412,17 @@ class Dataset(Element, col.abc.Sequence):
                 for i, h in enumerate(self.meta_data.header):
                     d[h] = row[i]
                 results.append(d)
-            self.data = results
+            self._data = results
             self.data_format = 'dicts'
         return self
 
     def to_lists(self):
         """
-        Converts self.data back into a list of lists and uses
+        Converts self._data back into a list of lists and uses
         the keys of the first row as the new header (in cases
         changes were made).
 
-        Returns: self, with self.data modified to be a list of
+        Returns: self, with self._data modified to be a list of
             lists.
 
         """
@@ -413,7 +431,7 @@ class Dataset(Element, col.abc.Sequence):
             self.meta_data.header = list(self[0].keys())
             for row in self:
                 results.append([*list(row.values())])
-            self.data = results
+            self._data = results
             self.data_format = 'lists'
         return self
 
@@ -445,7 +463,7 @@ class Dataset(Element, col.abc.Sequence):
         if to == 'csv':
             ext = 'csv' if ext == '' else ext
             p = os.path.join(dir_path, f + '.' + ext)
-            text.write_csv(p, self.data, self.meta_data.header)
+            text.write_csv(p, self._data, self.meta_data.header)
         elif to == 'sqlite':
             p = os.path.join(dir_path, options.get('db_name', 'datasets') + '.db')
             type_map = {
@@ -609,10 +627,10 @@ class Mapping(Element, col.abc.Sequence):
                         f'objects. Bad kv pair: {k, v}')
             else:
                 r = v
-            self.data[k] = r
+            self._data[k] = r
 
         # Ensure all template keys are used even if they are not
         # mapped:
         for t in self.template:
-            if t not in self.data.keys():
-                self.data[t] = MappingRule()
+            if t not in self._data.keys():
+                self._data[t] = MappingRule()

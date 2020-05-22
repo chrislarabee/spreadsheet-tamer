@@ -34,8 +34,6 @@ class TestMetaData:
             sum,
             'null_ct'
         ) == 15
-        # Ensure no attribute was added by calculate:
-        assert list(md.__dict__.keys()) == ['data', 'header']
 
         assert md.calculate(
             statistics.mean,
@@ -190,7 +188,7 @@ class TestDataset:
         o = odbc.ODBConnector()
         d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
         d2 = e.Dataset(o.select('sales'))
-        assert d2.data == d.data
+        assert d2._data == d._data
 
         # Check meta data tables:
         assert e.Dataset(o.select('sales_col_meta_data')) == [
@@ -213,7 +211,7 @@ class TestDataset:
         d.to_format('dicts')
         d.to_file('tests/samples', 'customers', to='csv')
         d2 = e.Dataset.from_file(p)
-        assert d2.data == simple_data()
+        assert d2 == simple_data()
 
 
 class TestMappingRule:
