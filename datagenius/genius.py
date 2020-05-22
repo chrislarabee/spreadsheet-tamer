@@ -26,16 +26,16 @@ def parser(func=None, *tags,
         tags: Any number of strings which are valid tags to change
             how the parser is handled by Genius objects. Valid tags
             currently include:
-                breaks_loop: Indicates that when the parser
+                *breaks_loop*: Indicates that when the parser
                     successfully executes in a loop, the loop should
                     break.
-                collect_rejects: Indicates that this parser's rejected
+                *collect_rejects*: Indicates that this parser's rejected
                     rows should be collected in the Dataset's rejects
                     attribute.
-                uses_cache: Indicates this parser needs to reference the
+                *uses_cache*: Indicates this parser needs to reference the
                     previous result of the parser. Cannot be included
                     if parses is not 'row'.
-                uses_meta_data: Indicates this parser needs to reference
+                *uses_meta_data*: Indicates this parser needs to reference
                     the meta_data attribute of the Dataset.
         null_val: Leave this as None unless you need your parser
             to return None on a successful execution.
@@ -287,7 +287,7 @@ class Genius:
             if step.parses == 'set':
                 self.loop_dataset(wdset, *s, **options)
             else:
-                wdset.data = self.loop_dataset(wdset, *s, **options)
+                wdset._data = self.loop_dataset(wdset, *s, **options)
         return wdset
 
     @staticmethod
@@ -375,7 +375,7 @@ class Genius:
                 row, *parsers, **parser_args
             )
             if collect and not passes_all:
-                dset.rejects.append(row)
+                dset.rejects.add(row)
             if passes_all:
                 results.append(row)
                 if outer_break:
@@ -618,12 +618,6 @@ class Clean(Genius):
         return super(Clean, self).go(dset, **options)
 
     @staticmethod
-    @parser(priority=9)
-    def cleanse_incomplete_rows(row: col.OrderedDict, meta_data: e.MetaData):
-        if meta_data.check_key('nullable'):
-            pass
-
-    @staticmethod
     @parser('uses_cache')
     def extrapolate(row: col.OrderedDict, cols: (list, tuple),
                     cache: col.OrderedDict = None):
@@ -647,6 +641,34 @@ class Clean(Genius):
             for c in cols:
                 if result[c] in (None, ''):
                     result[c] = cache[c]
+        return result
+
+    @staticmethod
+    @parser('collect_rejects', priority=9)
+    def cleanse_incomplete_rows(
+            row: col.OrderedDict, meta_data: e.MetaData) -> col.OrderedDict:
+        """
+        A not terribly useful parser that removes rows that are missing
+        non-nullable columns.
+
+        # TODO: Revamp this parser so that it can more intelligently
+                remove incomplete rows.
+        Args:
+            row:
+            meta_data:
+
+        Returns:
+
+        """
+        result = row
+        if meta_data.check_key('nullable'):
+            required_cols = []
+            for k, v in meta_data.items():
+                if not v['nullable']:
+                    required_cols.append(k)
+            row_req = u.collect_by_keys(row, *required_cols)
+            if u.count_nulls(row_req) > 0:
+                result = None
         return result
 
     @staticmethod

@@ -28,6 +28,19 @@ def sales():
 
 
 @pytest.fixture
+def products():
+    return (
+        ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
+         'attr4', 'attr5'],
+        [
+            [1, 'Widget', 8.5, 4.0, 1234567890, '', '', '', '', ''],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large', '', '', ''],
+            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small', '', '', '']
+        ]
+    )
+
+
+@pytest.fixture
 def simple_data():
     """
     Generates a simple, ideal dataset for tests. The inner function

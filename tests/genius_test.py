@@ -241,7 +241,7 @@ class TestPreprocess:
         assert r == d
         assert r == customers[1]
         assert d.meta_data.header == customers[0]
-        assert d.rejects == []
+        assert d.rejects == set()
 
         d = Dataset(gaps)
         r = p.go(d, overwrite=False)
@@ -303,6 +303,19 @@ class TestClean:
             od(a=1, b='Foo', c='Bar')
         ) == od(a=2, b='Foo', c='Bar')
 
+    def test_cleanse_incomplete_rows(self):
+        md = MetaData()
+        md.update('a', nullable=False)
+        md.update('b', nullable=False)
+        md.update('c', nullable=False)
+        md.update('d', nullable=True)
+        md.update('e', nullable=True)
+        row = od(a=1, b=2, c=3, d=None, e=None)
+        assert ge.Clean.cleanse_incomplete_rows(row, md) == row
+
+        md.update('d', nullable=False)
+        assert ge.Clean.cleanse_incomplete_rows(row, md) is None
+
     def test_clean_numeric_typos(self):
         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
         assert ge.Clean.clean_numeric_typos('10.1q') == 10.1
@@ -333,31 +346,6 @@ class TestClean:
 
 
 class TestExplore:
-    def test_go(self):
-        d = Dataset([
-            [1, 2, 'a'],
-            [4, 5, 'b'],
-            [None, 7, 'c']
-        ])
-
-        ge.Explore().go(d)
-        assert d.data_orientation == 'column'
-
-        assert d.meta_data == {
-            '0': {
-                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
-                'num_pct': 0.67, 'probable_type': 'numeric'
-            },
-            '1': {
-                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
-                'num_pct': 1.0, 'probable_type': 'numeric'
-            },
-            '2': {
-                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 1.0,
-                'num_pct': 0.0, 'probable_type': 'string'
-            }
-        }
-
     def test_types_report(self):
         md = MetaData()
         ge.Explore.types_report([1, 2, 3, '4'], 'prob_numeric', md)
@@ -390,4 +378,29 @@ class TestExplore:
         ge.Explore.uniques_report(['x', 'x', 'y', 'y'], 'vars', md)
         assert md['vars'] == {
             'unique_ct': 2, 'unique_values': {'x', 'y'}
+        }
+
+    def test_go(self):
+        d = Dataset([
+            [1, 2, 'a'],
+            [4, 5, 'b'],
+            [None, 7, 'c']
+        ])
+
+        ge.Explore().go(d)
+        assert d.data_orientation == 'column'
+
+        assert d.meta_data == {
+            '0': {
+                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
+                'num_pct': 0.67, 'probable_type': 'numeric'
+            },
+            '1': {
+                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
+                'num_pct': 1.0, 'probable_type': 'numeric'
+            },
+            '2': {
+                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 1.0,
+                'num_pct': 0.0, 'probable_type': 'string'
+            }
         }
