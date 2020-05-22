@@ -118,8 +118,8 @@ def needs_extrapolation():
         ['product_id', 'vendor_name', 'product_name'],
         [
             [1, 'StrexCorp', 'Teeth'],
-            [2, '', 'Radio Equipment'],
+            [2, None, 'Radio Equipment'],
             [3, 'KVX Bank', 'Bribe'],
-            [4, '', 'Not candy or pens']
+            [4, None, 'Not candy or pens']
         ]
     )

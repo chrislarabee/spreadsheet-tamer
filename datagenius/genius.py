@@ -639,7 +639,7 @@ class Clean(Genius):
         result = row.copy()
         if cache is not None:
             for c in cols:
-                if result[c] in (None, ''):
+                if result[c] is None:
                     result[c] = cache[c]
         return result
 
