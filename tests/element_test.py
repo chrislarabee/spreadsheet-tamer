@@ -35,7 +35,7 @@ class TestMetaData:
             'null_ct'
         ) == 15
         # Ensure no attribute was added by calculate:
-        assert list(md.__dict__.keys()) == ['col_data']
+        assert list(md.__dict__.keys()) == ['col_data', 'header']
 
         assert md.calculate(
             statistics.mean,
@@ -134,8 +134,7 @@ class TestDataset:
             {'a': 7, 'b': 8, 'c': 9},
         ]
 
-        d = e.Dataset(raw)
-        d.header = header
+        d = e.Dataset(raw, header=header)
 
         assert d.to_dicts() == expected
         assert d.to_lists() == raw
@@ -176,11 +175,9 @@ class TestDataset:
         with pytest.raises(ValueError, match='Discrepancy between meta'):
             d.to_file('tests/samples', 'sales')
         # Now add meta_data:
-        d.meta_data = dict(
-            location=dict(probable_type='uncertain'),
-            region=dict(probable_type='string'),
-            sales=dict(probable_type='integer')
-        )
+        d.meta_data.update('location', probable_type='uncertain')
+        d.meta_data.update('region', probable_type='string')
+        d.meta_data.update('sales', probable_type='integer')
         o = odbc.ODBConnector()
         d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
         d2 = e.Dataset(o.select('sales'))

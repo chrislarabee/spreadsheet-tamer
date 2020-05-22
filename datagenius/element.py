@@ -19,6 +19,30 @@ class MetaData(col.abc.MutableMapping, ABC):
             data: A dictionary.
         """
         self.col_data: dict = data if data is not None else dict()
+        self.header: list = list()
+
+    def gen_temp_header(self, x: int,
+                        manual_header: (list, None) = None) -> None:
+        """
+        Assigns a manual_header to self.header if passed, otherwise
+        creates a temporary header with indices as strings.
+
+        Returns: None
+
+        """
+        if manual_header:
+            self.header = manual_header
+        else:
+            self.header = [str(i) for i in range(x)]
+
+    def copy(self):
+        """
+        Returns: A copy of the MetaData object.
+
+        """
+        md = MetaData(self.col_data.copy())
+        md.header = self.header.copy()
+        return md
 
     def calculate(self, func, key: str, attr: (str, None) = None):
         """
@@ -239,7 +263,6 @@ class Dataset(Element):
         struct_error_msg = (
             'Dataset data must be instantiated as a list of lists or '
             'OrderedDicts.')
-        self.header: (list, None) = None
         self.data_format: (str, None) = None
         self.data_orientation: str = 'row'
         # Stores rows when parsers reject them and need to store them:
@@ -251,10 +274,10 @@ class Dataset(Element):
             self.row_ct: int = len(data)
             self.col_ct: int = len(row1)
             if isinstance(row1, list):
-                self.header = self._gen_temp_header(header)
+                self.meta_data.gen_temp_header(self.col_ct, header)
                 self.data_format = 'lists'
             elif isinstance(row1, col.OrderedDict):
-                self.header = list(row1.keys())
+                self.meta_data.header = list(row1.keys())
                 self.data_format = 'dicts'
             else:
                 raise ValueError(struct_error_msg)
@@ -267,28 +290,15 @@ class Dataset(Element):
         else:
             raise ValueError(struct_error_msg)
 
-    def _gen_temp_header(self, manual_header: list) -> list:
-        """
-
-        Returns: A list of numbers as strings as long as the dset is
-        wide.
-
-        """
-        if manual_header:
-            return manual_header
-        elif self.header is None:
-            return [str(i) for i in range(self.col_ct)]
-
     def copy(self):
         """
-        Creates a copy of the Dataset with the same data and header.
+        Creates a copy of the Dataset with the same data and meta_data.
 
         Returns: A copy of the Dataset object.
 
         """
         d = Dataset(self.data.copy())
-        if self.header:
-            d.header = self.header.copy()
+        d.meta_data = self.meta_data.copy()
         return d
 
     def transpose(self) -> None:
@@ -376,7 +386,7 @@ class Dataset(Element):
             OrderedDicts.
 
         """
-        if self.header is None:
+        if self.meta_data.header is None:
             raise AttributeError(
                 'This Dataset has no header. Cannot convert to dicts '
                 'data_format without a header.')
@@ -384,7 +394,7 @@ class Dataset(Element):
             results = []
             for row in self:
                 d = col.OrderedDict()
-                for i, h in enumerate(self.header):
+                for i, h in enumerate(self.meta_data.header):
                     d[h] = row[i]
                 results.append(d)
             self.data = results
@@ -403,7 +413,7 @@ class Dataset(Element):
         """
         if self.data_format == 'dicts':
             results = []
-            self.header = list(self[0].keys())
+            self.meta_data.header = list(self[0].keys())
             for row in self:
                 results.append([*list(row.values())])
             self.data = results
@@ -439,7 +449,7 @@ class Dataset(Element):
         if to == 'csv':
             ext = 'csv' if ext == '' else ext
             p = os.path.join(dir_path, f + '.' + ext)
-            text.write_csv(p, self.data, self.header)
+            text.write_csv(p, self.data, self.meta_data.header)
         elif to == 'sqlite':
             p = os.path.join(dir_path, options.get('db_name', 'datasets') + '.db')
             type_map = {
@@ -448,7 +458,7 @@ class Dataset(Element):
                 'string': str,
                 'integer': int
             }
-            if len(self.meta_data) != len(self.header):
+            if len(self.meta_data) != len(self.meta_data.header):
                 raise ValueError(
                     'Discrepancy between meta_data and header. Pass '
                     'this Dataset through genius.Explore to generate '
@@ -511,7 +521,7 @@ class Dataset(Element):
                         f'Invalid meta_data info = {k, v}')
             column_md.append(result)
 
-        reject_val_ct = sum([u.non_null_count(x) for x in self.rejects])
+        reject_val_ct = sum([len(x) - u.count_nulls(x) for x in self.rejects])
         dataset_md_features = {
             'Number of columns': f'{self.col_ct}',
             'Number of rows': f'{self.row_ct}',
