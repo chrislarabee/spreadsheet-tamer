@@ -4,17 +4,52 @@ import datagenius.util as u
 from datagenius.genius import parser
 
 
-def test_non_null_count():
-    assert u.non_null_count(['', '', '']) == 0
-    assert u.non_null_count([1, '', '']) == 1
-    assert u.non_null_count([1, 2, 3]) == 3
-    assert u.non_null_count(od(x=1, y=None, z='')) == 1
-    assert u.non_null_count(dict(a='t', b='u', c='')) == 2
+def test_collect_by_keys():
+    x = u.collect_by_keys({'a': 1, 'b': 2, 'c': 3, 'd': 4}, 'a', 'c')
+    assert x == {'a': 1, 'c': 3}
+    assert isinstance(x, dict) and not isinstance(x, od)
+    x = u.collect_by_keys(od(e=5, f=6, g=7), 'e', 'f')
+    assert x == od(e=5, f=6)
+    assert type(x) == od and type(x) != dict
 
 
-def test_true_str_count():
-    assert u.true_str_count(['', '', '']) == 0
-    assert u.true_str_count(['a', 'test', 1]) == 2
+def test_count_nulls():
+    assert u.count_nulls(['', '', '']) == 3
+    assert u.count_nulls([1, '', '']) == 2
+    assert u.count_nulls([1, 2, 3]) == 0
+    assert u.count_nulls(od(x=1, y=None, z='')) == 2
+    assert u.count_nulls(dict(a='t', b='u', c='')) == 1
+
+
+def test_nullify_empty_vals():
+    expected = [None, 1, 'a', None]
+    x = u.nullify_empty_vals([None, 1, 'a', ''])
+    assert x == expected
+    assert isinstance(x, list)
+
+    expected = od(a=None, b=None, c=1, d='foo')
+    x = u.nullify_empty_vals(od(a='', b='', c=1, d='foo'))
+    assert x == expected
+    assert isinstance(x, od)
+
+    expected = dict(a=None, b=None, c=1)
+    x = u.nullify_empty_vals(dict(a='', b=None, c=1))
+    assert x == expected
+    assert isinstance(x, dict)
+
+    # Test ignore functionality:
+    expected = ['', None, 1, 'a']
+    x = u.nullify_empty_vals(['', '', 1, 'a'], 0)
+    assert x == expected
+
+    expected = dict(a='', b=None, c=1)
+    x = u.nullify_empty_vals(dict(a='', b='', c=1), 'a')
+    assert x == expected
+
+
+def test_count_true_str():
+    assert u.count_true_str(['', '', '']) == 0
+    assert u.count_true_str(['a', 'test', 1]) == 2
 
 
 def test_validate_parser():
