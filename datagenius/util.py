@@ -21,19 +21,23 @@ def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
     return result
 
 
-def count_nulls(x: (list, OrderedDict, dict)) -> int:
+def count_nulls(x: (list, OrderedDict, dict),
+                strict: bool = True) -> int:
     """
     Takes a list or dictionary and returns the number of values in it
-    that are None or ''.
+    that are None or '' if strict is False.
 
     Args:
         x: A list or dictionary.
+        strict: A boolean indicating whether to treat empty strings
+            ('') as None.
 
-    Returns: An integer, the count of non-nulls in the list.
+    Returns: An integer, the count of nulls in the list.
 
     """
     x = list(x.values()) if isinstance(x, (OrderedDict, dict)) else x
-    return sum([1 if y in (None, '') else 0 for y in x])
+    nulls = (None, ) if strict else (None, '')
+    return sum([1 if y in nulls else 0 for y in x])
 
 
 def count_true_str(x: list) -> int:

@@ -520,7 +520,7 @@ class Preprocess(Genius):
             list.
 
         """
-        return None if u.count_nulls(row) == len(row) else row
+        return None if u.count_nulls(row, strict=False) == len(row) else row
 
     @staticmethod
     @parser('breaks_loop', 'uses_meta_data', parses='set',

@@ -14,11 +14,11 @@ def test_collect_by_keys():
 
 
 def test_count_nulls():
-    assert u.count_nulls(['', '', '']) == 3
-    assert u.count_nulls([1, '', '']) == 2
+    assert u.count_nulls(['', '', ''], strict=False) == 3
+    assert u.count_nulls([1, '', '']) == 0
     assert u.count_nulls([1, 2, 3]) == 0
-    assert u.count_nulls(od(x=1, y=None, z='')) == 2
-    assert u.count_nulls(dict(a='t', b='u', c='')) == 1
+    assert u.count_nulls(od(x=1, y=None, z=''), strict=False) == 2
+    assert u.count_nulls(dict(a='t', b='u', c='')) == 0
 
 
 def test_count_true_str():
