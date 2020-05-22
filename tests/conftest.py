@@ -33,9 +33,9 @@ def products():
         ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
          'attr4', 'attr5'],
         [
-            [1, 'Widget', 8.5, 4.0, 1234567890, '', '', '', '', ''],
-            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large', '', '', ''],
-            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small', '', '', '']
+            [1, 'Widget', 8.5, 4.0, 1234567890, None, None, None, None, None],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large', None, None, None],
+            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small', None, None, None]
         ]
     )
 
@@ -97,19 +97,25 @@ def gaps_totals():
     Returns: A list of lists.
 
     """
-    return [
-        ['Sales by Location Report', '', ''],
-        ['Grouping: Region', '', ''],
-        ['', '', ''],
-        ['', '', ''],
-        ['location', 'region', 'sales'],
-        ['Bayside Store', 'Northern', 500],
-        ['West Valley Store', 'Northern', 300],
-        ['', '', 800],
-        ['Precioso Store', 'Southern', 1000],
-        ['Kalliope Store', 'Southern', 200],
-        ['', '', 1200]
-    ]
+    def _gen(w_gaps=True):
+        x = [
+            ['Sales by Location Report', '', ''],
+            ['Grouping: Region', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['location', 'region', 'sales'],
+            ['Bayside Store', 'Northern', 500],
+            ['West Valley Store', 'Northern', 300],
+            ['', '', 800],
+            ['Precioso Store', 'Southern', 1000],
+            ['Kalliope Store', 'Southern', 200],
+            ['', '', 1200]
+        ]
+        if w_gaps:
+            return x
+        else:
+            return [*x[:1], *x[4:]]
+    return _gen
 
 
 @pytest.fixture
