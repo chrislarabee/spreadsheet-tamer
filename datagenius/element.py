@@ -500,6 +500,22 @@ class Dataset(Element, col.abc.Sequence):
                 f'Unrecognized "to": {to}'
             )
 
+    def package_rejects(self):
+        """
+        Bundles rejects into dictionaries and generates a schema dict
+        so that the rejects can be written to SQLite.
+
+        Returns: A tuple containing a list of dictionaries (one for
+            each row in self.rejects) and a dictionary containing a
+            simple schema for the rejects table.
+
+        """
+        m = self.meta_data.header
+        return (
+            [dict(zip(m, r)) for r in self.rejects],
+            dict(zip(m, [str for _ in range(len(m))]))
+        )
+
     def meta_data_report(self):
         """
         Produces a tuple of values related to the Dataset's meta_data
