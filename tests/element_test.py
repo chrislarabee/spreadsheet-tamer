@@ -179,7 +179,7 @@ class TestDataset:
         d = e.Dataset(sales[1], sales[0])
         d.rejects = [
             ['Sales by Location Report', None, None],
-            ['Grouping: Region', None, None],
+            ['Grouping: Region', 43956.0, None],
             [None, None, 800],
             [None, None, 1200]
         ]
@@ -206,13 +206,13 @@ class TestDataset:
             od(feature='Number of columns', value='3'),
             od(feature='Number of rows', value='4'),
             od(feature='Number of rejected rows', value='4'),
-            od(feature='Number of values in rejected rows', value='4'),
+            od(feature='Number of values in rejected rows', value='5'),
         ]
 
         # Check rejects table:
         assert e.Dataset(o.select('sales_rejects')) == [
             od(location='Sales by Location Report', region=None, sales=None),
-            od(location='Grouping: Region', region=None, sales=None),
+            od(location='Grouping: Region', region='43956.0', sales=None),
             od(location=None, region=None, sales='800'),
             od(location=None, region=None, sales='1200'),
         ]

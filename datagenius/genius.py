@@ -848,10 +848,7 @@ class Explore(Genius):
         """
         uniques = set(column)
         unique_ct = len(uniques)
-        if len(uniques) == len(column):
-            unique_vals = 'primary_key'
-        else:
-            unique_vals = uniques
+        pk = len(uniques) == len(column)
         meta_data.update(
-            col_name, unique_ct=unique_ct, unique_values=unique_vals)
+            col_name, unique_ct=unique_ct, primary_key=pk)
         return column

@@ -387,14 +387,16 @@ class TestExplore:
     def test_uniques_report(self):
         md = MetaData()
         ge.Explore.uniques_report([1, 2, 3, 4], 'id', md)
-        assert md['id'] == {
-            'unique_ct': 4, 'unique_values': 'primary_key'
-        }
+        assert md['id'] == dict(
+            unique_ct=4,
+            primary_key=True
+        )
 
         ge.Explore.uniques_report(['x', 'x', 'y', 'y'], 'vars', md)
-        assert md['vars'] == {
-            'unique_ct': 2, 'unique_values': {'x', 'y'}
-        }
+        assert md['vars'] == dict(
+            unique_ct=2,
+            primary_key=False
+        )
 
     def test_go(self):
         d = Dataset([
@@ -408,17 +410,17 @@ class TestExplore:
 
         assert d.meta_data == {
             '0': {
-                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.33,
+                'unique_ct': 3, 'primary_key': True, 'str_pct': 0.33,
                 'num_pct': 0.67, 'probable_type': 'numeric', 'null_ct': 1,
                 'nullable': True
             },
             '1': {
-                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 0.0,
+                'unique_ct': 3, 'primary_key': True, 'str_pct': 0.0,
                 'num_pct': 1.0, 'probable_type': 'numeric', 'null_ct': 0,
                 'nullable': False
             },
             '2': {
-                'unique_ct': 3, 'unique_values': 'primary_key', 'str_pct': 1.0,
+                'unique_ct': 3, 'primary_key': True, 'str_pct': 1.0,
                 'num_pct': 0.0, 'probable_type': 'string', 'null_ct': 0,
                 'nullable': False
             }
