@@ -508,13 +508,13 @@ class Preprocess(Genius):
     @parser('breaks_loop', parses='set',
             requires_format='lists')
     def detect_header(row: list, meta_data: e.MetaData, index: (int, None) = None,
-                      manual_header: (list, None) = None):
+                      manual_header: (list, None) = None) -> (list, None):
         """
         Checks a list to see if it contains only strings. If it
         does, then it could probably be a header row.
 
         Args:
-            row: A list
+            row: A list.
             meta_data: A MetaData object.
             index: The index of the row in the Dataset it came from.
             manual_header: A list, which will be used to override any
@@ -564,6 +564,30 @@ class Preprocess(Genius):
             return type(row)(zip(indices, result))
         else:
             return result
+
+    @staticmethod
+    @parser('breaks_loop', 'collect_rejects', requires_format='lists',
+            priority=11)
+    def cleanse_pre_header(row: list, meta_data: e.MetaData,
+                           index: (int, None)) -> (list, None):
+        """
+        Checks if a passed list's index came before the header's
+        index. If it did, then the row will be rejected. Stops looping
+        as soon as it hits the header row.
+
+        Args:
+            row: A list.
+            meta_data: A meta_data object.
+            index: The index of the row in the Dataset it came from.
+
+        Returns: None if the index came before meta_Data.header_idx,
+            otherwise the list.
+
+        """
+        if meta_data.header_idx is not None and index < meta_data.header_idx:
+            return None
+        else:
+            return row
 
 
 class Clean(Genius):

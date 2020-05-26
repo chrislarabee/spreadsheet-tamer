@@ -233,6 +233,13 @@ class TestPreprocess:
         x = ge.Preprocess.nullify_empty_vals(dict(a='', b='', c=1), ignore=('a',))
         assert x == expected
 
+    def test_cleanse_pre_header(self):
+        x = [1, 2, 3]
+        md = MetaData()
+        md.header_idx = 4
+        assert ge.Preprocess.cleanse_pre_header(x, md, 1) is None
+        assert ge.Preprocess.cleanse_pre_header(x, md, 4) == x
+
     def test_basic_go(self, customers, simple_data, gaps):
         p = ge.Preprocess()
         d = Dataset(simple_data())
