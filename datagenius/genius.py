@@ -821,8 +821,8 @@ class Explore(Genius):
             prob_type = 'uncertain'
         meta_data.update(
             col_name,
-            str_pct=str_pct,
-            num_pct=num_pct,
+            string_pct=str_pct,
+            numeric_pct=num_pct,
             probable_type=prob_type
         )
         return column

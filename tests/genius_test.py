@@ -366,22 +366,22 @@ class TestExplore:
         md = MetaData()
         ge.Explore.types_report([1, 2, 3, '4'], 'prob_numeric', md)
         assert md['prob_numeric'] == {
-            'str_pct': 0, 'num_pct': 1, 'probable_type': 'numeric'
+            'string_pct': 0, 'numeric_pct': 1, 'probable_type': 'numeric'
         }
 
         ge.Explore.types_report([1, 2, 'x'], 'less_prob_num', md)
         assert md['less_prob_num'] == {
-            'str_pct': 0.33, 'num_pct': 0.67, 'probable_type': 'numeric'
+            'string_pct': 0.33, 'numeric_pct': 0.67, 'probable_type': 'numeric'
         }
 
         ge.Explore.types_report([1, 'x', 'y'], 'prob_str', md)
         assert md['prob_str'] == {
-            'str_pct': 0.67, 'num_pct': 0.33, 'probable_type': 'string'
+            'string_pct': 0.67, 'numeric_pct': 0.33, 'probable_type': 'string'
         }
 
         ge.Explore.types_report([], 'uncertain', md)
         assert md['uncertain'] == {
-            'str_pct': 0, 'num_pct': 0, 'probable_type': 'uncertain'
+            'string_pct': 0, 'numeric_pct': 0, 'probable_type': 'uncertain'
         }
 
     def test_uniques_report(self):
@@ -410,18 +410,18 @@ class TestExplore:
 
         assert d.meta_data == {
             '0': {
-                'unique_ct': 3, 'primary_key': True, 'str_pct': 0.33,
-                'num_pct': 0.67, 'probable_type': 'numeric', 'null_ct': 1,
+                'unique_ct': 3, 'primary_key': True, 'string_pct': 0.33,
+                'numeric_pct': 0.67, 'probable_type': 'numeric', 'null_ct': 1,
                 'nullable': True
             },
             '1': {
-                'unique_ct': 3, 'primary_key': True, 'str_pct': 0.0,
-                'num_pct': 1.0, 'probable_type': 'numeric', 'null_ct': 0,
+                'unique_ct': 3, 'primary_key': True, 'string_pct': 0.0,
+                'numeric_pct': 1.0, 'probable_type': 'numeric', 'null_ct': 0,
                 'nullable': False
             },
             '2': {
-                'unique_ct': 3, 'primary_key': True, 'str_pct': 1.0,
-                'num_pct': 0.0, 'probable_type': 'string', 'null_ct': 0,
+                'unique_ct': 3, 'primary_key': True, 'string_pct': 1.0,
+                'numeric_pct': 0.0, 'probable_type': 'string', 'null_ct': 0,
                 'nullable': False
             }
         }
