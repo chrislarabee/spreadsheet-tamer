@@ -97,12 +97,16 @@ def gaps_totals():
     Returns: A list of lists.
 
     """
-    def _gen(w_gaps=True):
-        x = [
+    def _gen(w_gaps=True, w_pre_header=True):
+        ph = [
             ['Sales by Location Report', '', ''],
-            ['Grouping: Region', '', ''],
+            ['Grouping: Region', '', '']
+        ]
+        g = [
             ['', '', ''],
-            ['', '', ''],
+            ['', '', '']
+        ]
+        x = [
             ['location', 'region', 'sales'],
             ['Bayside Store', 'Northern', 500],
             ['West Valley Store', 'Northern', 300],
@@ -111,11 +115,28 @@ def gaps_totals():
             ['Kalliope Store', 'Southern', 200],
             ['', '', 1200]
         ]
+        y = []
+        if w_pre_header:
+            y = ph
         if w_gaps:
-            return x
-        else:
-            return [*x[:1], *x[4:]]
+            y = [*y, *g]
+        return [*y, *x]
     return _gen
+
+
+@pytest.fixture
+def needs_cleanse_totals():
+    return (
+        ['location', 'region', 'sales'],
+        [
+            ['Bayside Store', 'Northern', 500],
+            ['West Valley Store', 'Northern', 300],
+            [None, None, 800],
+            ['Precioso Store', 'Southern', 1000],
+            ['Kalliope Store', 'Southern', 200],
+            [None, None, 1200]
+        ]
+    )
 
 
 @pytest.fixture

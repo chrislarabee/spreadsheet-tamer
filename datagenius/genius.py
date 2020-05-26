@@ -357,7 +357,7 @@ class Genius:
                 row, *parsers, **parser_args
             )
             if collect and not passes_all:
-                dset.rejects.add(row)
+                dset.rejects.append(row)
             if passes_all:
                 results.append(row)
                 if outer_break:
@@ -462,6 +462,7 @@ class Preprocess(Genius):
             self.cleanse_gaps,
             self.nullify_empty_vals,
             self.detect_header if header_func is None else header_func,
+            self.cleanse_pre_header,
             *custom_steps
         ]
         super(Preprocess, self).__init__(*self.order_parsers(preprocess_steps))
@@ -566,14 +567,12 @@ class Preprocess(Genius):
             return result
 
     @staticmethod
-    @parser('breaks_loop', 'collect_rejects', requires_format='lists',
-            priority=11)
+    @parser('collect_rejects', requires_format='lists', priority=9)
     def cleanse_pre_header(row: list, meta_data: e.MetaData,
                            index: (int, None)) -> (list, None):
         """
         Checks if a passed list's index came before the header's
-        index. If it did, then the row will be rejected. Stops looping
-        as soon as it hits the header row.
+        index. If it did, then the row will be rejected.
 
         Args:
             row: A list.

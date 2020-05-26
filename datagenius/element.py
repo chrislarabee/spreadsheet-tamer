@@ -84,6 +84,9 @@ class Element(ABC):
     def __len__(self):
         return len(self._data)
 
+    def __str__(self):
+        return f'{self.__repr__()}({self._data})'
+
 
 class MetaData(Element, col.abc.MutableMapping):
     """
@@ -273,7 +276,7 @@ class Dataset(Element, col.abc.Sequence):
         self.data_format: (str, None) = None
         self.data_orientation: str = 'row'
         # Stores rows when parsers reject them and need to store them:
-        self.rejects: set = set()
+        self.rejects: list = list()
         # Stores results from Explore objects.
         self.meta_data: MetaData = MetaData()
         if isinstance(data, (tuple, list)):

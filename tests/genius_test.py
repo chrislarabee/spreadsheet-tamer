@@ -240,14 +240,15 @@ class TestPreprocess:
         assert ge.Preprocess.cleanse_pre_header(x, md, 1) is None
         assert ge.Preprocess.cleanse_pre_header(x, md, 4) == x
 
-    def test_basic_go(self, customers, simple_data, gaps):
+    def test_basic_go(self, customers, simple_data, gaps, gaps_totals,
+                      needs_cleanse_totals):
         p = ge.Preprocess()
         d = Dataset(simple_data())
         r = p.go(d)
         assert r == d
         assert r == customers[1]
         assert d.meta_data.header == customers[0]
-        assert d.rejects == set()
+        assert d.rejects == []
 
         d = Dataset(gaps)
         r = p.go(d, overwrite=False)
@@ -255,6 +256,16 @@ class TestPreprocess:
         assert r != d
         assert r.meta_data != d.meta_data
         assert r.meta_data.header == customers[0]
+
+        # Check full functionality:
+        d = Dataset(gaps_totals())
+        p.go(d)
+        assert d == needs_cleanse_totals[1]
+        assert d.meta_data.header == needs_cleanse_totals[0]
+        assert d.rejects == [
+            ['Sales by Location Report', None, None],
+            ['Grouping: Region', None, None]
+        ]
 
     def test_custom_go(self):
         # Test custom preprocess step and header_func:
