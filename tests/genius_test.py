@@ -29,11 +29,6 @@ def test_parser():
         return x - 3
     assert e.parses == 'set'
 
-    # Check set parser/uses cache conflict:
-    with pytest.raises(ValueError,
-                       match='Set parsers cannot use cache'):
-        ge.parser(lambda x: x + 1, 'uses_cache', parses='set')
-
     # Sanity check to ensure pre-built parsers work:
     assert not ge.Preprocess.cleanse_gaps.breaks_loop
 
@@ -257,8 +252,7 @@ class TestPreprocess:
             requires_format='lists'
         )
 
-        @ge.parser('uses_meta_data', 'breaks_loop', requires_format='lists',
-                   parses='set')
+        @ge.parser('breaks_loop', requires_format='lists', parses='set')
         def hf(x, meta_data):
             if x[0] == 'odd':
                 meta_data.header = x

@@ -26,17 +26,12 @@ def parser(func=None, *tags,
         tags: Any number of strings which are valid tags to change
             how the parser is handled by Genius objects. Valid tags
             currently include:
-                *breaks_loop*: Indicates that when the parser
+                breaks_loop: Indicates that when the parser
                     successfully executes in a loop, the loop should
                     break.
-                *collect_rejects*: Indicates that this parser's rejected
+                collect_rejects: Indicates that this parser's rejected
                     rows should be collected in the Dataset's rejects
                     attribute.
-                *uses_cache*: Indicates this parser needs to reference the
-                    previous result of the parser. Cannot be included
-                    if parses is not 'row'.
-                *uses_meta_data*: Indicates this parser needs to reference
-                    the meta_data attribute of the Dataset.
         null_val: Leave this as None unless you need your parser
             to return None on a successful execution.
         parses: A string, indicates whether this parser expects to
@@ -77,29 +72,21 @@ def parser(func=None, *tags,
         wrapper_parser.condition = condition
         wrapper_parser.priority = priority
         # Allocate tags:
-        valid_tags = dict(
-            uses_cache='uses',
-            uses_meta_data='uses',
-            collect_rejects='tag',
-            breaks_loop='tag'
-        )
-        wrapper_parser.uses = []
+        valid_tags = tuple([
+            'collect_rejects',
+            'breaks_loop',
+        ])
         wrapper_parser.breaks_loop = False
         wrapper_parser.collect_rejects = False
         for t in tags:
             if t is None:
                 pass
-            elif t in valid_tags.keys():
-                if valid_tags[t] == 'uses':
-                    if t == 'uses_cache' and parses == 'set':
-                        raise ValueError('Set parsers cannot use cache.')
-                    wrapper_parser.uses.append(t[5:])
-                else:
-                    wrapper_parser.__dict__[t] = True
+            elif t in valid_tags:
+                wrapper_parser.__dict__[t] = True
             else:
                 raise ValueError(
                     f'{t} is not a valid tag. Valid tags include '
-                    f'{list(valid_tags.keys())}'
+                    f'{valid_tags}'
                 )
         wrapper_parser.is_parser = True
         return wrapper_parser
@@ -314,8 +301,6 @@ class Genius:
             And finally, x.
 
         """
-        cache = parser_args.get('cache')
-        meta_data = parser_args.get('meta_data')
         _break = False
         passes_all = True
         collect_reject = False
@@ -325,10 +310,6 @@ class Genius:
                     collect_reject = True
                 _break = p.breaks_loop
                 p_args = {k: v for k, v in parser_args.items() if k in p.args}
-                if 'cache' in p.uses and cache is not None:
-                    p_args['cache'] = cache
-                if 'meta_data' in p.uses and meta_data not in (None, {}):
-                    p_args['meta_data'] = meta_data
                 parse_result = p(x, **p_args)
                 if parse_result != p.null_val:
                     x = parse_result
@@ -523,7 +504,7 @@ class Preprocess(Genius):
         return None if u.count_nulls(row, strict=False) == len(row) else row
 
     @staticmethod
-    @parser('breaks_loop', 'uses_meta_data', parses='set',
+    @parser('breaks_loop', parses='set',
             requires_format='lists')
     def detect_header(row: list, meta_data: e.MetaData,
                       manual_header: (list, None) = None):
@@ -618,7 +599,7 @@ class Clean(Genius):
         return super(Clean, self).go(dset, **options)
 
     @staticmethod
-    @parser('uses_cache')
+    @parser
     def extrapolate(row: col.OrderedDict, cols: (list, tuple),
                     cache: col.OrderedDict = None):
         """
@@ -673,7 +654,7 @@ class Clean(Genius):
         return result
 
     @staticmethod
-    @parser('uses_meta_data')
+    @parser
     def clean_typos(row: dict, meta_data: dict):
         typo_funcs = {
             'numeric': Clean.clean_numeric_typos
@@ -749,7 +730,7 @@ class Explore(Genius):
         return super(Explore, self).go(dset, **options)
 
     @staticmethod
-    @parser('uses_meta_data', parses='column', requires_format='any')
+    @parser(parses='column', requires_format='any')
     def nulls_report(column: list, col_name: str,
                      meta_data: e.MetaData) -> list:
         """
@@ -774,7 +755,7 @@ class Explore(Genius):
         return column
 
     @staticmethod
-    @parser('uses_meta_data', parses='column', requires_format='lists')
+    @parser(parses='column', requires_format='lists')
     def types_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
         """
         Takes a list and creates a dictionary report on the types of
@@ -820,7 +801,7 @@ class Explore(Genius):
         return column
 
     @staticmethod
-    @parser('uses_meta_data', parses='column', requires_format='lists')
+    @parser(parses='column', requires_format='lists')
     def uniques_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
         """
         Takes a list and creates a dictionary report on the unique
