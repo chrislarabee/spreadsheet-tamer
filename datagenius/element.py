@@ -495,6 +495,10 @@ class Dataset(Element, col.abc.Sequence):
                  col_md, col_md_schema) = self.meta_data_report()
                 odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
                 odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
+                # Add reject table for this dataset:
+                reject_tbl = f + '_rejects'
+                rejects, reject_schema = self.package_rejects()
+                odbc.write_sqlite(o, reject_tbl, rejects, reject_schema)
         else:
             raise ValueError(
                 f'Unrecognized "to": {to}'

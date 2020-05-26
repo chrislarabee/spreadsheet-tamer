@@ -177,6 +177,12 @@ class TestDataset:
 
     def test_to_file_sqlite(self, sales):
         d = e.Dataset(sales[1], sales[0])
+        d.rejects = [
+            ['Sales by Location Report', None, None],
+            ['Grouping: Region', None, None],
+            [None, None, 800],
+            [None, None, 1200]
+        ]
         d.to_format('dicts')
         # No meta_data should raise an error:
         with pytest.raises(ValueError, match='Discrepancy between meta'):
@@ -199,8 +205,16 @@ class TestDataset:
         assert e.Dataset(o.select('sales_dset_meta_data')) == [
             od(feature='Number of columns', value='3'),
             od(feature='Number of rows', value='4'),
-            od(feature='Number of rejected rows', value='0'),
-            od(feature='Number of values in rejected rows', value='0'),
+            od(feature='Number of rejected rows', value='4'),
+            od(feature='Number of values in rejected rows', value='4'),
+        ]
+
+        # Check rejects table:
+        assert e.Dataset(o.select('sales_rejects')) == [
+            od(location='Sales by Location Report', region=None, sales=None),
+            od(location='Grouping: Region', region=None, sales=None),
+            od(location=None, region=None, sales='800'),
+            od(location=None, region=None, sales='1200'),
         ]
 
     def test_to_file_csv(self, customers, simple_data):
