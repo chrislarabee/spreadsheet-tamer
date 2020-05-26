@@ -170,3 +170,23 @@ class ODBConnector:
         for k, v in col_collect.items():
             s[k] = v.type.python_type
         return s
+
+
+def write_sqlite(odbc: ODBConnector, table_name: str, data: list,
+                 schema: dict) -> None:
+    """
+    Simple function to write data to a sqlite db connected via an
+    ODBConnector. Overwrites whatever data is in the existing table, if
+    any.
+
+    Args:
+        odbc: An ODBConnector object.
+        table_name: A string, the name of the table.
+        data: A list of dicts to write to the table.
+        schema: A dictionary containing the schema of the table.
+
+    Returns:
+
+    """
+    odbc.drop_tbl(table_name)
+    odbc.insert(table_name, data, schema)

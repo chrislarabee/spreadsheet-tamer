@@ -487,17 +487,14 @@ class Dataset(Element, col.abc.Sequence):
                     k: type_map[v['probable_type']] for k, v in self.meta_data.items()}
                 o = options.get('db_conn', odbc.ODBConnector())
                 o.setup(p)
-                o.drop_tbl(f)
-                o.insert(f, self, schema)
+                odbc.write_sqlite(o, f, self._data, schema)
                 # Add meta_data tables for this dataset:
                 dset_md_tbl = f + '_dset_meta_data'
                 col_md_tbl = f + '_col_meta_data'
-                o.drop_tbl(dset_md_tbl)
-                o.drop_tbl(col_md_tbl)
                 (dset_md, dset_md_schema,
                  col_md, col_md_schema) = self.meta_data_report()
-                o.insert(dset_md_tbl, dset_md, dset_md_schema)
-                o.insert(col_md_tbl, col_md, col_md_schema)
+                odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
+                odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
         else:
             raise ValueError(
                 f'Unrecognized "to": {to}'
