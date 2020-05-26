@@ -245,6 +245,23 @@ class TestDataset:
         )
 
 
+class TestTranslateRule:
+    def test_call(self):
+        t = e.TranslateRule('test', rules=dict(x='y', v='w'))
+        assert t(dict(test='x')) == dict(test='y')
+        assert t(dict(test='v')) == dict(test='w')
+
+        t = e.TranslateRule('test', dict(x='y', v='w'), 'output')
+        assert t(dict(test='x')) == dict(test='x', output='y')
+
+        t = e.TranslateRule('test', {None: 'Unknown'})
+        assert t(dict(test=None)) == dict(test='Unknown')
+
+        t = e.TranslateRule('test', {('x', 'y'): 'z'}, 'output')
+        assert t(dict(test='x')) == dict(test='x', output='z')
+        assert t(dict(test='y')) == dict(test='y', output='z')
+
+
 class TestMappingRule:
     def test_basics(self):
         mr = e.MappingRule('test_col', 1234)

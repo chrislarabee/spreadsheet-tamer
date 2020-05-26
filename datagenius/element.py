@@ -570,12 +570,70 @@ class Dataset(Element, col.abc.Sequence):
         return dataset_md, dataset_md_schema, column_md, column_md_schema
 
 
+class TranslateRule(Element, col.abc.Mapping):
+    """
+    Encodes a translation rule for a dictionary in the vein of:
+    If x value is found at from_ in a dictionary, change it according
+    to the mapping rules in dict and put it in from_ or to (if passed).
+    """
+    def __init__(self, from_: str, rules: dict, to: str = None):
+        """
+
+        Args:
+            from_: A string, a key in the dict-like object to
+                translate.
+            rules: A dict, can be in the format of
+                {object_to_replace: replacement_object} or
+                {(objects, to, replace): replacement_object} or a mix
+                of both.
+            to: A string, the destination key you want to enter the
+                translation result into in the target dict-like object.
+                Leave as None if you want to overwrite the value at
+                from_.
+        """
+        t_rules = dict()
+        for k, v in rules.items():
+            if k is None:
+                k = (None, )
+            elif not isinstance(k, (tuple, list)):
+                k = tuple(k)
+            t_rules[k] = v
+        super(TranslateRule, self).__init__(
+            {'from': from_, 'to': to, 'rules': t_rules}
+        )
+        self.from_ = from_
+        self.to = to
+        self.rules = t_rules
+
+    def __call__(self, data: (dict, col.OrderedDict)) -> (dict, col.OrderedDict):
+        """
+        Applies the rules to the value found in data[self._from] and
+        places the result in data[self.to] or back into
+        data[self._from] if self.to is None.
+
+        Args:
+            data: A dictionary or OrderedDict containing self.from_.
+
+        Returns: The translated dictionary.
+
+        """
+        f = data[self.from_]
+        for k, v in self.rules.items():
+            if f in k:
+                t = self.to if self.to is not None else self.from_
+                data[t] = v
+        return data
+
+    def __iter__(self):
+        return self._data.__iter__()
+
+
 class MappingRule(Element, col.abc.Sequence):
     """
-        A fairly simple object for encoding what string value an object
-        corresponds to and what default value should be used if a given row
-        in the dataset governed by the Rule has no value.
-        """
+    A fairly simple object for encoding what string value an object
+    corresponds to and what default value should be used if a given row
+    in the dataset governed by the Rule has no value.
+    """
 
     def __init__(self, to: str = None, default=None):
         """
