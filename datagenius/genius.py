@@ -652,7 +652,8 @@ class Clean(Genius):
         non-nullable columns.
 
         # TODO: Revamp this parser so that it can more intelligently
-                remove incomplete rows.
+                remove incomplete rows. Possibly by having it
+                specifically remove total rows.
         Args:
             row:
             meta_data:
@@ -825,6 +826,8 @@ class Explore(Genius):
         Takes a list and creates a dictionary report on the unique
         values of data found in the list and uses it to update
         meta_data.
+
+        # TODO: Add functionality to not count nulls as uniques?
 
         Args:
             column: A list.
