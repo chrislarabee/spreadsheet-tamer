@@ -100,6 +100,7 @@ class MetaData(Element, col.abc.MutableMapping):
         data = data if data is not None else dict()
         super(MetaData, self).__init__(data)
         self.header: list = list()
+        self.header_idx: (int, None) = None
         self.init_row_ct: (int, None) = None
         self.init_col_ct: (int, None) = None
         for k, v in init_attrs.items():

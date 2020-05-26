@@ -351,6 +351,7 @@ class Genius:
         for i, r in enumerate(dset):
             if dset.data_orientation == 'column':
                 parser_args['col_name'] = dset.meta_data.header[i]
+            parser_args['index'] = i
             row = r.copy()
             outer_break, passes_all, collect, row = Genius.apply_parsers(
                 row, *parsers, **parser_args
@@ -506,7 +507,7 @@ class Preprocess(Genius):
     @staticmethod
     @parser('breaks_loop', parses='set',
             requires_format='lists')
-    def detect_header(row: list, meta_data: e.MetaData,
+    def detect_header(row: list, meta_data: e.MetaData, index: (int, None) = None,
                       manual_header: (list, None) = None):
         """
         Checks a list to see if it contains only strings. If it
@@ -515,6 +516,7 @@ class Preprocess(Genius):
         Args:
             row: A list
             meta_data: A MetaData object.
+            index: The index of the row in the Dataset it came from.
             manual_header: A list, which will be used to override any
                 automatically detected header. Useful if the Dataset
                 has no discernible header.
@@ -524,12 +526,14 @@ class Preprocess(Genius):
 
         """
         if manual_header is not None:
+            meta_data.header_idx = index
             meta_data.header = manual_header
             return row
         else:
             w = len(row)
             ts = u.count_true_str(row)
             if ts == w:
+                meta_data.header_idx = index
                 meta_data.header = row
                 return row
             else:

@@ -198,11 +198,15 @@ class TestPreprocess:
         pp = ge.Preprocess()
         md = MetaData()
         # First test doesn't use pp to verify staticmethod status.
-        assert ge.Preprocess.detect_header([1, 2, 3], md) is None
-        assert pp.detect_header(['a', 'b', 'c'], md) == ['a', 'b', 'c']
+        assert ge.Preprocess.detect_header([1, 2, 3], md, 0) is None
+        assert md.header_idx is None
+        assert pp.detect_header(['a', 'b', 'c'], md, 7) == ['a', 'b', 'c']
         assert md.header == ['a', 'b', 'c']
-        assert pp.detect_header([1, 2, 3], md, ['x', 'y', 'z']) == [1, 2, 3]
+        assert md.header_idx == 7
+        # Test manual_header:
+        assert pp.detect_header([1, 2, 3], md, None, ['x', 'y', 'z']) == [1, 2, 3]
         assert md.header == ['x', 'y', 'z']
+        assert md.header_idx is None
 
     def test_nullify_empty_vals(self):
         expected = [None, 1, 'a', None]
