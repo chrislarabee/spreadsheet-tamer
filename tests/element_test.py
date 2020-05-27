@@ -53,6 +53,11 @@ class TestMetaData:
         # Ensure boolean values still evaluate properly:
         assert md.check_key('w')
 
+    def test_concat_header(self):
+        md = e.MetaData()
+        md.header = ['a', 'b', 'c']
+        assert md.concat_header(['c', 'd']) == ['a', 'b', 'c', 'd']
+
     def test_update_attr(self):
         md = e.MetaData()
         md.update_attr('test_list', 1, list)

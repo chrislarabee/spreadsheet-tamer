@@ -1,4 +1,4 @@
-from .element import Dataset, MappingRule, Mapping
+from .element import Dataset, MappingRule, Mapping, MetaData, TranslateRule
 from .genius import Genius, Preprocess, Clean, Explore
 from .io import odbc, text
 

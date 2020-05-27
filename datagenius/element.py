@@ -210,6 +210,23 @@ class MetaData(Element, col.abc.MutableMapping):
             self[column] = dict()
         self[column] = {**self[column], **kwargs}
 
+    def concat_header(self, new: list) -> list:
+        """
+        Used to append one or more values to header without duplicating
+        existing values.
+
+        Args:
+            new: A list of values to append to header.
+
+        Returns: A list, the altered header.
+
+        """
+        h_set = set(self.header)
+        n_set = set(new)
+        to_add = list(n_set.difference(h_set))
+        self.header += to_add
+        return self.header
+
     def update_attr(self, attr: str, value, _type=None) -> None:
         """
         Takes an attribute and a value, and optionally a type, and
