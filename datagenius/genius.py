@@ -612,9 +612,14 @@ class Clean(Genius):
             **options: Keywords for customizing the functionality of go.
                 Currently in use keywords:
                     extrapolate: A list/tuple of strings corresponding
-                        to columns iin the Dataset, which will trigger
-                        Clean to add its extrapolate parser to its
-                        steps and pass the strings in extrapolate to it.
+                        to columns in the Dataset, which will be
+                        extrapolated.
+                    translation_rules: A tuple of TranslateRule objects
+                        to apply to each row in the Dataset.
+                    required_columns: A list/tuple of strings
+                        corresponding to columns in the Dataset. Rows
+                        without values in those columns will be
+                        rejected.
 
         Returns: The Dataset object, or a copy of it.
 
@@ -624,6 +629,8 @@ class Clean(Genius):
             self.steps.append(self.extrapolate)
         if options.get('translation_rules'):
             self.steps.append(self.apply_translations)
+        if options.get('required_columns'):
+            self.steps.append(self.cleanse_incomplete_rows)
         self.steps = self.order_parsers(self.steps)
         return super(Clean, self).go(dset, **options)
 
@@ -654,33 +661,28 @@ class Clean(Genius):
         return result
 
     @staticmethod
-    @parser('collect_rejects', priority=9)
+    @parser('collect_rejects', priority=20)
     def cleanse_incomplete_rows(
-            row: col.OrderedDict, meta_data: e.MetaData) -> col.OrderedDict:
+            row: col.OrderedDict,
+            required_columns: (list, tuple)) -> (None, col.OrderedDict):
         """
-        A not terribly useful parser that removes rows that are missing
-        non-nullable columns.
+        Returns the row if it has a value at each of the keys found
+        in required_columns, otherwise None.
 
-        # TODO: Revamp this parser so that it can more intelligently
-                remove incomplete rows. Possibly by having it
-                specifically remove total rows.
         Args:
-            row:
-            meta_data:
+            row: An OrderedDict that may contain the keys found in
+                required_columns.
+            required_columns: A list or tuple of strings corresponding
+                to keys in row.
 
-        Returns:
+        Returns: Returns the row if it has a value at each of the keys
+            found in required_columns, otherwise None.
 
         """
-        result = row
-        if meta_data.check_key('nullable'):
-            required_cols = []
-            for k, v in meta_data.items():
-                if not v['nullable']:
-                    required_cols.append(k)
-            row_req = u.collect_by_keys(row, *required_cols)
-            if u.count_nulls(row_req) > 0:
-                result = None
-        return result
+        for rc in required_columns:
+            if row.get(rc) is None:
+                return None
+        return row
 
     @staticmethod
     @parser

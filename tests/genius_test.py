@@ -328,17 +328,10 @@ class TestClean:
         assert ge.Clean.apply_translations(od(a=1, b=2), rules) == expected
 
     def test_cleanse_incomplete_rows(self):
-        md = MetaData()
-        md.update('a', nullable=False)
-        md.update('b', nullable=False)
-        md.update('c', nullable=False)
-        md.update('d', nullable=True)
-        md.update('e', nullable=True)
         row = od(a=1, b=2, c=3, d=None, e=None)
-        assert ge.Clean.cleanse_incomplete_rows(row, md) == row
-
-        md.update('d', nullable=False)
-        assert ge.Clean.cleanse_incomplete_rows(row, md) is None
+        assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'b']) == row
+        assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'd']) is None
+        assert ge.Clean.cleanse_incomplete_rows(row, ['d']) is None
 
     def test_clean_numeric_typos(self):
         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
@@ -367,6 +360,12 @@ class TestClean:
             d,
             extrapolate=['vendor_name']
         ) == expected
+
+    def test_go_w_incomplete_rows(self, needs_cleanse_totals, sales):
+        d = Dataset(needs_cleanse_totals[1], needs_cleanse_totals[0]).to_dicts()
+        expected = Dataset(sales[1], sales[0]).to_dicts()
+
+        assert ge.Clean().go(d, required_columns=['location']) == expected._data
 
     def test_go_w_translations(self, needs_translation, products):
         d = Dataset(needs_translation[1], needs_translation[0])
