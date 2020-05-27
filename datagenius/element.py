@@ -596,7 +596,7 @@ class TranslateRule(Element, col.abc.Mapping):
             if k is None:
                 k = (None, )
             elif not isinstance(k, (tuple, list)):
-                k = tuple(k)
+                k = tuple([k])
             t_rules[k] = v
         super(TranslateRule, self).__init__(
             {'from': from_, 'to': to, 'rules': t_rules}

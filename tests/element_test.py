@@ -254,6 +254,9 @@ class TestTranslateRule:
         t = e.TranslateRule('test', dict(x='y', v='w'), 'output')
         assert t(dict(test='x')) == dict(test='x', output='y')
 
+        t = e.TranslateRule('test', {'bird': 'word'})
+        assert t(dict(test='bird')) == dict(test='word')
+
         t = e.TranslateRule('test', {None: 'Unknown'})
         assert t(dict(test=None)) == dict(test='Unknown')
 
