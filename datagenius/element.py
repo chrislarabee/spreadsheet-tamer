@@ -515,8 +515,11 @@ class Dataset(Element, col.abc.Sequence):
 
         """
         m = self.meta_data.header
+        rj = self.rejects
+        if len(self.rejects) > 0 and isinstance(self.rejects[0], list):
+            rj = [col.OrderedDict(zip(m, r)) for r in self.rejects]
         return (
-            [dict(zip(m, r)) for r in self.rejects],
+            rj,
             dict(zip(m, [str for _ in range(len(m))]))
         )
 

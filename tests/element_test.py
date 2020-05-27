@@ -238,10 +238,23 @@ class TestDataset:
         ]
         assert d.package_rejects() == (
             [
-                {'0': 'Integers', '1': None, '2': None},
-                {'0': None, '1': None, '2': 9}
+                od({'0': 'Integers', '1': None, '2': None}),
+                od({'0': None, '1': None, '2': 9})
             ],
             {'0': str, '1': str, '2': str}
+        )
+
+        d.meta_data.header = ['a', 'b', 'c']
+        d.rejects = [
+            od(a='Integers', b=None, c=None),
+            od(a=None, b=None, c=9)
+        ]
+        assert d.package_rejects() == (
+            [
+                od(a='Integers', b=None, c=None),
+                od(a=None, b=None, c=9)
+            ],
+            dict(a=str, b=str, c=str)
         )
 
 
