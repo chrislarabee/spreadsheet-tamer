@@ -622,6 +622,8 @@ class Clean(Genius):
         if options.get('extrapolate'):
             options['cols'] = options.get('extrapolate')
             self.steps.append(self.extrapolate)
+        if options.get('translation_rules'):
+            self.steps.append(self.apply_translations)
         self.steps = self.order_parsers(self.steps)
         return super(Clean, self).go(dset, **options)
 
@@ -679,6 +681,27 @@ class Clean(Genius):
             if u.count_nulls(row_req) > 0:
                 result = None
         return result
+
+    @staticmethod
+    @parser
+    def apply_translations(row: col.OrderedDict,
+                           translation_rules: tuple = None) -> col.OrderedDict:
+        """
+        Takes a tuple of TranslateRule objects and applies each one to
+        the passed OrderedDict.
+
+        Args:
+            row: An OrderedDict containing data expected by the passed
+                rules.
+            translation_rules: A tuple of TranslateRule objects.
+
+        Returns: The translated row.
+
+        """
+        if translation_rules is not None:
+            for t in translation_rules:
+                row = t(row)
+        return row
 
     @staticmethod
     @parser

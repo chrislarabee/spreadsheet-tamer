@@ -150,3 +150,16 @@ def needs_extrapolation():
             [4, None, 'Not candy or pens']
         ]
     )
+
+
+@pytest.fixture
+def needs_translation():
+    return (
+        ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
+         'attr4', 'attr5'],
+        [
+            [1, 'Widget', 8.5, 4.0, 1234567890, None, None, None, None, None],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'cu', 'large', None, None, None],
+            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'sm', None, None, None]
+        ]
+    )

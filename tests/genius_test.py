@@ -2,7 +2,7 @@ from collections import OrderedDict as od
 
 import pytest
 
-from datagenius.element import Dataset, MetaData
+from datagenius.element import Dataset, MetaData, TranslateRule
 import datagenius.genius as ge
 
 
@@ -319,6 +319,14 @@ class TestClean:
             od(a=1, b='Foo', c='Bar')
         ) == od(a=2, b='Foo', c='Bar')
 
+    def test_apply_translations(self):
+        expected = od(a=1, b=3, x=100)
+        rules = (
+            TranslateRule('a', {(1, ): 100}, 'x'),
+            TranslateRule('b', {(2, ): 3})
+        )
+        assert ge.Clean.apply_translations(od(a=1, b=2), rules) == expected
+
     def test_cleanse_incomplete_rows(self):
         md = MetaData()
         md.update('a', nullable=False)
@@ -359,6 +367,18 @@ class TestClean:
             d,
             extrapolate=['vendor_name']
         ) == expected
+
+    def test_go_w_translations(self, needs_translation, products):
+        d = Dataset(needs_translation[1], needs_translation[0])
+        p = Dataset(products[1], products[0]).to_dicts()
+
+        assert ge.Clean().go(
+            d,
+            translation_rules=(
+                TranslateRule('attr1', {'cu': 'copper'}),
+                TranslateRule('attr2', {'sm': 'small'})
+            )
+        ) == p._data
 
 
 class TestExplore:
