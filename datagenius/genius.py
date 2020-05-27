@@ -624,13 +624,13 @@ class Clean(Genius):
         Returns: The Dataset object, or a copy of it.
 
         """
+        if options.get('required_columns'):
+            self.steps.append(self.cleanse_incomplete_rows)
         if options.get('extrapolate'):
             options['cols'] = options.get('extrapolate')
             self.steps.append(self.extrapolate)
         if options.get('translation_rules'):
             self.steps.append(self.apply_translations)
-        if options.get('required_columns'):
-            self.steps.append(self.cleanse_incomplete_rows)
         self.steps = self.order_parsers(self.steps)
         return super(Clean, self).go(dset, **options)
 
