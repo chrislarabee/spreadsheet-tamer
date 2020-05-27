@@ -244,19 +244,6 @@ class TestDataset:
             {'0': str, '1': str, '2': str}
         )
 
-        d.meta_data.header = ['a', 'b', 'c']
-        d.rejects = [
-            od(a='Integers', b=None, c=None),
-            od(a=None, b=None, c=9)
-        ]
-        assert d.package_rejects() == (
-            [
-                od(a='Integers', b=None, c=None),
-                od(a=None, b=None, c=9)
-            ],
-            dict(a=str, b=str, c=str)
-        )
-
 
 class TestTranslateRule:
     def test_call(self):

@@ -176,6 +176,16 @@ class TestGenius:
                       condition='0 <= 2')
         assert ge.Genius.loop_dataset(d, p) == [2, 3, [3, 4, 5]]
 
+    def test_collect_rejects(self):
+        d = Dataset([
+            od(a=2, b=3, c=4)
+        ])
+        ge.Genius.collect_rejects(od(a=1, b=2, c=3), d)
+        assert d.rejects == [[1, 2, 3]]
+
+        ge.Genius.collect_rejects([7, 8, 9], d)
+        assert d.rejects == [[1, 2, 3], [7, 8, 9]]
+
     def test_eval_condition(self):
         row = [1, 2, 3]
         assert ge.Genius.eval_condition(row, '0 > 0')

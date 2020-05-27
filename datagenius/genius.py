@@ -357,13 +357,30 @@ class Genius:
                 row, *parsers, **parser_args
             )
             if collect and not passes_all:
-                dset.rejects.append(row)
+                Genius.collect_rejects(row, dset)
             if passes_all:
                 results.append(row)
                 if outer_break:
                     break
                 parser_args['cache'] = row
         return results
+
+    @staticmethod
+    def collect_rejects(reject: (list, col.OrderedDict),
+                        dset: e.Dataset) -> None:
+        """
+        Ensures rejects are collected as a list and not an OrderedDict.
+
+        Args:
+            reject: A list or OrderedDict.
+            dset: The Dataset object the reject was from.
+
+        Returns: None
+
+        """
+        if isinstance(reject, col.OrderedDict):
+            reject = list(reject.values())
+        dset.rejects.append(reject)
 
     @staticmethod
     def eval_condition(data: (list, col.OrderedDict),
