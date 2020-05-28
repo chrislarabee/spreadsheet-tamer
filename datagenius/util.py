@@ -1,3 +1,4 @@
+import re
 from collections import OrderedDict
 
 
@@ -54,6 +55,25 @@ def count_true_str(x: list) -> int:
     return sum(
         [1 if isinstance(y, str) and y != '' else 0 for y in x]
     )
+
+
+def isnumericplus(x) -> bool:
+    """
+    A better version of the str.isnumeric test that correctly
+    identifies floats stored as strings as numeric.
+
+    Args:
+        x: Any object.
+
+    Returns: A boolean.
+
+    """
+    result = False
+    if isinstance(x, (int, float)):
+        result = True
+    elif isinstance(x, str):
+        result = True if re.search(r'^\d+\.*\d*$', x) else False
+    return result
 
 
 def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:

@@ -26,6 +26,16 @@ def test_count_true_str():
     assert u.count_true_str(['a', 'test', 1]) == 2
 
 
+def test_isnumericplus():
+    assert u.isnumericplus(1)
+    assert u.isnumericplus(2.25)
+    assert u.isnumericplus('1234')
+    assert u.isnumericplus('1234.56')
+    assert u.isnumericplus('1234..56')
+    assert u.isnumericplus('1234.56789')
+    assert not u.isnumericplus('100 strings')
+
+
 def test_validate_parser():
     assert not u.validate_parser('string')
     assert u.validate_parser(parser(lambda x: x + 1))
