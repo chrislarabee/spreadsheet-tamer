@@ -34,6 +34,15 @@ def test_isnumericplus():
     assert u.isnumericplus('1234..56')
     assert u.isnumericplus('1234.56789')
     assert not u.isnumericplus('100 strings')
+    assert u.isnumericplus(1, '-v') == (True, int)
+    assert u.isnumericplus(1.0, '-v') == (True, float)
+    assert u.isnumericplus(2.25, '-v') == (True, float)
+    assert u.isnumericplus('100 strings', '-v') == (False, str)
+    assert u.isnumericplus('1234', '-convert') == (True, 1234)
+    assert u.isnumericplus('1234..56', '-convert') == (True, 1234.56)
+    assert u.isnumericplus('100 strings', '-convert') == (False, '100 strings')
+    assert u.isnumericplus('1234.56', '-v', '-convert') == (
+        True, float, 1234.56)
 
 
 def test_validate_parser():

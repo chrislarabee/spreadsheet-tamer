@@ -57,23 +57,44 @@ def count_true_str(x: list) -> int:
     )
 
 
-def isnumericplus(x) -> bool:
+def isnumericplus(x, *options) -> (bool, tuple):
     """
     A better version of the str.isnumeric test that correctly
-    identifies floats stored as strings as numeric.
+    identifies floats stored as strings as numeric and can convert
+    them if desired.
 
     Args:
         x: Any object.
+        options: Arbitrary number of args to alter isnumericplus'
+            exact behavior. Currently in use options:
+                -v: Causes isnumericplus to return the type of x.
+                -convert: Causes isnumericplus to convert x to int or
+                    float, if it is found to be numeric.
 
     Returns: A boolean.
 
     """
-    result = False
+    numeric = False
+    v = type(x)
     if isinstance(x, (int, float)):
-        result = True
+        numeric = True
     elif isinstance(x, str):
-        result = True if re.search(r'^\d+\.*\d*$', x) else False
-    return result
+        v = int if re.search(r'^\d+$', x) else v
+        v = float if re.search(r'^\d+\.+\d*$', x) else v
+        numeric = True if v in (int, float) else False
+    result = [numeric]
+    if '-v' in options:
+        result.append(v)
+    if '-convert' in options:
+        if type(x) != v:
+            if v == float:
+                point_ct = len(re.search(r'\.+', x).group())
+            else:
+                point_ct = 0
+            if point_ct > 1:
+                x = re.sub(r'\.+', '.', x)
+        result.append(v(x))
+    return tuple(result) if len(result) > 1 else numeric
 
 
 def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:
