@@ -357,6 +357,12 @@ class TestClean:
         d = od(a='1..23', b='1.23', c=None)
         assert ge.Clean.cast(d, rules) == od(a=1.23, b=1, c=None)
 
+    def test_apply_capitalize(self):
+        d = od(a='ALL CAPS', b='no caps', c='A mix OF Both')
+        assert ge.Clean.apply_capitalize(d, ['a', 'b', 'c']) == od(
+            a='All Caps', b='No Caps', c='A Mix Of Both'
+        )
+
     def test_clean_numeric_typos(self):
         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
         assert ge.Clean.clean_numeric_typos('10.1q') == 10.1

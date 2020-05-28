@@ -773,6 +773,29 @@ class Clean(Genius):
 
     @staticmethod
     @parser
+    def apply_capitalize(row: col.OrderedDict,
+                         capitalize: (list, tuple)) -> col.OrderedDict:
+        """
+        Takes an OrderedDict and makes sure the first letter of each
+        word in strings found at the keys in capitalize is capitalized.
+
+        Args:
+            row: An OrderedDict
+            capitalize: A list or tuple of keys in row to check for
+                strings and apply capitalization.
+
+        Returns: The OrderedDict, with the passed  key values modified.
+
+        """
+        for key in capitalize:
+            x = row[key]
+            if isinstance(x, str):
+                x = ' '.join([i.capitalize() for i in x.split(' ')])
+                row[key] = x
+        return row
+
+    @staticmethod
+    @parser
     def clean_typos(row: dict, meta_data: dict):
         typo_funcs = {
             'numeric': Clean.clean_numeric_typos
