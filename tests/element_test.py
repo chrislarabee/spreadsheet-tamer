@@ -212,6 +212,7 @@ class TestDataset:
             od(feature='Number of rows', value='4'),
             od(feature='Number of rejected rows', value='4'),
             od(feature='Number of values in rejected rows', value='5'),
+            od(feature='Number of strings cleared of whitespace', value='0')
         ]
 
         # Check rejects table:
