@@ -250,6 +250,13 @@ class TestPreprocess:
         assert ge.Preprocess.cleanse_pre_header(x, md, 1) is None
         assert ge.Preprocess.cleanse_pre_header(x, md, 4) == x
 
+    def test_normalize_whitespace(self):
+        md = MetaData()
+        assert ge.Preprocess.normalize_whitespace(
+            ['a good string', ' a bad   string ', 1, None, 123.45], md
+        ) == ['a good string', 'a bad string', 1, None, 123.45]
+        assert md.white_space_cleaned == 1
+
     def test_basic_go(self, customers, simple_data, gaps, gaps_totals,
                       needs_cleanse_totals):
         p = ge.Preprocess()

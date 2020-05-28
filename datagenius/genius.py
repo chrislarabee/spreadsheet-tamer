@@ -480,6 +480,7 @@ class Preprocess(Genius):
             self.nullify_empty_vals,
             self.detect_header if header_func is None else header_func,
             self.cleanse_pre_header,
+            self.normalize_whitespace,
             *custom_steps
         ]
         super(Preprocess, self).__init__(*self.order_parsers(preprocess_steps))
@@ -604,6 +605,28 @@ class Preprocess(Genius):
             return None
         else:
             return row
+
+    @staticmethod
+    @parser(requires_format='lists', priority=8)
+    def normalize_whitespace(row: list, meta_data: e.MetaData) -> list:
+        """
+        Checks every string value in the passed list for whitespace
+        typos (more than one space in a row and spaces a the beginning
+        and end of strings, etc) and corrects them.
+
+        Args:
+            row: A list.
+            meta_data: A MetaData object.
+
+        Returns: The list, with string values amended appropriately.
+
+        """
+        for i, val in enumerate(row):
+            if isinstance(val, str):
+                new_val = val.strip()
+                row[i] = re.sub(r' +', ' ', new_val)
+                meta_data.white_space_cleaned += 1 if new_val != val else 0
+        return row
 
 
 class Clean(Genius):

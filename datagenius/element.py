@@ -106,6 +106,7 @@ class MetaData(Element, col.abc.MutableMapping):
         self.header_idx: (int, None) = None
         self.init_row_ct: (int, None) = None
         self.init_col_ct: (int, None) = None
+        self.white_space_cleaned: int = 0
         for k, v in init_attrs.items():
             if k in self.__dict__.keys():
                 setattr(self, k, v)
@@ -578,7 +579,9 @@ class Dataset(Element, col.abc.Sequence):
             'Number of columns': f'{self.col_ct}',
             'Number of rows': f'{self.row_ct}',
             'Number of rejected rows': f'{len(self.rejects)}',
-            'Number of values in rejected rows': f'{reject_val_ct}'
+            'Number of values in rejected rows': f'{reject_val_ct}',
+            'Number of strings cleared of whitespace':
+                f'{self.meta_data.white_space_cleaned}'
         }
         dataset_md = [
             {'feature': k, 'value': v} for k, v in dataset_md_features.items()
