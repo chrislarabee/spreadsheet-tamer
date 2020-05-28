@@ -747,6 +747,32 @@ class Clean(Genius):
 
     @staticmethod
     @parser
+    def cast(row: col.OrderedDict, conversion_rules: dict) -> col.OrderedDict:
+        """
+        Takes an OrderedDict and applies a dictionary of key names and
+        python types and attempts to apply them to the corresponding
+        key-value pairs in row.
+
+        Args:
+            row: An OrderedDict.
+            conversion_rules: A dictionary containing keys from row and
+                the desired types to convert their values to.
+
+        Returns: The OrderedDict, with types converted.
+
+        """
+        for column, type_ in conversion_rules.items():
+            val = row[column]
+            if val is not None:
+                _, c = u.isnumericplus(val, '-convert')
+                try:
+                    row[column] = type_(c)
+                except ValueError:
+                    pass
+        return row
+
+    @staticmethod
+    @parser
     def clean_typos(row: dict, meta_data: dict):
         typo_funcs = {
             'numeric': Clean.clean_numeric_typos

@@ -350,6 +350,13 @@ class TestClean:
         assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'd']) is None
         assert ge.Clean.cleanse_incomplete_rows(row, ['d']) is None
 
+    def test_cast(self):
+        d = od(a='1', b='2.0', c='test')
+        rules = dict(a=float, b=int, c=str)
+        assert ge.Clean.cast(d, rules) == od(a=1.0, b=2, c='test')
+        d = od(a='1..23', b='1.23', c=None)
+        assert ge.Clean.cast(d, rules) == od(a=1.23, b=1, c=None)
+
     def test_clean_numeric_typos(self):
         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
         assert ge.Clean.clean_numeric_typos('10.1q') == 10.1
