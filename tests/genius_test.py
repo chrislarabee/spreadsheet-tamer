@@ -2,7 +2,7 @@ from collections import OrderedDict as od
 
 import pytest
 
-from datagenius.element import Dataset, MetaData, TranslateRule
+from datagenius.element import Dataset, MetaData, TranslateRule, Mapping, MappingRule
 import datagenius.genius as ge
 
 
@@ -474,3 +474,15 @@ class TestExplore:
                 'nullable': False
             }
         }
+
+
+class TestReformat:
+    def test_do_mapping(self):
+        m = Mapping(['a', 'b', 'c'], rules=dict(
+            a=MappingRule('x'),
+            b='y',
+            c=MappingRule('z', 3)
+        ))
+        assert ge.Reformat(m).do_mapping(od(x=1, y=2, z=None)) == od(
+            a=1, b=2, c=3
+        )

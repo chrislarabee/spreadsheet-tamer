@@ -966,3 +966,16 @@ class Explore(Genius):
         meta_data.update(
             col_name, unique_ct=unique_ct, primary_key=pk)
         return column
+
+
+class Reformat(Genius):
+    def __init__(self, mapping: e.Mapping, *custom_steps):
+        super(Reformat, self).__init__(*self.order_parsers(custom_steps))
+        self.mapping = mapping
+
+    @parser
+    def do_mapping(self, row: col.OrderedDict) -> col.OrderedDict:
+        result = col.OrderedDict()
+        for k, rule in self.mapping.items():
+            result[k] = rule(row)
+        return result

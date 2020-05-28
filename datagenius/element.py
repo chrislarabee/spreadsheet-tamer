@@ -655,40 +655,37 @@ class MappingRule(Element, col.abc.Sequence):
     in the dataset governed by the Rule has no value.
     """
 
-    def __init__(self, to: str = None, default=None):
+    def __init__(self, from_: str = None, default=None):
         """
 
         Args:
-            to: A string, representing the column/field/key this
+            from_: A string, representing the column/field/key this
                 MappingRule corresponds to in a Dataset.
             default: The value to use if a row in a Dataset returns
                 no value from application of this MappingRule.
         """
-        self.to = to
+        self.from_ = from_
         self.default = default
         super(MappingRule, self).__init__(
-            {'to': self.to, 'default': self.default})
+            {'from': self.from_, 'default': self.default})
 
-    def __call__(self, value=None):
+    def __call__(self, data: (dict, col.OrderedDict)):
         """
-        Applies the MappingRule to a passed value.
+        Applies the MappingRule to a passed dict-like.
 
         Args:
-            value: Any value the MappingRule needs to be applied
-                to.
+            data: A dict-like to pull the value at self.from_ from
+                and potentially replace it with self.default.
 
-        Returns: The column the value should be mapped to, and the
-            value (replaced with self.default if value is None).
+        Returns: The value (replaced with self.default if value is
+            None).
 
         """
-        if value is None:
-            v = self.default
-        else:
-            v = value
-        return self.to, v
+        v = data[self.from_]
+        return self.default if v is None else v
 
 
-class Mapping(Element, col.abc.Sequence):
+class Mapping(Element, col.abc.Mapping):
     """
     Provides a quick way for creating many MappingRules from
     a target format template and from explicitly detailed rules.
@@ -733,3 +730,6 @@ class Mapping(Element, col.abc.Sequence):
         for t in self.template:
             if t not in self._data.keys():
                 self._data[t] = MappingRule()
+
+    def __iter__(self):
+        return self._data.__iter__()

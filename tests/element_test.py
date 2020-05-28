@@ -275,18 +275,18 @@ class TestMappingRule:
     def test_basics(self):
         mr = e.MappingRule('test_col', 1234)
 
-        assert mr() == ('test_col', 1234)
-        assert mr(90) == ('test_col', 90)
+        assert mr(od(test_col=None)) == 1234
+        assert mr(od(test_col=90)) == 90
 
 
 class TestMapping:
     def test_init(self):
         t = ['a lot', 'of', 'columns', 'for sure']
         expected = {
-            'a lot': {'to': 'some more', 'default': None},
-            'columns': {'to': 'cols', 'default': None},
-            'for sure': {'to': 'here', 'default': 1},
-            'of': {'to': None, 'default': None}
+            'a lot': {'from': 'some more', 'default': None},
+            'columns': {'from': 'cols', 'default': None},
+            'for sure': {'from': 'here', 'default': 1},
+            'of': {'from': None, 'default': None}
         }
 
         m = e.Mapping(
