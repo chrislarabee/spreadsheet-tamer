@@ -654,8 +654,8 @@ class Clean(Genius):
                     extrapolate: A list/tuple of strings corresponding
                         to columns in the Dataset, which will be
                         extrapolated.
-                    translation_rules: A tuple of TranslateRule objects
-                        to apply to each row in the Dataset.
+                    data_rules: A tuple of Rule objects to apply to
+                        each row in the Dataset.
                     required_columns: A list/tuple of strings
                         corresponding to columns in the Dataset. Rows
                         without values in those columns will be
@@ -669,8 +669,8 @@ class Clean(Genius):
         if options.get('extrapolate'):
             options['cols'] = options.get('extrapolate')
             self.steps.append(self.extrapolate)
-        if options.get('translation_rules'):
-            self.steps.append(self.apply_translations)
+        if options.get('data_rules'):
+            self.steps.append(self.apply_rules)
         self.steps = self.order_parsers(self.steps)
         return super(Clean, self).go(dset, **options)
 
@@ -726,72 +726,23 @@ class Clean(Genius):
 
     @staticmethod
     @parser
-    def apply_translations(row: col.OrderedDict,
-                           translation_rules: tuple = None) -> col.OrderedDict:
+    def apply_rules(row: col.OrderedDict,
+                    data_rules: tuple = None) -> col.OrderedDict:
         """
-        Takes a tuple of TranslateRule objects and applies each one to
+        Takes a tuple of Rule objects and applies each one to
         the passed OrderedDict.
 
         Args:
             row: An OrderedDict containing data expected by the passed
                 rules.
-            translation_rules: A tuple of TranslateRule objects.
+            rules: A tuple of Rule objects.
 
-        Returns: The translated row.
-
-        """
-        if translation_rules is not None:
-            for t in translation_rules:
-                row = t(row)
-        return row
-
-    @staticmethod
-    @parser
-    def cast(row: col.OrderedDict, conversion_rules: dict) -> col.OrderedDict:
-        """
-        Takes an OrderedDict and applies a dictionary of key names and
-        python types and attempts to apply them to the corresponding
-        key-value pairs in row.
-
-        Args:
-            row: An OrderedDict.
-            conversion_rules: A dictionary containing keys from row and
-                the desired types to convert their values to.
-
-        Returns: The OrderedDict, with types converted.
+        Returns: The row with all Rules applied.
 
         """
-        for column, type_ in conversion_rules.items():
-            val = row[column]
-            if val is not None:
-                _, c = u.isnumericplus(val, '-convert')
-                try:
-                    row[column] = type_(c)
-                except ValueError:
-                    pass
-        return row
-
-    @staticmethod
-    @parser
-    def apply_capitalize(row: col.OrderedDict,
-                         capitalize: (list, tuple)) -> col.OrderedDict:
-        """
-        Takes an OrderedDict and makes sure the first letter of each
-        word in strings found at the keys in capitalize is capitalized.
-
-        Args:
-            row: An OrderedDict
-            capitalize: A list or tuple of keys in row to check for
-                strings and apply capitalization.
-
-        Returns: The OrderedDict, with the passed  key values modified.
-
-        """
-        for key in capitalize:
-            x = row[key]
-            if isinstance(x, str):
-                x = ' '.join([i.capitalize() for i in x.split(' ')])
-                row[key] = x
+        if data_rules is not None:
+            for r in data_rules:
+                row = r(row)
         return row
 
     @staticmethod

@@ -2,7 +2,7 @@ from collections import OrderedDict as od
 
 import pytest
 
-from datagenius.element import Dataset, MetaData, TranslateRule, Mapping, MappingRule
+import datagenius.element as e
 import datagenius.genius as ge
 
 
@@ -113,7 +113,7 @@ class TestGenius:
         assert ge.Genius.order_parsers([x2, x3, x1]) == expected
 
     def test_apply_parsers(self):
-        d = Dataset([
+        d = e.Dataset([
             [1, 2, 3],
             [4, 5, 6],
             [7, 8, 9]
@@ -144,7 +144,7 @@ class TestGenius:
             ['2', 'Muhammad', 'El-Kanan', '00076'],
             ['3', 'Luisa', 'Romero', '00123'],
         ]
-        d = Dataset(simple_data())
+        d = e.Dataset(simple_data())
         p = ge.parser(lambda x: (x if len(x[2]) > 5 else None),
                       requires_format='lists')
         assert ge.Genius.loop_dataset(d, p) == expected
@@ -156,7 +156,7 @@ class TestGenius:
         assert ge.Genius.loop_dataset(d, p) == expected
 
         # Test breaks_loop
-        d = Dataset([
+        d = e.Dataset([
             [1, 2, 3],
             [2, 3, 4],
             [3, 4, 5]
@@ -177,7 +177,7 @@ class TestGenius:
         assert ge.Genius.loop_dataset(d, p) == [2, 3, [3, 4, 5]]
 
     def test_collect_rejects(self):
-        d = Dataset([
+        d = e.Dataset([
             od(a=2, b=3, c=4)
         ])
         ge.Genius.collect_rejects(od(a=1, b=2, c=3), d)
@@ -206,7 +206,7 @@ class TestPreprocess:
 
     def test_detect_header(self):
         pp = ge.Preprocess()
-        md = MetaData()
+        md = e.MetaData()
         # First test doesn't use pp to verify staticmethod status.
         assert ge.Preprocess.detect_header([1, 2, 3], md, 0) is None
         assert md.header_idx is None
@@ -245,13 +245,13 @@ class TestPreprocess:
 
     def test_cleanse_pre_header(self):
         x = [1, 2, 3]
-        md = MetaData()
+        md = e.MetaData()
         md.header_idx = 4
         assert ge.Preprocess.cleanse_pre_header(x, md, 1) is None
         assert ge.Preprocess.cleanse_pre_header(x, md, 4) == x
 
     def test_normalize_whitespace(self):
-        md = MetaData()
+        md = e.MetaData()
         assert ge.Preprocess.normalize_whitespace(
             ['a good string', ' a bad   string ', 1, None, 123.45], md
         ) == ['a good string', 'a bad string', 1, None, 123.45]
@@ -260,14 +260,14 @@ class TestPreprocess:
     def test_basic_go(self, customers, simple_data, gaps, gaps_totals,
                       needs_cleanse_totals):
         p = ge.Preprocess()
-        d = Dataset(simple_data())
+        d = e.Dataset(simple_data())
         r = p.go(d)
         assert r == d
         assert r == customers[1]
         assert d.meta_data.header == customers[0]
         assert d.rejects == []
 
-        d = Dataset(gaps)
+        d = e.Dataset(gaps)
         r = p.go(d, overwrite=False)
         assert r == customers[1]
         assert r != d
@@ -275,7 +275,7 @@ class TestPreprocess:
         assert r.meta_data.header == customers[0]
 
         # Check full functionality:
-        d = Dataset(gaps_totals())
+        d = e.Dataset(gaps_totals())
         p.go(d)
         assert d == needs_cleanse_totals[1]
         assert d.meta_data.header == needs_cleanse_totals[0]
@@ -299,7 +299,7 @@ class TestPreprocess:
             else:
                 return None
 
-        d = Dataset([
+        d = e.Dataset([
             ['', '', ''],
             ['odd', 1, 'header'],
             [1, 2, 3],
@@ -314,7 +314,7 @@ class TestPreprocess:
         assert d.meta_data.header == ['odd', 1, 'header']
 
         # Test manual_header:
-        d = Dataset([
+        d = e.Dataset([
             [1, 2, 3],
             [4, 5, 6]
         ])
@@ -336,32 +336,19 @@ class TestClean:
             od(a=1, b='Foo', c='Bar')
         ) == od(a=2, b='Foo', c='Bar')
 
-    def test_apply_translations(self):
+    def test_apply_rules(self):
         expected = od(a=1, b=3, x=100)
         rules = (
-            TranslateRule('a', {(1, ): 100}, 'x'),
-            TranslateRule('b', {(2, ): 3})
+            e.Rule('a', {(1, ): 100}, to='x'),
+            e.Rule('b', {(2, ): 3})
         )
-        assert ge.Clean.apply_translations(od(a=1, b=2), rules) == expected
+        assert ge.Clean.apply_rules(od(a=1, b=2), rules) == expected
 
     def test_cleanse_incomplete_rows(self):
         row = od(a=1, b=2, c=3, d=None, e=None)
         assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'b']) == row
         assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'd']) is None
         assert ge.Clean.cleanse_incomplete_rows(row, ['d']) is None
-
-    def test_cast(self):
-        d = od(a='1', b='2.0', c='test')
-        rules = dict(a=float, b=int, c=str)
-        assert ge.Clean.cast(d, rules) == od(a=1.0, b=2, c='test')
-        d = od(a='1..23', b='1.23', c=None)
-        assert ge.Clean.cast(d, rules) == od(a=1.23, b=1, c=None)
-
-    def test_apply_capitalize(self):
-        d = od(a='ALL CAPS', b='no caps', c='A mix OF Both')
-        assert ge.Clean.apply_capitalize(d, ['a', 'b', 'c']) == od(
-            a='All Caps', b='No Caps', c='A Mix Of Both'
-        )
 
     def test_clean_numeric_typos(self):
         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
@@ -371,7 +358,7 @@ class TestClean:
         assert ge.Clean.clean_numeric_typos('abc') == 'abc'
 
     def test_go_w_extrapolate(self, needs_extrapolation):
-        d = Dataset(needs_extrapolation[1])
+        d = e.Dataset(needs_extrapolation[1])
         d.meta_data.header = needs_extrapolation[0]
         expected = [
             od(
@@ -392,27 +379,27 @@ class TestClean:
         ) == expected
 
     def test_go_w_incomplete_rows(self, needs_cleanse_totals, sales):
-        d = Dataset(needs_cleanse_totals[1], needs_cleanse_totals[0]).to_dicts()
-        expected = Dataset(sales[1], sales[0]).to_dicts()
+        d = e.Dataset(needs_cleanse_totals[1], needs_cleanse_totals[0]).to_dicts()
+        expected = e.Dataset(sales[1], sales[0]).to_dicts()
 
         assert ge.Clean().go(d, required_columns=['location']) == expected._data
 
-    def test_go_w_translations(self, needs_translation, products):
-        d = Dataset(needs_translation[1], needs_translation[0])
-        p = Dataset(products[1], products[0]).to_dicts()
+    def test_go_w_rules(self, needs_rules, products):
+        d = e.Dataset(needs_rules[1], needs_rules[0])
+        p = e.Dataset(products[1], products[0]).to_dicts()
 
         assert ge.Clean().go(
             d,
-            translation_rules=(
-                TranslateRule('attr1', {'cu': 'copper'}),
-                TranslateRule('attr2', {'sm': 'small'})
+            data_rules=(
+                e.Rule('attr1', {'cu': 'copper'}),
+                e.Rule('attr2', {'sm': 'small'})
             )
         ) == p._data
 
 
 class TestExplore:
     def test_types_report(self):
-        md = MetaData()
+        md = e.MetaData()
         ge.Explore.types_report([1, 2, 3, '4'], 'prob_numeric', md)
         assert md['prob_numeric'] == {
             'string_pct': 0, 'numeric_pct': 1, 'probable_type': 'numeric'
@@ -434,7 +421,7 @@ class TestExplore:
         }
 
     def test_uniques_report(self):
-        md = MetaData()
+        md = e.MetaData()
         ge.Explore.uniques_report([1, 2, 3, 4], 'id', md)
         assert md['id'] == dict(
             unique_ct=4,
@@ -448,7 +435,7 @@ class TestExplore:
         )
 
     def test_go(self):
-        d = Dataset([
+        d = e.Dataset([
             [1, 2, 'a'],
             [4, 5, 'b'],
             [None, 7, 'c']
@@ -476,13 +463,13 @@ class TestExplore:
         }
 
 
-class TestReformat:
-    def test_do_mapping(self):
-        m = Mapping(['a', 'b', 'c'], rules=dict(
-            a=MappingRule('x'),
-            b='y',
-            c=MappingRule('z', 3)
-        ))
-        assert ge.Reformat(m).do_mapping(od(x=1, y=2, z=None)) == od(
-            a=1, b=2, c=3
-        )
+# class TestReformat:
+#     def test_do_mapping(self):
+#         m = Mapping(['a', 'b', 'c'], rules=dict(
+#             a=MappingRule('x'),
+#             b='y',
+#             c=MappingRule('z', 3)
+#         ))
+#         assert ge.Reformat(m).do_mapping(od(x=1, y=2, z=None)) == od(
+#             a=1, b=2, c=3
+#         )

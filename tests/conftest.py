@@ -153,7 +153,7 @@ def needs_extrapolation():
 
 
 @pytest.fixture
-def needs_translation():
+def needs_rules():
     return (
         ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
          'attr4', 'attr5'],

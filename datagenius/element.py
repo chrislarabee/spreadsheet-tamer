@@ -1,6 +1,8 @@
 import collections as col
+import inspect
 import os
 from abc import ABC
+from typing import Callable
 
 from datagenius.io import text, odbc
 import datagenius.util as u
@@ -590,62 +592,206 @@ class Dataset(Element, col.abc.Sequence):
         return dataset_md, dataset_md_schema, column_md, column_md_schema
 
 
-class TranslateRule(Element, col.abc.Mapping):
+class Rule:
     """
-    Encodes a translation rule for a dictionary in the vein of:
-    If x value is found at from_ in a dictionary, change it according
-    to the mapping rules in dict and put it in from_ or to (if passed).
+    Highly flexible callable object that can store and execute
+    functions designed to alter data at one or more keys in a passed
+    OrderedDict.
     """
-    def __init__(self, from_: str, rules: dict, to: str = None):
+    def __init__(self,
+                 from_: (tuple, str),
+                 rule_func: (str, Callable),
+                 rule_iter: (dict, list, tuple) = None,
+                 to: (tuple, str) = None):
         """
 
         Args:
-            from_: A string, a key in the dict-like object to
-                translate.
-            rules: A dict, can be in the format of
-                {object_to_replace: replacement_object} or
-                {(objects, to, replace): replacement_object} or a mix
-                of both.
-            to: A string, the destination key you want to enter the
-                translation result into in the target dict-like object.
-                Leave as None if you want to overwrite the value at
-                from_.
+            from_: A string or tuple of keys to pull values from when
+                passed an OrderedDict.
+            rule_func: The function to be applied to the values pulled
+                using from_, or a string corresponding to a Rule method
+                found in Rule.methods()
+            rule_iter: An optional list, dictionary, or tuple that can
+                help Rule execute rule_func. Note that this is NOT
+                optional for certain built-in Rule methods.
+            to: A string or tuple of keys to put values into once they
+                have had rule_func applied to them. If to is not
+                passed, altered values will be put directly back into
+                their from_ keys. Also, if you want to broadcast a
+                value from one from_ to multiple tos, you can do that,
+                though you can't do the inverse.
         """
-        t_rules = dict()
-        for k, v in rules.items():
-            if k is None:
-                k = (None, )
-            elif not isinstance(k, (tuple, list)):
-                k = tuple([k])
-            t_rules[k] = v
-        super(TranslateRule, self).__init__(
-            {'from': from_, 'to': to, 'rules': t_rules}
-        )
-        self.from_ = from_
-        self.to = to
-        self.rules = t_rules
+        # Collect from:
+        if isinstance(from_, str):
+            from_ = tuple([from_])
+        self.from_: tuple = from_
+        self.from_ct: int = len(self.from_)
+        # Collect rule:
+        self._translation: (dict, list, tuple) = self._prep_translation(rule_iter)
+        if isinstance(rule_func, str) and rule_func in self.methods().keys():
+            self.rule = self.methods()[rule_func]
+        # This lets you pass a dict/list/tuple as a 'rule_func' without
+        # needing to put the rule_iter keyword in:
+        elif isinstance(rule_func, (dict, list, tuple)):
+            rule_iter = rule_func
+            rule_func = None
+            if rule_func is None:
+                self.rule = self._translate
+            self._translation = self._prep_translation(rule_iter)
+        elif isinstance(rule_func, Callable):
+            self.rule = rule_func
+            self._translation = rule_iter
+        else:
+            raise ValueError(
+                f'rule must be a callable object or name of a function'
+                f'in datagenius.util.')
+        # Collect to:
+        if isinstance(to, str):
+            to = tuple([to])
+        self.to: tuple = to
+        self.to_ct: int = len(self.to) if self.to is not None else 0
+        if self.from_ct > self.to_ct > 1:
+            raise ValueError(
+                f'If passing multiple from_ values, you must pass the '
+                f'same number of to values. from={from_}, to={to}')
 
-    def __call__(self, data: (dict, col.OrderedDict)) -> (dict, col.OrderedDict):
+    @staticmethod
+    def cast(value, idx: int, rule_iter: (list, tuple)):
         """
-        Applies the rules to the value found in data[self._from] and
-        places the result in data[self.to] or back into
-        data[self._from] if self.to is None.
+        Attempts to convert value to the python type found at
+        rule_iter[idx]. It is built off of isnumericplus so that it can
+        even convert floats stored as strings into floats.
 
         Args:
-            data: A dictionary or OrderedDict containing self.from_.
+            value: Any object.
+            idx: An integer, the index of the from_ key that value was
+                pulled with.
+            rule_iter: A list or tuple of python types.
 
-        Returns: The translated dictionary.
+        Returns: value, cast as the appropriate python type if
+            possible.
 
         """
-        f = data[self.from_]
-        for k, v in self.rules.items():
-            if f in k:
-                t = self.to if self.to is not None else self.from_
-                data[t] = v
+        if value is not None:
+            type_ = rule_iter[idx]
+            _, c = u.isnumericplus(value, '-convert')
+            try:
+                value = type_(c)
+            except ValueError:
+                pass
+        return value
+
+    @staticmethod
+    def camelcase(value, key, rule_iter: (list, tuple)):
+        """
+        Applies nicely formatted capitalization to a passed value if
+        it's a string.
+
+        Args:
+            value: Any object.
+            key: The key that value came from in its parent
+                OrderedDict.
+            rule_iter: A list or tuple of keys that the Rule should
+                apply camelcase to.
+
+        Returns: The value, amended for the first letter of each word
+            to be capitalized if it's a string.
+
+        """
+        if value is not None and key in rule_iter:
+            if isinstance(value, str):
+                x = ' '.join([i.capitalize() for i in value.split(' ')])
+                value = x
+        return value
+
+    @classmethod
+    def methods(cls) -> dict:
+        """
+        Basically just a dictionary of methods that are valid to pass
+        Rule as strings during instantiation. It's a class method so
+        that it can be used as a reference by the end-user and also
+        can be used when instantiating new Rules.
+
+        Returns: A dictionary of method names as strings as the
+            corresponding method object.
+
+        """
+        method_map = {
+            'cast': cls.cast,
+            'camelcase': cls.camelcase,
+        }
+        return method_map
+
+    @staticmethod
+    def _prep_translation(rule_iter: (list, tuple, dict) = None) \
+            -> (list, tuple, dict):
+        """
+        Ensures that translation dictionaries are set up properly with
+        tuples as keys. Passes lists and tuples on untouched.
+
+        Args:
+            rule_iter: A list, tuple, or dictionary.
+
+        Returns: The list tuple, or dictionary (with the dictionary
+            adjusted to be ready for use in Rule._translate."
+
+        """
+        if isinstance(rule_iter, dict):
+            t_rule = dict()
+            for k, v in rule_iter.items():
+                if k is None:
+                    k = (None, )
+                elif not isinstance(k, tuple):
+                    k = tuple([k])
+                t_rule[k] = v
+        else:
+            t_rule = rule_iter
+        return t_rule
+
+    def _translate(self, value):
+        """
+        A built-in Rule for mapping values found in from_ to new values
+        based on a translation mapping dictionary that has tuples as
+        keys. This is Rule's default function for when it is not passed
+        a callable function or a string matching one of its alternate
+        built-in Rule functions.
+
+        Args:
+            value: Any object.
+
+        Returns: The value, or its replacement if found in the
+            translation mapping.
+
+        """
+        for k, v in self._translation.items():
+            if value in k:
+                return v
+        return value
+
+    def __call__(self, data: col.OrderedDict) -> col.OrderedDict:
+        """
+        Executes the Rule object's func on the passed OrderedDict.
+
+        Args:
+            data: An OrderedDict.
+
+        Returns: The OrderedDict modified by the contents of the Rule.
+
+        """
+        for i, f in enumerate(self.from_):
+            args = inspect.getfullargspec(self.rule).args
+            t = self.from_ if not self._translation else self._translation
+            kwargs = dict(idx=i, key=f, rule_iter=t)
+            r_kwargs = {k: v for k, v in kwargs.items() if k in args}
+            v = self.rule(data[f], **r_kwargs)
+            if self.to_ct > 1 and self.from_ct == 1:
+                for t in self.to:
+                    data[t] = v
+            elif self.to is not None:
+                data[self.to[i]] = v
+            else:
+                data[f] = v
         return data
-
-    def __iter__(self):
-        return self._data.__iter__()
 
 
 class MappingRule(Element, col.abc.Sequence):

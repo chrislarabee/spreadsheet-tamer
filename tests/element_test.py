@@ -251,24 +251,57 @@ class TestDataset:
         )
 
 
-class TestTranslateRule:
+class TestRule:
+    def test_init(self):
+        r = e.Rule('test', lambda x: x + 1)
+        assert r.from_ == ('test',)
+        assert r.to is None
+
+        with pytest.raises(
+                ValueError,
+                match='rule must be a callable object'):
+            r = e.Rule('test', 'bad_func')
+
+        with pytest.raises(
+                ValueError,
+                match='If passing multiple from_ values'):
+            r = e.Rule(('a', 'test', '!'), lambda x: x + 1, to=('odd', 'to'))
+
     def test_call(self):
-        t = e.TranslateRule('test', rules=dict(x='y', v='w'))
-        assert t(dict(test='x')) == dict(test='y')
-        assert t(dict(test='v')) == dict(test='w')
+        r = e.Rule(('a', 'b'), lambda x: x + 1, to=('c', 'd'))
+        assert r(od(a=1, b=3)) == od(a=1, b=3, c=2, d=4)
 
-        t = e.TranslateRule('test', dict(x='y', v='w'), 'output')
-        assert t(dict(test='x')) == dict(test='x', output='y')
+        r = e.Rule('a', lambda x: x * 10, to=('b', 'c'))
+        assert r(od(a=1)) == od(a=1, b=10, c=10)
 
-        t = e.TranslateRule('test', {'bird': 'word'})
-        assert t(dict(test='bird')) == dict(test='word')
+    def test_translation_and_mapping_functionality(self):
+        r = e.Rule('test', dict(a='b', c='d'))
+        assert r._translation == {('a',): 'b', ('c',): 'd'}
+        assert r(od(test='a')) == od(test='b')
 
-        t = e.TranslateRule('test', {None: 'Unknown'})
-        assert t(dict(test=None)) == dict(test='Unknown')
+        r = e.Rule('test', dict(x='y', v='w'), to='output')
+        assert r(od(test='x')) == od(test='x', output='y')
 
-        t = e.TranslateRule('test', {('x', 'y'): 'z'}, 'output')
-        assert t(dict(test='x')) == dict(test='x', output='z')
-        assert t(dict(test='y')) == dict(test='y', output='z')
+        r = e.Rule('test', {'bird': 'word'})
+        assert r(od(test='bird')) == od(test='word')
+
+        r = e.Rule('test', {None: 1234})
+        assert r(od(test=None)) == od(test=1234)
+        assert r(od(test=90)) == od(test=90)
+
+        r = e.Rule('test', {('x', 'y'): 'z'}, to='output')
+        assert r(od(test='x')) == od(test='x', output='z')
+        assert r(od(test='y')) == od(test='y', output='z')
+
+    def test_cast(self):
+        r = e.Rule(('a', 'b', 'c'), 'cast', (float, int, str))
+        assert r(od(a='1', b='2.0', c='test')) == od(a=1.0, b=2, c='test')
+        assert r(od(a='1..23', b='1.23', c=None)) == od(a=1.23, b=1, c=None)
+
+    def test_camelcase(self):
+        d = od(a='ALL CAPS', b='no caps', c='A mix OF Both')
+        r = e.Rule(('a', 'b', 'c'), 'camelcase')
+        assert r(d) == od(a='All Caps', b='No Caps', c='A Mix Of Both')
 
 
 class TestMappingRule:
