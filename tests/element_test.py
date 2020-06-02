@@ -249,63 +249,61 @@ class TestDataset:
 
 class TestRule:
     def test_init(self):
-        r = e.Rule('test', lambda x: x + 1)
+        r = e.Rule(lambda x: x + 1, 'test')
         assert r.from_ == ('test',)
         assert r.to is None
-
-        with pytest.raises(
-                ValueError,
-                match='rule must be a callable object'):
-            r = e.Rule('test', 'bad_func')
+        assert r.translation is None
 
         with pytest.raises(
                 ValueError,
                 match='If passing multiple from_ values'):
-            r = e.Rule(('a', 'test', '!'), lambda x: x + 1, to=('odd', 'to'))
+            r = e.Rule(lambda x: x + 1, ('a', 'test', '!'), to=('odd', 'to'))
 
     def test_call(self):
-        r = e.Rule(('a', 'b'), lambda x: x + 1, to=('c', 'd'))
+        r = e.Rule(lambda x: x + 1, ('a', 'b'), to=('c', 'd'))
         assert r(od(a=1, b=3)) == od(a=1, b=3, c=2, d=4)
 
-        r = e.Rule('a', lambda x: x * 10, to=('b', 'c'))
+        r = e.Rule(lambda x: x * 10, 'a', to=('b', 'c'))
         assert r(od(a=1)) == od(a=1, b=10, c=10)
 
     def test_translation_and_mapping_functionality(self):
-        r = e.Rule('test', dict(a='b', c='d'))
-        assert r._translation == {('a',): 'b', ('c',): 'd'}
+        r = e.Rule(dict(a='b', c='d'), 'test')
+        assert r.translation == {('a',): 'b', ('c',): 'd'}
+        assert r.from_ == ('test',)
+        assert r.to is None
         assert r(od(test='a')) == od(test='b')
 
-        r = e.Rule('test', dict(x='y', v='w'), to='output')
+        r = e.Rule(dict(x='y', v='w'), 'test', to='output')
         assert r(od(test='x')) == od(test='x', output='y')
 
-        r = e.Rule('test', {'bird': 'word'})
+        r = e.Rule({'bird': 'word'}, 'test')
         assert r(od(test='bird')) == od(test='word')
 
-        r = e.Rule('test', {None: 1234})
+        r = e.Rule({None: 1234}, 'test')
         assert r(od(test=None)) == od(test=1234)
         assert r(od(test=90)) == od(test=90)
 
-        r = e.Rule('test', {('x', 'y'): 'z'}, to='output')
+        r = e.Rule({('x', 'y'): 'z'}, 'test', to='output')
         assert r(od(test='x')) == od(test='x', output='z')
         assert r(od(test='y')) == od(test='y', output='z')
 
     def test_cast(self):
-        r = e.Rule(('a', 'b', 'c'), 'cast', (float, int, str))
+        r = e.Rule('cast', [float, int, str], ('a', 'b', 'c'))
         assert r(od(a='1', b='2.0', c='test')) == od(a=1.0, b=2, c='test')
         assert r(od(a='1..23', b='1.23', c=None)) == od(a=1.23, b=1, c=None)
 
     def test_camelcase(self):
         d = od(a='ALL CAPS', b='no caps', c='A mix OF Both')
-        r = e.Rule(('a', 'b', 'c'), 'camelcase')
+        r = e.Rule('camelcase', ('a', 'b', 'c'))
         assert r(d) == od(a='All Caps', b='No Caps', c='A Mix Of Both')
 
     def test_doregex(self):
-        r = e.Rule('a', 'doregex', {r'\d+': 'number'}, to='b')
+        r = e.Rule('doregex', {r'\d+': 'number'}, 'a', to='b')
         assert r(od(a='1234')) == od(a='1234', b='number')
         assert r(od(a='ytterbium')) == od(a='ytterbium', b='ytterbium')
         assert r(od(a=None)) == od(a=None, b=None)
 
-        r = e.Rule('a', 'doregex', {r'.': 'notnull'}, to='b')
+        r = e.Rule('doregex', {r'.': 'notnull'}, 'a', to='b')
         assert r(od(a=1)) == od(a=1, b='notnull')
         assert r(od(a='foobar')) == od(a='foobar', b='notnull')
         assert r(od(a=None)) == od(a=None, b=None)
@@ -326,17 +324,19 @@ class TestMapping:
             m.check_template(('alpha', 'omega'))
 
     def test_basics(self):
-        t = ['w', 'x', 'y', 'z']
+        t = ['w', 'x', 'y', 'z', 'w 2']
         expected = {
             'a': {'from': 'a', 'to': ('w',), 'default': None},
             'b': {'from': 'b', 'to': ('x',), 'default': None},
             'c': {'from': 'c', 'to': ('z',), 'default': 1},
-            'd': {'from': 'd', 'to': ('y',), 'default': None}
+            'd': {'from': 'd', 'to': ('y',), 'default': None},
+            'a 1': {'from': 'a 1', 'to': ('w 2',), 'default': None}
         }
 
         m = e.Mapping(
             t,
-            e.Rule('c', {None: 1}, to='z'),
+            e.Rule({None: 1}, 'c', to='z'),
+            ('a 1', 'w 2'),
             a='w',
             b='x',
             d='y'
@@ -347,6 +347,7 @@ class TestMapping:
                 ValueError, match='Passed positional args must all be'):
             m = e.Mapping(t, 'not a rule')
 
+        t.remove('w 2')
         expected = od(w=7, x=8, y=9, z=1)
         assert m(od(a=7, b=8, c=None, d=9)) == expected
 

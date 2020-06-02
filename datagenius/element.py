@@ -596,18 +596,18 @@ class Rule:
     OrderedDict.
     """
     def __init__(self,
-                 from_: (tuple, str),
                  rule_func: (str, Callable),
                  rule_iter: (dict, list, tuple) = None,
+                 from_: (tuple, str) = None,
                  to: (tuple, str) = None):
         """
 
         Args:
-            from_: A string or tuple of keys to pull values from when
-                passed an OrderedDict.
             rule_func: The function to be applied to the values pulled
                 using from_, or a string corresponding to a Rule method
                 found in Rule.methods()
+            from_: A string or tuple of keys to pull values from when
+                passed an OrderedDict.
             rule_iter: An optional list, dictionary, or tuple that can
                 help Rule execute rule_func. Note that this is NOT
                 optional for certain built-in Rule methods.
@@ -618,30 +618,25 @@ class Rule:
                 value from one from_ to multiple tos, you can do that,
                 though you can't do the inverse.
         """
-        # Collect from:
-        if isinstance(from_, str):
+        # Collect the rule function:
+        if isinstance(rule_func, str) and rule_func in self.methods().keys():
+            rule_func = self.methods()[rule_func]
+        elif isinstance(rule_func, (dict, list, tuple, str)):
+            from_ = rule_iter
+            rule_iter = rule_func
+            rule_func = None
+        self.rule: Callable = self._translate if rule_func is None else rule_func
+        # Collect the rule iterable:
+        if isinstance(rule_iter, (str, tuple)):
+            from_ = rule_iter
+            rule_iter = None
+        self.translation: (dict, list) = self._prep_translation(
+            rule_iter)
+        # Collect from_:
+        if isinstance(from_, str) or from_ is None:
             from_ = tuple([from_])
         self.from_: tuple = from_
         self.from_ct: int = len(self.from_)
-        # Collect rule:
-        self._translation: (dict, list, tuple) = self._prep_translation(rule_iter)
-        if isinstance(rule_func, str) and rule_func in self.methods().keys():
-            self.rule = self.methods()[rule_func]
-        # This lets you pass a dict/list/tuple as a 'rule_func' without
-        # needing to put the rule_iter keyword in:
-        elif isinstance(rule_func, (dict, list, tuple)):
-            rule_iter = rule_func
-            rule_func = None
-            if rule_func is None:
-                self.rule = self._translate
-            self._translation = self._prep_translation(rule_iter)
-        elif isinstance(rule_func, Callable):
-            self.rule = rule_func
-            self._translation = rule_iter
-        else:
-            raise ValueError(
-                f'rule must be a callable object or name of a function'
-                f'in datagenius.util.')
         # Collect to:
         if isinstance(to, str):
             to = tuple([to])
@@ -653,7 +648,7 @@ class Rule:
                 f'same number of to values. from={from_}, to={to}')
 
     @staticmethod
-    def cast(value, idx: int, rule_iter: (list, tuple)):
+    def cast(value, idx: int, rule_iter: list):
         """
         Attempts to convert value to the python type found at
         rule_iter[idx]. It is built off of isnumericplus so that it can
@@ -679,7 +674,7 @@ class Rule:
         return value
 
     @staticmethod
-    def camelcase(value, key, rule_iter: (list, tuple)):
+    def camelcase(value, key, rule_iter: list):
         """
         Applies nicely formatted capitalization to a passed value if
         it's a string.
@@ -744,17 +739,16 @@ class Rule:
         return method_map
 
     @staticmethod
-    def _prep_translation(rule_iter: (list, tuple, dict) = None) \
-            -> (list, tuple, dict):
+    def _prep_translation(rule_iter: (list, dict) = None) -> (list, dict):
         """
         Ensures that translation dictionaries are set up properly with
-        tuples as keys. Passes lists and tuples on untouched.
+        tuples as keys. Passes lists on untouched.
 
         Args:
-            rule_iter: A list, tuple, or dictionary.
+            rule_iter: A list, or dictionary.
 
-        Returns: The list tuple, or dictionary (with the dictionary
-            adjusted to be ready for use in Rule._translate."
+        Returns: The list or dictionary (with the dictionary
+            adjusted to be ready for use in Rule._translate.)
 
         """
         if isinstance(rule_iter, dict):
@@ -804,7 +798,7 @@ class Rule:
         """
         for i, f in enumerate(self.from_):
             args = inspect.getfullargspec(self.rule).args
-            t = self.from_ if not self._translation else self._translation
+            t = self.from_ if not self.translation else self.translation
             kwargs = dict(idx=i, key=f, rule_iter=t)
             r_kwargs = {k: v for k, v in kwargs.items() if k in args}
             v = self.rule(data.get(f), **r_kwargs)
@@ -840,17 +834,18 @@ class Mapping(Element, col.abc.Mapping):
         self.template = template
         # Collect complex mappings from rules:
         for value in rules:
-            if not isinstance(value, Rule):
+            if isinstance(value, tuple) and self.check_template(value[1]):
+                self._data[value[0]] = Rule({None: None}, value[0], to=value[1])
+            elif isinstance(value, Rule) and self.check_template(value.to):
+                self._data[value.from_[0]] = value
+            else:
                 raise ValueError(
-                    f'Passed positional args must all be Rule objects.'
-                    f'Invalid value = {value}'
-                )
-            elif self.check_template(value.to):
-                self._data[value.from_] = value
+                    f'Passed positional args must all be Rule or tuple '
+                    f'objects. Invalid value = {value}')
         # Collect simple mappings from maps:
         for k, v in maps.items():
             if self.check_template(v):
-                self._data[k] = Rule(k, {None: None}, to=v)
+                self._data[k] = Rule({None: None}, k, to=v)
 
     def check_template(self, to: (str, tuple)) -> bool:
         """
@@ -887,8 +882,8 @@ class Mapping(Element, col.abc.Mapping):
         """
         result = dict()
         for k, v in self._data.items():
-            result[k[0]] = {'from': v.from_[0], 'to': v.to,
-                            'default': v._translation[(None,)]}
+            result[k] = {'from': v.from_[0], 'to': v.to,
+                            'default': v.translation[(None,)]}
         return result
 
     def __call__(self, row: col.OrderedDict) -> col.OrderedDict:

@@ -339,8 +339,8 @@ class TestClean:
     def test_apply_rules(self):
         expected = od(a=1, b=3, x=100)
         rules = (
-            e.Rule('a', {(1, ): 100}, to='x'),
-            e.Rule('b', {(2, ): 3})
+            e.Rule({(1, ): 100}, 'a', to='x'),
+            e.Rule({(2, ): 3}, 'b')
         )
         assert ge.Clean.apply_rules(od(a=1, b=2), rules) == expected
 
@@ -391,8 +391,8 @@ class TestClean:
         assert ge.Clean().go(
             d,
             data_rules=(
-                e.Rule('attr1', {'cu': 'copper'}),
-                e.Rule('attr2', {'sm': 'small'})
+                e.Rule({'cu': 'copper'}, 'attr1'),
+                e.Rule({'sm': 'small'}, 'attr2')
             )
         ) == p._data
 
@@ -467,8 +467,8 @@ class TestReformat:
     def test_go(self, products, formatted_products):
         m = e.Mapping(
             formatted_products[0],
-            e.Rule('attr1', {None: 'plastic'}, to='Material'),
-            e.Rule('upc', {None: None}, to=('Prod UPC', 'Barcode')),
+            e.Rule({None: 'plastic'}, 'attr1', to='Material'),
+            e.Rule({None: None}, 'upc', to=('Prod UPC', 'Barcode')),
             id='ProdId',
             name='Name',
             price='Price',
