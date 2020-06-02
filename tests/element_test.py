@@ -304,48 +304,37 @@ class TestRule:
         assert r(d) == od(a='All Caps', b='No Caps', c='A Mix Of Both')
 
 
-class TestMappingRule:
-    def test_basics(self):
-        mr = e.MappingRule('test_col', 1234)
-
-        assert mr(od(test_col=None)) == 1234
-        assert mr(od(test_col=90)) == 90
-
-
 class TestMapping:
-    def test_init(self):
-        t = ['a lot', 'of', 'columns', 'for sure']
+    def test_basics(self):
+        t = ['w', 'x', 'y', 'z']
         expected = {
-            'a lot': {'from': 'some more', 'default': None},
-            'columns': {'from': 'cols', 'default': None},
-            'for sure': {'from': 'here', 'default': 1},
-            'of': {'from': None, 'default': None}
+            'a': {'from': 'a', 'to': 'w', 'default': None},
+            'b': {'from': 'b', 'to': 'x', 'default': None},
+            'c': {'from': 'c', 'to': 'z', 'default': 1},
+            'd': {'from': 'd', 'to': 'y', 'default': None}
         }
 
         m = e.Mapping(
             t,
-            {'a lot': 'some more',
-             'columns': e.MappingRule('cols'),
-             'for sure': e.MappingRule('here', 1)
-             }
+            e.Rule('c', {None: 1}, to='z'),
+            a='w',
+            b='x',
+            d='y'
         )
-
-        assert m == expected
-
-        with pytest.raises(
-                ValueError,
-                match='must be strings or MappingRule'):
-            e.Mapping(
-                t,
-                {'a lot': 1}
-            )
+        assert m.plan() == expected
 
         with pytest.raises(
-                ValueError,
-                match='must be in the passed template'):
-            e.Mapping(
-                t,
-                {'a bad key': 'column'}
-            )
+                ValueError, match='All passed rule/map to values must'):
+            m = e.Mapping(t, a='omega')
+            m = e.Mapping(t, e.Rule('a', {None: None}, 'omega'))
 
+        with pytest.raises(
+                ValueError, match='Passed positional args must all be'):
+            m = e.Mapping(t, 'not a rule')
+
+        expected = od(w=7, x=8, y=9, z=1)
+        assert m(od(a=7, b=8, c=None, d=9)) == expected
+
+        expected = od(w=1, x=2, y=None, z=1)
+        assert m(od(a=1, b=2)) == expected
 

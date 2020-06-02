@@ -783,7 +783,7 @@ class Rule:
             t = self.from_ if not self._translation else self._translation
             kwargs = dict(idx=i, key=f, rule_iter=t)
             r_kwargs = {k: v for k, v in kwargs.items() if k in args}
-            v = self.rule(data[f], **r_kwargs)
+            v = self.rule(data.get(f), **r_kwargs)
             if self.to_ct > 1 and self.from_ct == 1:
                 for t in self.to:
                     data[t] = v
@@ -794,88 +794,86 @@ class Rule:
         return data
 
 
-class MappingRule(Element, col.abc.Sequence):
-    """
-    A fairly simple object for encoding what string value an object
-    corresponds to and what default value should be used if a given row
-    in the dataset governed by the Rule has no value.
-    """
-
-    def __init__(self, from_: str = None, default=None):
-        """
-
-        Args:
-            from_: A string, representing the column/field/key this
-                MappingRule corresponds to in a Dataset.
-            default: The value to use if a row in a Dataset returns
-                no value from application of this MappingRule.
-        """
-        self.from_ = from_
-        self.default = default
-        super(MappingRule, self).__init__(
-            {'from': self.from_, 'default': self.default})
-
-    def __call__(self, data: (dict, col.OrderedDict)):
-        """
-        Applies the MappingRule to a passed dict-like.
-
-        Args:
-            data: A dict-like to pull the value at self.from_ from
-                and potentially replace it with self.default.
-
-        Returns: The value (replaced with self.default if value is
-            None).
-
-        """
-        v = data[self.from_]
-        return self.default if v is None else v
-
-
 class Mapping(Element, col.abc.Mapping):
     """
     Provides a quick way for creating many MappingRules from
     a target format template and from explicitly detailed rules.
     """
-    def __init__(self, template: (list, tuple),
-                 rules: (dict, col.OrderedDict)):
+    def __init__(self, template: (list, tuple), *rules, **maps):
         """
         Args:
-            template: A list or tuple of strings, the header
-                of the target data_format you want a Dataset to be
-                converted into.
-            rules: A dict or OrderedDict with keys from template
-                and values being strings or MappingRules indicating
-                which columns in a Dataset should map to which
-                columns in template.
+            template: A list or tuple of strings, the header of the
+                target data format you want a Dataset to be converted
+                into.
+            rules: An arbitrary number of strings or Rule objects. Used
+                for mapping two columns when you want a default value
+                if the source data's value is None or need other
+                special functionality.
+            maps: An arbitrary number of simple mappings in the vein of
+                columnA=ColumnB.
         """
         super(Mapping, self).__init__(dict())
         self.template = template
-        """
-        Don't be tempted to make rules into **rules! Too many datasets 
-        have column names with spaces in them, and your target 
-        data_format might require that!
-        """
-        for k, v in rules.items():
-            if k not in self.template:
-                raise ValueError(
-                    f'All passed rule keys must be in the passed '
-                    f'template. Bad key: {k}')
-            elif not isinstance(v, MappingRule):
-                if isinstance(v, str):
-                    r = MappingRule(v)
-                else:
-                    raise ValueError(
-                        f'Passed values must be strings or MappingRule '
-                        f'objects. Bad kv pair: {k, v}')
-            else:
-                r = v
-            self._data[k] = r
+        template_msg = (
+            'All passed rule/map to values must be in the passed '
+            'template. Invalid value: {0}')
 
-        # Ensure all template keys are used even if they are not
-        # mapped:
-        for t in self.template:
-            if t not in self._data.keys():
-                self._data[t] = MappingRule()
+        for value in rules:
+            if not isinstance(value, Rule):
+                raise ValueError(
+                    f'Passed positional args must all be Rule objects.'
+                    f'Invalid value = {value}'
+                )
+            elif value.to[0] not in self.template:
+                raise ValueError(template_msg.format(value.to[0]))
+            else:
+                self._data[value.from_] = value
+
+        for k, v in maps.items():
+            if v not in self.template:
+                raise ValueError(template_msg.format(v))
+            else:
+                self._data[k] = Rule(k, {None: None}, to=v)
+
+    def plan(self) -> dict:
+        """
+        Collects a user-friendly dictionary showing how the Mapping
+        will work on passed OrderedDicts when called. Mostly this is
+        to ease testing.
+
+        Returns: A dictionary detailing the contents of the rules in
+            self._data.
+
+        """
+        result = dict()
+        for k, v in self._data.items():
+            result[k[0]] = {'from': v.from_[0], 'to': v.to[0],
+                            'default': v._translation[(None,)]}
+        return result
+
+    def __call__(self, row: col.OrderedDict) -> col.OrderedDict:
+        """
+        Calls the Mapping on a passed OrderedDict and creates a new
+        OrderedDict containing all the fields in self.template, in the
+        same order, as well as any values from row that map to those
+        fields.
+
+        Args:
+            row: An OrderedDict.
+
+        Returns: An OrderedDict that matches the format in the
+            Mapping's template.
+
+        """
+        row = row.copy()
+        for k, v in self._data.items():
+            v(row)
+        result = col.OrderedDict()
+        for f in self.template:
+            result[f] = row.get(f)
+        return result
 
     def __iter__(self):
         return self._data.__iter__()
+
+
