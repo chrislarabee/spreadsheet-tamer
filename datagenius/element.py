@@ -1,6 +1,7 @@
 import collections as col
 import inspect
 import os
+import re
 from abc import ABC
 from typing import Callable
 
@@ -700,6 +701,29 @@ class Rule:
                 value = x
         return value
 
+    @staticmethod
+    def doregex(value, rule_iter: dict):
+        """
+        Treats each value in the keys of the passed rule_iter as a
+        regex pattern and searches for it in value. Returns the value
+        paired with the key matched if a match is found.
+
+        Args:
+            value: Any object.
+            rule_iter: A dictionary containing tuples as keys and a
+                value to be used if value is found in the key tuple.
+
+        Returns: The value, or its replacement if found in the
+            rule_iter mapping.
+
+        """
+        if value is not None:
+            for k, v in rule_iter.items():
+                for j in k:
+                    if re.search(re.compile(j), str(value)):
+                        return v
+        return value
+
     @classmethod
     def methods(cls) -> dict:
         """
@@ -715,6 +739,7 @@ class Rule:
         method_map = {
             'cast': cls.cast,
             'camelcase': cls.camelcase,
+            'doregex': cls.doregex
         }
         return method_map
 
@@ -744,22 +769,25 @@ class Rule:
             t_rule = rule_iter
         return t_rule
 
-    def _translate(self, value):
+    @staticmethod
+    def _translate(value, rule_iter: dict):
         """
         A built-in Rule for mapping values found in from_ to new values
-        based on a translation mapping dictionary that has tuples as
-        keys. This is Rule's default function for when it is not passed
-        a callable function or a string matching one of its alternate
-        built-in Rule functions.
+        based on a mapping dictionary that has tuples as keys. This is
+        Rule's default function for when it is not passed a callable
+        function or a string matching one of its alternate built-in
+        Rule methods.
 
         Args:
             value: Any object.
+            rule_iter: A dictionary containing tuples as keys and a
+                value to be used if value is found in the key tuple.
 
         Returns: The value, or its replacement if found in the
-            translation mapping.
+            rule_iter mapping.
 
         """
-        for k, v in self._translation.items():
+        for k, v in rule_iter.items():
             if value in k:
                 return v
         return value

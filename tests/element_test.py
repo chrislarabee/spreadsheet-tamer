@@ -299,6 +299,17 @@ class TestRule:
         r = e.Rule(('a', 'b', 'c'), 'camelcase')
         assert r(d) == od(a='All Caps', b='No Caps', c='A Mix Of Both')
 
+    def test_doregex(self):
+        r = e.Rule('a', 'doregex', {r'\d+': 'number'}, to='b')
+        assert r(od(a='1234')) == od(a='1234', b='number')
+        assert r(od(a='ytterbium')) == od(a='ytterbium', b='ytterbium')
+        assert r(od(a=None)) == od(a=None, b=None)
+
+        r = e.Rule('a', 'doregex', {r'.': 'notnull'}, to='b')
+        assert r(od(a=1)) == od(a=1, b='notnull')
+        assert r(od(a='foobar')) == od(a='foobar', b='notnull')
+        assert r(od(a=None)) == od(a=None, b=None)
+
 
 class TestMapping:
     def test_check_template(self):
