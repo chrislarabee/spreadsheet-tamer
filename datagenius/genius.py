@@ -735,7 +735,7 @@ class Clean(Genius):
         Args:
             row: An OrderedDict containing data expected by the passed
                 rules.
-            rules: A tuple of Rule objects.
+            data_rules: A tuple of Rule objects.
 
         Returns: The row with all Rules applied.
 
