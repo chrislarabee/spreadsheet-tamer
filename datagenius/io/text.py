@@ -98,6 +98,22 @@ def read_sheet(sheet: xlrd.sheet) -> list:
     return result
 
 
+def build_template(file_path: str) -> list:
+    """
+    Builds a list of strings from a spreadsheet file's header row.
+
+    Args:
+        file_path: The file path of the file to read the header row
+            from.
+
+    Returns: A list containing the values of the file's header row.
+
+    """
+    data = read_file(file_path)
+    key = list(data.keys())[0]
+    return data[key][0]
+
+
 def write_csv(file_path: str, data: list, header: list) -> None:
     """
     Simple csv writing function.

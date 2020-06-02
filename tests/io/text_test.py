@@ -28,6 +28,14 @@ def test_read_sheet(simple_data, gaps_totals):
         assert text.read_sheet(wb.sheet_by_index(0)) == gaps_totals()
 
 
+def test_build_template(customers):
+    t = text.build_template('tests/samples/csv/simple.csv')
+    assert t == customers[0]
+
+    t = text.build_template('tests/samples/excel/simple.xlsx')
+    assert t == customers[0]
+
+
 def test_write_csv():
     p = 'tests/samples/text_test.csv'
     d = [
