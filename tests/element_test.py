@@ -189,10 +189,6 @@ class TestDataset:
             [None, None, 1200]
         ]
         d.to_format('dicts')
-        # No meta_data should raise an error:
-        with pytest.raises(ValueError, match='Discrepancy between meta'):
-            d.to_file('tests/samples', 'sales')
-        # Now add meta_data:
         d.meta_data.update('location', probable_type='uncertain')
         d.meta_data.update('region', probable_type='string')
         d.meta_data.update('sales', probable_type='integer')

@@ -496,29 +496,25 @@ class Dataset(Element, col.abc.Sequence):
                 'string': str,
                 'integer': int
             }
-            if len(self.meta_data) != len(self.meta_data.header):
-                raise ValueError(
-                    'Discrepancy between meta_data and header. Pass '
-                    'this Dataset through genius.Explore to generate '
-                    'meta_data or supply prob_type meta_data for each '
-                    'column manually.')
-            else:
-                schema = {
-                    k: type_map[v['probable_type']] for k, v in self.meta_data.items()}
-                o = options.get('db_conn', odbc.ODBConnector())
-                o.setup(p)
-                odbc.write_sqlite(o, f, self._data, schema)
-                # Add meta_data tables for this dataset:
-                dset_md_tbl = f + '_dset_meta_data'
-                col_md_tbl = f + '_col_meta_data'
-                (dset_md, dset_md_schema,
-                 col_md, col_md_schema) = self.meta_data_report()
-                odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
-                odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
-                # Add reject table for this dataset:
-                reject_tbl = f + '_rejects'
-                rejects, reject_schema = self.package_rejects()
-                odbc.write_sqlite(o, reject_tbl, rejects, reject_schema)
+            schema = dict()
+            for k in self.meta_data.header:
+                v = self.meta_data.get(k)
+                t = v['probable_type'] if v is not None else 'uncertain'
+                schema[k] = type_map[t]
+            o = options.get('db_conn', odbc.ODBConnector())
+            o.setup(p)
+            odbc.write_sqlite(o, f, self._data, schema)
+            # Add meta_data tables for this dataset:
+            dset_md_tbl = f + '_dset_meta_data'
+            col_md_tbl = f + '_col_meta_data'
+            (dset_md, dset_md_schema,
+             col_md, col_md_schema) = self.meta_data_report()
+            odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
+            odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
+            # Add reject table for this dataset:
+            reject_tbl = f + '_rejects'
+            rejects, reject_schema = self.package_rejects()
+            odbc.write_sqlite(o, reject_tbl, rejects, reject_schema)
         else:
             raise ValueError(
                 f'Unrecognized "to": {to}'
