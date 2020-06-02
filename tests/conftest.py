@@ -41,6 +41,19 @@ def products():
 
 
 @pytest.fixture
+def formatted_products():
+    return (
+        ['ProdId', 'Name', 'Price', 'Cost', 'Prod UPC', 'Material', 'Size',
+         'Barcode'],
+        [
+            [1, 'Widget', 8.5, 4.0, 1234567890, 'plastic', None, 1234567890],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large', 2345678901],
+            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small', 3456789012]
+        ]
+    )
+
+
+@pytest.fixture
 def simple_data():
     """
     Generates a simple, ideal dataset for tests. The inner function

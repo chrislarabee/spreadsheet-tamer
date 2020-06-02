@@ -463,13 +463,21 @@ class TestExplore:
         }
 
 
-# class TestReformat:
-#     def test_do_mapping(self):
-#         m = Mapping(['a', 'b', 'c'], rules=dict(
-#             a=MappingRule('x'),
-#             b='y',
-#             c=MappingRule('z', 3)
-#         ))
-#         assert ge.Reformat(m).do_mapping(od(x=1, y=2, z=None)) == od(
-#             a=1, b=2, c=3
-#         )
+class TestReformat:
+    def test_go(self, products, formatted_products):
+        m = e.Mapping(
+            formatted_products[0],
+            e.Rule('attr1', {None: 'plastic'}, to='Material'),
+            e.Rule('upc', {None: None}, to=('Prod UPC', 'Barcode')),
+            id='ProdId',
+            name='Name',
+            price='Price',
+            cost='Cost',
+            attr2='Size'
+        )
+
+        d = e.Dataset(products[1], products[0])
+        d2 = e.Dataset(formatted_products[1], formatted_products[0]).to_dicts()
+        assert ge.Reformat(m).go(d)._data == d2._data
+
+

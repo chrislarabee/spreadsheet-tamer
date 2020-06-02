@@ -814,26 +814,42 @@ class Mapping(Element, col.abc.Mapping):
         """
         super(Mapping, self).__init__(dict())
         self.template = template
-        template_msg = (
-            'All passed rule/map to values must be in the passed '
-            'template. Invalid value: {0}')
-
+        # Collect complex mappings from rules:
         for value in rules:
             if not isinstance(value, Rule):
                 raise ValueError(
                     f'Passed positional args must all be Rule objects.'
                     f'Invalid value = {value}'
                 )
-            elif value.to[0] not in self.template:
-                raise ValueError(template_msg.format(value.to[0]))
-            else:
+            elif self.check_template(value.to):
                 self._data[value.from_] = value
-
+        # Collect simple mappings from maps:
         for k, v in maps.items():
-            if v not in self.template:
-                raise ValueError(template_msg.format(v))
-            else:
+            if self.check_template(v):
                 self._data[k] = Rule(k, {None: None}, to=v)
+
+    def check_template(self, to: (str, tuple)) -> bool:
+        """
+        Checks incoming to values against the template to ensure only
+        values in the template are passed in rules in maps.
+
+        Args:
+            to: A string or tuple of to values.
+
+        Returns: A boolean, effectively only returns True since it will
+            raise an error if it would return False.
+
+        """
+        if isinstance(to, tuple):
+            in_template = len(set(to).difference(set(self.template))) == 0
+        else:
+            in_template = to in self.template
+        if not in_template:
+            raise ValueError(
+                f'All passed rule/map "to" values must be in the '
+                f'passed template. Invalid value: {to}')
+        else:
+            return in_template
 
     def plan(self) -> dict:
         """
@@ -847,7 +863,7 @@ class Mapping(Element, col.abc.Mapping):
         """
         result = dict()
         for k, v in self._data.items():
-            result[k[0]] = {'from': v.from_[0], 'to': v.to[0],
+            result[k[0]] = {'from': v.from_[0], 'to': v.to,
                             'default': v._translation[(None,)]}
         return result
 

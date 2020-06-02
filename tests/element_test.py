@@ -305,13 +305,26 @@ class TestRule:
 
 
 class TestMapping:
+    def test_check_template(self):
+        m = e.Mapping(
+            ['w', 'x', 'y', 'z']
+        )
+
+        assert m.check_template('z')
+        assert m.check_template(('y', 'z'))
+
+        with pytest.raises(
+                ValueError, match='All passed rule/map "to" values must'):
+            m.check_template('omega')
+            m.check_template(('alpha', 'omega'))
+
     def test_basics(self):
         t = ['w', 'x', 'y', 'z']
         expected = {
-            'a': {'from': 'a', 'to': 'w', 'default': None},
-            'b': {'from': 'b', 'to': 'x', 'default': None},
-            'c': {'from': 'c', 'to': 'z', 'default': 1},
-            'd': {'from': 'd', 'to': 'y', 'default': None}
+            'a': {'from': 'a', 'to': ('w',), 'default': None},
+            'b': {'from': 'b', 'to': ('x',), 'default': None},
+            'c': {'from': 'c', 'to': ('z',), 'default': 1},
+            'd': {'from': 'd', 'to': ('y',), 'default': None}
         }
 
         m = e.Mapping(
@@ -322,11 +335,6 @@ class TestMapping:
             d='y'
         )
         assert m.plan() == expected
-
-        with pytest.raises(
-                ValueError, match='All passed rule/map to values must'):
-            m = e.Mapping(t, a='omega')
-            m = e.Mapping(t, e.Rule('a', {None: None}, 'omega'))
 
         with pytest.raises(
                 ValueError, match='Passed positional args must all be'):

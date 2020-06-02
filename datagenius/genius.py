@@ -920,13 +920,37 @@ class Explore(Genius):
 
 
 class Reformat(Genius):
+    """
+    A Genius designed to take data in a source format with a distinct
+    header and mutate into a target format with a different header.
+    """
     def __init__(self, mapping: e.Mapping, *custom_steps):
-        super(Reformat, self).__init__(*self.order_parsers(custom_steps))
+        """
+
+        Args:
+            mapping: A Mapping object containing the rules for doing
+                the reformat.
+            *custom_steps: Any number of parser functions or
+                ParserSubsets.
+        """
+        reform_steps = [
+            self.do_mapping,
+            *custom_steps
+        ]
+        super(Reformat, self).__init__(*self.order_parsers(reform_steps))
         self.mapping = mapping
 
     @parser
     def do_mapping(self, row: col.OrderedDict) -> col.OrderedDict:
-        result = col.OrderedDict()
-        for k, rule in self.mapping.items():
-            result[k] = rule(row)
-        return result
+        """
+        Very simple parser to execute the mapping object on each row.
+
+        # TODO: Think about whether this can be rolled into Mapping?
+
+        Args:
+            row: An OrderedDict.
+
+        Returns: An OrderedDict.
+
+        """
+        return self.mapping(row)
