@@ -669,6 +669,8 @@ class Clean(Genius):
         if options.get('extrapolate'):
             options['cols'] = options.get('extrapolate')
             self.steps.append(self.extrapolate)
+        if options.get('reject_conditions'):
+            self.steps.append(self.cleanse_rejects)
         if options.get('data_rules'):
             self.steps.append(self.apply_rules)
         self.steps = self.order_parsers(self.steps)
@@ -721,6 +723,29 @@ class Clean(Genius):
         """
         for rc in required_columns:
             if row.get(rc) is None:
+                return None
+        return row
+
+    @parser('collect_rejects')
+    def cleanse_rejects(self, row: col.OrderedDict,
+                        reject_conditions: tuple) -> (None, col.OrderedDict):
+        """
+        Loops a set of supplied python conditional strings (as expected
+        by Genius.eval_condition and if the row matches any of them it
+        is rejected.
+
+        Args:
+            row: An OrderedDict.
+            reject_conditions: A tuple of any number of strings
+                formatted as python conditionals accepted by
+                Genius.eval_condition.
+
+        Returns: None if the row meets any of the reject_conditions,
+            otherwise the row.
+
+        """
+        for c in reject_conditions:
+            if self.eval_condition(row, c):
                 return None
         return row
 
