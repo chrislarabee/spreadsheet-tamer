@@ -195,6 +195,9 @@ class TestGenius:
         assert ge.Genius.eval_condition(row, 'a == 1')
         assert ge.Genius.eval_condition(row, "b != 'bar'")
 
+        row = {'a': 'list, of, strings', 'b': 'foo'}
+        assert ge.Genius.eval_condition(row, '"list" in a')
+
 
 class TestPreprocess:
     def test_cleanse_gaps(self):

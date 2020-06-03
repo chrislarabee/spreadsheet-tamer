@@ -406,34 +406,36 @@ class Genius:
         else:
             # First, handle strings contained within the c string:
             quotes = ["'", '"']
-            consequent = None
+            q_comp = None
             for q in quotes:
                 quote_str = re.search(f'{q}.+{q}', c)
                 if quote_str is not None:
-                    consequent = quote_str.group()
-                    c = c[:quote_str.start()]
+                    q_comp = quote_str.group()
+                    c = re.sub(q_comp, '', c).strip()
                     break
             # Now it's safe to split it:
             components = c.split(' ')
-            if consequent is not None:
-                components[2] = consequent
+            # Get antecedent/consequent indices:
+            i, j = (2, 0) if components[0] == 'in' else (0, 2)
+            if q_comp is not None:
+                components.insert(j, q_comp)
             if len(components) > 3:
                 raise ValueError(
                     f'"{c}" is not a valid conditional')
             else:
                 # Get key/index:
-                i = components[0]
+                kdx = components[i]
                 # Make sure i is the proper data type for row's
                 # data type:
                 if isinstance(data, list):
-                    i = int(i)
-                antecedent = data[i]
-                # Make val a string that will pass eval:
+                    kdx = int(kdx)
+                antecedent = data[kdx]
+                # Make antecedent a string that will pass eval:
                 if isinstance(antecedent, str):
                     antecedent = '"' + antecedent + '"'
                 else:
                     antecedent = str(antecedent)
-                components[0] = antecedent
+                components[i] = antecedent
                 condition = ' '.join(components)
             return eval(condition)
 
