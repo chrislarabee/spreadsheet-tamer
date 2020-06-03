@@ -3,6 +3,7 @@ from collections import OrderedDict as od
 import statistics
 
 import pytest
+import pandas as pd
 
 import datagenius.element as e
 from datagenius.io import odbc
@@ -154,6 +155,15 @@ class TestDataset:
         assert d == expected
         assert d.to_format('lists')
         assert d == raw
+
+        d.to_df()
+        assert isinstance(d._data, pd.DataFrame)
+        assert list(d._data.columns) == ['a', 'b', 'c']
+        assert d._data.shape == (3, 3)
+        assert d.to_dicts() == expected
+        assert isinstance(d._data[0], od)
+        d.to_df()
+        assert d.to_lists() == raw
 
     def test_getitem(self):
         d = e.Dataset([

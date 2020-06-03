@@ -5,6 +5,9 @@ import re
 from abc import ABC
 from typing import Callable
 
+import pandas as pd
+import recordlinkage as link
+
 from datagenius.io import text, odbc
 import datagenius.util as u
 
@@ -21,7 +24,7 @@ class Element(ABC):
             data: A list, dict, or OrderedDict (depends on the
                 exact specifications of the Element child class).
         """
-        self._data: (list, dict, col.OrderedDict) = data
+        self._data: (list, dict, col.OrderedDict, pd.DataFrame) = data
 
     def element_comparison(self, other,
                            eq_result: bool = True) -> bool:
@@ -366,7 +369,8 @@ class Dataset(Element, col.abc.Sequence):
         """
         format_funcs = {
             'dicts': self.to_dicts,
-            'lists': self.to_lists
+            'lists': self.to_lists,
+            'df': self.to_df
         }
         if to == 'any':
             return False
@@ -417,10 +421,26 @@ class Dataset(Element, col.abc.Sequence):
                 'Dataset.remove can only take int or list/OrderedDict '
                 'arguments.')
 
+    def to_df(self):
+        """
+        Converts self._data to OrderedDicts and then a pandas
+        DataFrame.
+
+        Returns: self, with self._data modified to be a pandas
+            DataFrame.
+
+        """
+        if self.data_format != 'df':
+            if self.data_format != 'dicts':
+                self.to_dicts()
+            self._data = pd.DataFrame(self._data)
+            self.data_format = 'df'
+        return self
+
     def to_dicts(self):
         """
         Uses self.header and self._data to convert self._data into
-        a list of OrderedDicts instead of a list of lists.
+        a list of OrderedDicts.
 
         Returns: self, with self._data modified to be a list of
             OrderedDicts.
@@ -439,13 +459,16 @@ class Dataset(Element, col.abc.Sequence):
                 results.append(d)
             self._data = results
             self.data_format = 'dicts'
+        elif self.data_format == 'df':
+            self.meta_data.header = list(self._data.columns)
+            self._data = self._data.to_dict('records', into=col.OrderedDict)
+            self.data_format = 'dicts'
         return self
 
     def to_lists(self):
         """
-        Converts self._data back into a list of lists and uses
-        the keys of the first row as the new header (in cases
-        changes were made).
+        Converts self._data into a list of lists and uses the keys of
+        the first row as the new header (in case changes were made).
 
         Returns: self, with self._data modified to be a list of
             lists.
@@ -457,6 +480,10 @@ class Dataset(Element, col.abc.Sequence):
             for row in self:
                 results.append([*list(row.values())])
             self._data = results
+            self.data_format = 'lists'
+        elif self.data_format == 'df':
+            self.meta_data.header = list(self._data.columns)
+            self._data = self._data.values.tolist()
             self.data_format = 'lists'
         return self
 
@@ -587,6 +614,10 @@ class Dataset(Element, col.abc.Sequence):
         ]
         dataset_md_schema = {'feature': str, 'value': str}
         return dataset_md, dataset_md_schema, column_md, column_md_schema
+
+    def supplement(self, other, *on, exact: bool = True,
+                   thresholds: tuple = None):
+        pass
 
 
 class Rule:
