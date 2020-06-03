@@ -834,9 +834,10 @@ class Mapping(Element, col.abc.Mapping):
         # Collect complex mappings from rules:
         for value in rules:
             if isinstance(value, tuple) and self.check_template(value[1]):
-                self._data[value[0]] = Rule({None: None}, value[0], to=value[1])
+                to = value[1]
+                self._map_to_data(to, self._gen_base_rule(value[0], to))
             elif isinstance(value, Rule) and self.check_template(value.to):
-                self._data[value.from_[0]] = value
+                self._map_to_data(value.to, value)
             else:
                 raise ValueError(
                     f'Passed positional args must all be Rule or tuple '
@@ -844,7 +845,11 @@ class Mapping(Element, col.abc.Mapping):
         # Collect simple mappings from maps:
         for k, v in maps.items():
             if self.check_template(v):
-                self._data[k] = Rule({None: None}, k, to=v)
+                self._map_to_data(v, self._gen_base_rule(k, v))
+        # Generate empty rules for unmapped template values:
+        for t in self.template:
+            if t not in self._data.keys():
+                self._map_to_data(t, self._gen_base_rule(None, t))
 
     def check_template(self, to: (str, tuple)) -> bool:
         """
@@ -885,6 +890,43 @@ class Mapping(Element, col.abc.Mapping):
                          'default': v.translation[(None,)]}
         return result
 
+    @staticmethod
+    def _gen_base_rule(from_: (str, None), to: (str, tuple)) -> Rule:
+        """
+        Generates a simple mapping Rule. This gets used a lot.
+
+        Args:
+            from_: A string or None if the Rule doesn't map anything
+                from the source data to the template.
+            to: A string or tuple of strings that the Rule should map
+                to.
+
+        Returns: The generated Rule.
+
+        """
+        return Rule({None: None}, from_, to=to)
+
+    def _map_to_data(self, to: (str, tuple), rule: Rule) -> None:
+        """
+        Takes a Rule and maps it to a to key in self._data, after
+        confirming that the key isn't already in use.
+
+        Args:
+            to: A string or tuple of strings, keys in the template.
+            rule: A Rule object with one or more of the values in to
+                as its to attribute.
+
+        Returns: None
+
+        """
+        to = tuple([to]) if isinstance(to, str) else to
+        for t in to:
+            if t in self._data.keys():
+                raise ValueError(
+                    f'Only one mapping rule can be created for each '
+                    f'key in the template. Duplicate to value={to}')
+            self._data[t] = rule
+
     def __call__(self, row: col.OrderedDict) -> col.OrderedDict:
         """
         Calls the Mapping on a passed OrderedDict and creates a new
@@ -900,11 +942,9 @@ class Mapping(Element, col.abc.Mapping):
 
         """
         row = row.copy()
-        for v in self._data.values():
-            v(row)
         result = col.OrderedDict()
         for f in self.template:
-            result[f] = row.get(f)
+            result[f] = self._data[f](row).get(f)
         return result
 
     def __iter__(self):

@@ -311,9 +311,7 @@ class TestRule:
 
 class TestMapping:
     def test_check_template(self):
-        m = e.Mapping(
-            ['w', 'x', 'y', 'z']
-        )
+        m = e.Mapping(['w', 'x', 'y', 'z'])
 
         assert m.check_template('z')
         assert m.check_template(('y', 'z'))
@@ -323,21 +321,43 @@ class TestMapping:
             m.check_template('omega')
             m.check_template(('alpha', 'omega'))
 
+    def test_map_to_data(self):
+        m = e.Mapping(['a', 'b', 'c'])
+        # Have to remove the auto-generated mapping for a:
+        m._data.pop('a')
+
+        r = e.Rule({None: None}, 'x', to='a')
+        m._map_to_data('a', r)
+        assert m.plan()['a'] == {
+            'from': 'x', 'to': ('a',), 'default': None}
+
+        with pytest.raises(
+                ValueError, match='Only one mapping rule can be created'):
+            m._map_to_data('a', e.Rule({None: 1}, 'y', to='a'))
+
     def test_basics(self):
-        t = ['w', 'x', 'y', 'z', 'w 2']
+        t = ['q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'w 2']
         expected = {
-            'a': {'from': 'a', 'to': ('w',), 'default': None},
-            'b': {'from': 'b', 'to': ('x',), 'default': None},
-            'c': {'from': 'c', 'to': ('z',), 'default': 1},
-            'd': {'from': 'd', 'to': ('y',), 'default': None},
-            'a 1': {'from': 'a 1', 'to': ('w 2',), 'default': None}
+            'q': {'from': None, 'to': ('q',), 'default': None},
+            'r': {'from': 'e', 'to': ('r', 's'), 'default': 2},
+            's': {'from': 'e', 'to': ('r', 's'), 'default': 2},
+            't': {'from': 'f', 'to': ('t', 'u'), 'default': None},
+            'u': {'from': 'f', 'to': ('t', 'u'), 'default': None},
+            'v': {'from': 'a', 'to': ('v', 'w'), 'default': None},
+            'w': {'from': 'a', 'to': ('v', 'w',), 'default': None},
+            'x': {'from': 'b', 'to': ('x',), 'default': None},
+            'z': {'from': 'c', 'to': ('z',), 'default': 1},
+            'y': {'from': 'd', 'to': ('y',), 'default': None},
+            'w 2': {'from': 'a 1', 'to': ('w 2',), 'default': None}
         }
 
         m = e.Mapping(
             t,
+            e.Rule({None: 2}, 'e', to=('r', 's')),
             e.Rule({None: 1}, 'c', to='z'),
             ('a 1', 'w 2'),
-            a='w',
+            ('f', ('t', 'u')),
+            a=('v', 'w'),
             b='x',
             d='y'
         )
@@ -347,7 +367,7 @@ class TestMapping:
                 ValueError, match='Passed positional args must all be'):
             m = e.Mapping(t, 'not a rule')
 
-        t.remove('w 2')
+        m.template = ['w', 'x', 'y', 'z']
         expected = od(w=7, x=8, y=9, z=1)
         assert m(od(a=7, b=8, c=None, d=9)) == expected
 
