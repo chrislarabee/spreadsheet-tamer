@@ -630,8 +630,7 @@ class Rule:
         if isinstance(rule_iter, (str, tuple)):
             from_ = rule_iter
             rule_iter = None
-        self.translation: (dict, list) = self._prep_translation(
-            rule_iter)
+        self.translation: (dict, list) = self._prep_translation(rule_iter)
         # Collect from_:
         if isinstance(from_, str) or from_ is None:
             from_ = tuple([from_])
@@ -883,7 +882,7 @@ class Mapping(Element, col.abc.Mapping):
         result = dict()
         for k, v in self._data.items():
             result[k] = {'from': v.from_[0], 'to': v.to,
-                            'default': v.translation[(None,)]}
+                         'default': v.translation[(None,)]}
         return result
 
     def __call__(self, row: col.OrderedDict) -> col.OrderedDict:
@@ -901,7 +900,7 @@ class Mapping(Element, col.abc.Mapping):
 
         """
         row = row.copy()
-        for k, v in self._data.items():
+        for v in self._data.values():
             v(row)
         result = col.OrderedDict()
         for f in self.template:
