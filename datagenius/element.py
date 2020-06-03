@@ -616,8 +616,62 @@ class Dataset(Element, col.abc.Sequence):
         return dataset_md, dataset_md_schema, column_md, column_md_schema
 
     def supplement(self, other, *on, exact: bool = True,
-                   thresholds: tuple = None):
-        pass
+                   thresholds: tuple = None, select: tuple = None):
+        """
+        Adds columns from another Dataset to this Dataset.
+
+        Args:
+            other: The source Dataset to pull columns from.
+            *on: Any number of keys, which must be in both Datasets,
+                and which will be used to find matching rows in the two
+                Datasets.
+            exact: A boolean, if True, then only exact matches at on
+                keys will be supplemented.
+            thresholds: A tuple of floats from 0 to 1, used for inexact
+                matching. Must be equal in length to on.
+            select: A tuple of keys in other that are not in on. Keys in
+                on will always be appended, but additional keys can be
+                added with select.
+
+        Returns: The Dataset with any values in matching rows added to
+            existing rows.
+
+        """
+        self.to_df()
+        other = other.copy().to_df()._data
+        select = on if select is None else select
+        # Can't join on nan values effective, so rows with nans in
+        # on must be discarded from other:
+        for o in on:
+            other = other[~other[o].isna()]
+        if exact:
+            self._data = self._data.merge(
+                other,
+                'left',
+                on=on,
+                suffixes=('', '_s')
+            )
+        else:
+            if thresholds is not None:
+                if (isinstance(thresholds, (list, tuple))
+                        and len(thresholds) != len(on)):
+                    raise ValueError(
+                        f'If provided, thresholds length must match on '
+                        f'length: thresholds={thresholds}, on={on}')
+                else:
+                    raise ValueError(
+                        f'If provided, thresholds must be a list or '
+                        f'tuple: {thresholds}')
+            else:
+                thresholds = [.9 for _ in on]
+
+            idxr = link.Index()
+            idxr.full()
+        drop_cols = (
+            set(self._data.columns) - set(self.meta_data.header)
+            - set(select))
+        self._data.drop(columns=drop_cols, inplace=True)
+        return self.to_dicts()
 
 
 class Rule:
