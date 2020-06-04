@@ -6,6 +6,8 @@ import warnings
 from abc import ABC
 from typing import Callable
 
+import pandas as pd
+
 import datagenius.element as e
 import datagenius.util as u
 
@@ -982,3 +984,62 @@ class Reformat(Genius):
 
         """
         return self.mapping(row)
+
+
+class Supplement:
+    def __init__(self, *on, thresholds: (float, tuple) = None,
+                 block: (str, tuple) = None):
+        self.block: (tuple, None) = self.tuplify(block)
+        self.thresholds: (tuple, None) = self.tuplify(thresholds)
+        self.plan = self.build_plan(on)
+
+    @staticmethod
+    def do_exact(other):
+        pass
+
+    @staticmethod
+    def chunk_dframes(plan, *frames):
+        chunks = dict(**{p[0]: [] for p in plan})
+        for p in plan:
+            condition = p[0]
+            on = p[1]
+
+            chunks[condition].append('x')
+
+    @staticmethod
+    def slice_dframe(df: pd.DataFrame, conditions: dict):
+        for k, v in conditions.items():
+            df = df[df[k].isin(v)]
+        return df
+
+    @staticmethod
+    def build_plan(on: tuple):
+        simple_ons = list()
+        complex_ons = list()
+        for o in on:
+            if isinstance(o, str):
+                simple_ons.append(o)
+            elif isinstance(o, tuple):
+                x = []
+                if isinstance(o[0], dict):
+                    for k, v in o[0].items():
+                        o[0][k] = Supplement.tuplify(v)
+                    x.append(o[0])
+                else:
+                    raise ValueError(
+                        f'tuple ons must have a dict as their first '
+                        f'value. Invalid tuple={o}'
+                    )
+                on = Supplement.tuplify(o[1])
+                x.append(on)
+                complex_ons.append(tuple(x))
+        return tuple(
+            [({None: (None,)}, tuple(simple_ons)), *complex_ons]
+        )
+
+    @staticmethod
+    def tuplify(value, do_none=False) -> tuple:
+        if (value is not None or do_none) and not isinstance(value, tuple):
+            value = tuple([value])
+        return value
+

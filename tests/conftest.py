@@ -28,6 +28,30 @@ def sales():
 
 
 @pytest.fixture
+def regions():
+    return (
+        ['region', 'stores', 'employees'],
+        [
+            ['Northern', 50, 500],
+            ['Southern', 42, 450]
+        ]
+    )
+
+
+@pytest.fixture
+def stores():
+    return (
+        ['location', 'budget', 'inventory'],
+        [
+            ['Bayside', 100000, 5000],
+            ['W Valley', 96000, 4500],
+            ['Precioso', 110000, 3500],
+            ['Kalliope', 90000, 4500]
+        ]
+    )
+
+
+@pytest.fixture
 def products():
     return (
         ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',

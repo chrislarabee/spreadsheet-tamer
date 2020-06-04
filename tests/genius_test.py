@@ -1,6 +1,7 @@
 from collections import OrderedDict as od
 
 import pytest
+import pandas as pd
 
 import datagenius.element as e
 import datagenius.genius as ge
@@ -484,3 +485,32 @@ class TestReformat:
         assert ge.Reformat(m).go(d)._data == d2._data
 
 
+class TestSupplement:
+    def test_slice_dframe(self, stores):
+        df = pd.DataFrame(stores[1], columns=stores[0])
+        expected = [
+            dict(location='W Valley', budget=96000, inventory=4500),
+            dict(location='Kalliope', budget=90000, inventory=4500)
+        ]
+        assert ge.Supplement.slice_dframe(
+            df, {'inventory': (4500,)}).to_dict('records') == expected
+
+
+
+
+    def test_build_plan(self):
+        assert ge.Supplement.build_plan(('a', 'b', 'c')) == (
+            ({None: (None,)}, ('a', 'b', 'c')),
+        )
+
+        assert ge.Supplement.build_plan(
+            ('a', 'b', ({'c': 'x'}, 'a'))) == (
+            ({None: (None,)}, ('a', 'b')),
+            ({'c': ('x',)}, ('a',))
+        )
+
+    def test_tuplify(self):
+        assert isinstance(ge.Supplement.tuplify('test'), tuple)
+        assert ge.Supplement.tuplify('test') == ('test',)
+        assert ge.Supplement.tuplify(None) is None
+        assert ge.Supplement.tuplify(None, True) == (None,)
