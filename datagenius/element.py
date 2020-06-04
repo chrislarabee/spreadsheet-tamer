@@ -462,6 +462,7 @@ class Dataset(Element, col.abc.Sequence):
         elif self.data_format == 'df':
             self.meta_data.header = list(self._data.columns)
             self._data = self._data.to_dict('records', into=col.OrderedDict)
+            self._data = u.translate_nans(self._data)
             self.data_format = 'dicts'
         return self
 
@@ -484,6 +485,7 @@ class Dataset(Element, col.abc.Sequence):
         elif self.data_format == 'df':
             self.meta_data.header = list(self._data.columns)
             self._data = self._data.values.tolist()
+            self._data = u.translate_nans(self._data)
             self.data_format = 'lists'
         return self
 

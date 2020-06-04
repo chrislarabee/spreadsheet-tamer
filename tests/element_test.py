@@ -264,6 +264,8 @@ class TestDataset:
         d = e.Dataset(customers[1], customers[0])
         d.supplement(other, 'id', select=('minit',))
         assert 'minit' in d.meta_data.header
+        d.transpose('column')
+        assert d[4] == ['Q.', None, 'M', None]
 
 
 
