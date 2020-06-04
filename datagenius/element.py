@@ -678,9 +678,9 @@ class Dataset(Element, col.abc.Sequence):
             for i, o in enumerate(on):
                 # All lowercase strings works better:
                 if df.dtypes[o] == 'O':
-                    df[o] = df[o].str.lower()
+                    df[o] = df[o].astype(str).str.lower()
                 if other.dtypes[o] == 'O':
-                    df[o] = df[o].str.lower()
+                    df[o] = df[o].astype(str).str.lower()
                 compare.string(
                     o, o,
                     method='jarowinkler',
