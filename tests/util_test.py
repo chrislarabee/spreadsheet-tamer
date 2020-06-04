@@ -1,5 +1,7 @@
 from collections import OrderedDict as od
 
+import numpy as np
+
 import datagenius.util as u
 from datagenius.genius import parser
 
@@ -43,6 +45,28 @@ def test_isnumericplus():
     assert u.isnumericplus('100 strings', '-convert') == (False, '100 strings')
     assert u.isnumericplus('1234.56', '-v', '-convert') == (
         True, float, 1234.56)
+
+
+def test_translate_nans():
+    d = [
+        [np.nan, 1, 2],
+        [3, 4, np.nan]
+    ]
+    expected = [
+        [None, 1, 2],
+        [3, 4, None]
+    ]
+    assert u.translate_nans(d) == expected
+
+    d = [
+        od(a=np.nan, b=1, c=2),
+        od(a=3, b=4, c=np.nan)
+    ]
+    expected = [
+        od(a=None, b=1, c=2),
+        od(a=3, b=4, c=None)
+    ]
+    assert u.translate_nans(d) == expected
 
 
 def test_validate_parser():

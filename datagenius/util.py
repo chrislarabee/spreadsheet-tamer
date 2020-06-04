@@ -1,6 +1,8 @@
 import re
 from collections import OrderedDict
 
+import pandas as pd
+
 
 def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
     """
@@ -95,6 +97,26 @@ def isnumericplus(x, *options) -> (bool, tuple):
                 x = re.sub(r'\.+', '.', x)
         result.append(v(x))
     return tuple(result) if len(result) > 1 else numeric
+
+
+def translate_nans(data: list) -> list:
+    """
+    Loops a passed list and ensures numpy nans are replaced with None.
+
+    Args:
+        data: A list of lists or a list of OrderedDicts.
+
+    Returns: The list with inner values that are nan replaced with None.
+
+    """
+    for x in data:
+        if isinstance(x, OrderedDict):
+            iterator = x.items()
+        else:
+            iterator = enumerate(x)
+        for i, v in iterator:
+            x[i] = None if pd.isna(v) else v
+    return data
 
 
 def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:
