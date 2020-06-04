@@ -673,6 +673,7 @@ class Clean(Genius):
             self.steps.append(self.extrapolate)
         if options.get('reject_conditions'):
             self.steps.append(self.cleanse_rejects)
+        # TODO: Add automatic tuplify to data_rules:
         if options.get('data_rules'):
             self.steps.append(self.apply_rules)
         self.steps = self.order_parsers(self.steps)

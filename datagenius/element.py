@@ -645,7 +645,7 @@ class Dataset(Element, col.abc.Sequence):
         """
         self.to_df()
         other = other.copy().to_df()._data
-        select = on if select is None else select
+        select = [o + '_s' for o in on] if select is None else select
         # Can't join on nan values effective, so rows with nans in
         # on must be discarded from other:
         for o in on:
