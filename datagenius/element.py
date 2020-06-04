@@ -618,7 +618,8 @@ class Dataset(Element, col.abc.Sequence):
         return dataset_md, dataset_md_schema, column_md, column_md_schema
 
     def supplement(self, other, *on, exact: bool = True,
-                   thresholds: tuple = None, select: tuple = None):
+                   thresholds: tuple = None, select: tuple = None,
+                   block: str = None):
         """
         Adds columns from another Dataset to this Dataset.
 
@@ -634,6 +635,9 @@ class Dataset(Element, col.abc.Sequence):
             select: A tuple of keys in other that are not in on. Keys in
                 on will always be appended, but additional keys can be
                 added with select.
+            block: A string indicating a column in both Datasets that a
+                row MUST have in common before considering other
+                matches.
 
         Returns: The Dataset with any values in matching rows added to
             existing rows.
@@ -671,7 +675,7 @@ class Dataset(Element, col.abc.Sequence):
             df = self._data.copy()
 
             idxr = link.Index()
-            idxr.full()
+            idxr.block(block) if block else idxr.full()
             candidate_links = idxr.index(df, other)
             compare = link.Compare()
 
