@@ -655,11 +655,12 @@ class Dataset(Element, col.abc.Sequence):
             )
         else:
             if thresholds is not None:
-                if (isinstance(thresholds, (list, tuple))
-                        and len(thresholds) != len(on)):
-                    raise ValueError(
-                        f'If provided, thresholds length must match on '
-                        f'length: thresholds={thresholds}, on={on}')
+                if isinstance(thresholds, (list, tuple)):
+                    if len(thresholds) != len(on):
+                        raise ValueError(
+                            f'If provided, thresholds length must match '
+                            f'on length: thresholds={thresholds}, '
+                            f'on={on}')
                 else:
                     raise ValueError(
                         f'If provided, thresholds must be a list or '
@@ -667,8 +668,30 @@ class Dataset(Element, col.abc.Sequence):
             else:
                 thresholds = [.9 for _ in on]
 
+            df = self._data.copy()
+
             idxr = link.Index()
             idxr.full()
+            candidate_links = idxr.index(df, other)
+            compare = link.Compare()
+
+            for i, o in enumerate(on):
+                # All lowercase strings works better:
+                if df.dtypes[o] == 'O':
+                    df[o] = df[o].str.lower()
+                if other.dtypes[o] == 'O':
+                    df[o] = df[o].str.lower()
+                compare.string(
+                    o, o,
+                    method='jarowinkler',
+                    threshold=thresholds[i]
+                )
+
+            features = compare.compute(candidate_links, df, other)
+            matches = features[features.sum(axis=1) == len(on)].reset_index()
+
+            a = matches.join(self._data, on='level_0', how='outer', rsuffix='')
+            self._data = a.join(other, on='level_1', how='left', rsuffix='_s')
         drop_cols = (
             set(self._data.columns) - set(self.meta_data.header)
             - set(select))

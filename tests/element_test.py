@@ -267,6 +267,18 @@ class TestDataset:
         d.transpose('column')
         assert d[4] == ['Q.', None, 'M', None]
 
+    def test_supplement_inexact(self, customers):
+        other = e.Dataset([
+            od(fname='Yancy', lname='Cordwain', minit='Q.'),
+            od(fname='Y', lname='Cordwainer', minit='Q'),
+            od(fname='Luisa', lname='Romero', minit='M.')
+        ])
+        d = e.Dataset(customers[1], customers[0])
+        d.supplement(other, 'fname', 'lname',
+                     exact=False, select=('minit',), thresholds=(.5, .8))
+        assert 'minit' in d.meta_data.header
+        d.transpose('column')
+        assert d[4] == ['Q.', 'M.', None, None]
 
 
 class TestRule:
