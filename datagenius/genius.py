@@ -994,11 +994,49 @@ class Supplement:
         self.plan = self.build_plan(on)
 
     @staticmethod
-    def do_exact(other):
-        pass
+    def do_exact(plan: tuple, *frames, suffixes: list = None) -> pd.DataFrame:
+        """
+        Merges any number of DataFrames with overlapping columns that
+        appear in the passed plan tuple. Treats the first frame in
+        frames as the primary frame, to which all subsequent frames are
+        left joined as described in the plan.
+
+        Args:
+            plan: A tuple created by Supplement.build_plan, which will
+                be used to chunk each DataFrame.
+            *frames: An arbitrary number of pandas DataFrames. The 1st
+                frame will be treated as the primary frame.
+            suffixes: An optional list of suffixes, equal in length to
+                len(frames) - 1, which will be used in the case of
+                overlapping columns outside the merge and added to
+                columns coming from the non-primary frames (frames[1:]).
+
+        Returns: A DataFrame containg all the rows in the first
+            (primary) frame, joined with any matched rows from the
+            subsequent frames.
+
+        """
+        chunks, remainder = Supplement.chunk_dframes(plan, *frames)
+        results = []
+        if suffixes is None:
+            pass
+        for on, fs in chunks.items():
+            p_frame = fs[0]
+            o_frames = fs[1:]
+            for i, o in enumerate(o_frames):
+                if not o.empty:
+                    p_frame = p_frame.merge(
+                        o,
+                        'left',
+                        on=on,
+                        suffixes=('', '_x')
+                    )
+            results.append(p_frame)
+        result_df = pd.concat(results)
+        return pd.concat([result_df, remainder]).reset_index()
 
     @staticmethod
-    def chunk_dframes(plan, *frames) -> dict:
+    def chunk_dframes(plan, *frames) -> (dict, tuple):
         """
         Takes any number of pandas DataFrames and breaks each one into
         chunks based on a chunking plan of conditions and corresponding
@@ -1016,34 +1054,20 @@ class Supplement:
 
         """
         chunks = dict()
-        for p in plan:
-            conditions = p[0]
-            key = Supplement.enkey(conditions)
-            chunks[key] = []
-            for df in frames:
-                match = Supplement.slice_dframe(df, conditions)
-                chunks[key].append(match)
-                if key != ((None,), ((None,),)):
+        df1 = frames[0]
+        for i, df in enumerate(frames):
+            for p in plan:
+                on, conditions = p
+                if on not in chunks.keys():
+                    chunks[on] = []
+                match, result = Supplement.slice_dframe(df, conditions)
+                chunks[on].append(match)
+                if result:
                     df.drop(match.index, inplace=True)
-        return chunks
+        return chunks, df1
 
     @staticmethod
-    def enkey(d: dict) -> tuple:
-        """
-        Simple method for turning a dictionary into a tuple so that it
-        can be used as a key in another dictionary.
-
-        Args:
-            d: A dictionary.
-
-        Returns: A tuple pair of the passed dictionary's keys and
-            values.
-
-        """
-        return tuple(d.keys()), tuple(d.values())
-
-    @staticmethod
-    def slice_dframe(df: pd.DataFrame, conditions: dict) -> pd.DataFrame:
+    def slice_dframe(df: pd.DataFrame, conditions: dict) -> tuple:
         """
         Takes a dictionary of conditions in the form of:
             {'column_label': tuple(of, values, to, match)
@@ -1056,13 +1080,22 @@ class Supplement:
             conditions: A dictionary of paired column_labels and tuples
                 of values to match against.
 
-        Returns: A DataFrame containing only the matching rows.
+        Returns: A DataFrame containing only the matching rows and a
+            boolean indicating whether matching rows were found or if
+            the DataFrame is simply being returned untouched.
 
         """
+        df = df.copy()
+        row_ct = df.shape[0]
+        no_conditions = True
         for k, v in conditions.items():
             if k is not None:
+                no_conditions = False
                 df = df[df[k].isin(v)]
-        return df
+        new_ct = df.shape[0]
+        result = True if (row_ct >= new_ct != 0
+                          or no_conditions) else False
+        return df, result
 
     @staticmethod
     def build_plan(on: tuple) -> tuple:
@@ -1085,20 +1118,22 @@ class Supplement:
             if isinstance(o, str):
                 simple_ons.append(o)
             elif isinstance(o, tuple):
-                x = []
-                if isinstance(o[0], dict):
-                    for k, v in o[0].items():
-                        o[0][k] = u.tuplify(v)
-                    x.append(o[0])
-                else:
-                    raise ValueError(
-                        f'tuple ons must have a dict as their first '
-                        f'value. Invalid tuple={o}'
-                    )
-                on = u.tuplify(o[1])
-                x.append(on)
-                complex_ons.append(tuple(x))
-        return tuple(
-            [*complex_ons, ({None: (None,)}, tuple(simple_ons))]
-        )
+                pair = [None, None]
+                for oi in o:
+                    if isinstance(oi, dict):
+                        for k, v in oi.items():
+                            oi[k] = u.tuplify(v)
+                        pair[1] = oi
+                    elif isinstance(oi, (str, tuple)):
+                        pair[0] = u.tuplify(oi)
+                    else:
+                        raise ValueError(
+                            f'tuple ons must have a dict as one of '
+                            f'their arguments and a str/tuple as the '
+                            f'other Invalid tuple={o}'
+                        )
+                complex_ons.append(tuple(pair))
+        if len(simple_ons) > 0:
+            complex_ons.append((tuple(simple_ons), {None: (None,)}))
+        return tuple(complex_ons)
 

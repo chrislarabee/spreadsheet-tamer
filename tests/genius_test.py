@@ -2,6 +2,7 @@ from collections import OrderedDict as od
 
 import pytest
 import pandas as pd
+import numpy as np
 
 import datagenius.element as e
 import datagenius.genius as ge
@@ -486,37 +487,76 @@ class TestReformat:
 
 
 class TestSupplement:
+    def test_do_exact(self, sales, regions):
+        # Without conditions:
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        s = ge.Supplement('region')
+        result = s.do_exact(s.plan, df1, df2)
+        assert list(result.stores) == [50, 50, 42, 42]
+        assert list(result.employees) == [500, 500, 450, 450]
+
+        # With conditions:
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        s = ge.Supplement(({'region': 'Northern'}, 'region'))
+        result = s.do_exact(s.plan, df1, df2)
+        assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
+        assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
+
     def test_chunk_dframes(self, stores, sales, regions):
         df = pd.DataFrame(stores[1], columns=stores[0])
         plan = ge.Supplement.build_plan((
             ({'budget': (90000,)}, 'location'),
             ({'inventory': (4500,)}, 'budget')
         ))
-        c = ge.Supplement.chunk_dframes(plan, df)
-        assert c[(('budget',), ((90000,),))][0].to_dict('records') == [
+        c, p_df = ge.Supplement.chunk_dframes(plan, df)
+        assert c[('location',)][0].to_dict('records') == [
             dict(location='W Valley', budget=90000, inventory=4500),
             dict(location='Kalliope', budget=90000, inventory=4500)
         ]
-        assert c[(('inventory',), ((4500,),))][0].to_dict('records') == [
+        assert c[('budget',)][0].to_dict('records') == [
             dict(location='Precioso', budget=110000, inventory=4500)
         ]
-        assert c[((None,), ((None,),))][0].to_dict('records') == [
-            dict(location='Bayside', budget=100000, inventory=5000),
+        assert p_df.to_dict('records') == [
+            dict(location='Bayside', budget=100000, inventory=5000)
         ]
-
         # Test multiple dframes:
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df2 = pd.DataFrame(regions[1], columns=regions[0])
+        # Test with no conditions:
         plan = ge.Supplement.build_plan((
-            ({'region': ('Northern',)}, 'sales'),
+            ({None: (None,)}, 'region'),
         ))
-        c = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[(('region',), (('Northern',),))][0].to_dict('records') == [
+        c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
+        assert c[('region',)][0].to_dict('records') == [
+            dict(location='Bayside Store', region='Northern', sales=500),
+            dict(location='West Valley Store', region='Northern', sales=300),
+            dict(location='Precioso Store', region='Southern', sales=1000),
+            dict(location='Kalliope Store', region='Southern', sales=200),
+        ]
+        assert c[('region',)][1].to_dict('records') == [
+            dict(region='Northern', stores=50, employees=500),
+            dict(region='Southern', stores=42, employees=450)
+        ]
+        assert p_df.to_dict('records') == []
+        # Test with conditions
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        plan = ge.Supplement.build_plan((
+            ({'region': ('Northern',)}, 'region'),
+        ))
+        c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
+        assert c[('region',)][0].to_dict('records') == [
             dict(location='Bayside Store', region='Northern', sales=500),
             dict(location='West Valley Store', region='Northern', sales=300),
         ]
-        assert c[(('region',), (('Northern',),))][1].to_dict('records') == [
+        assert c[('region',)][1].to_dict('records') == [
             dict(region='Northern', stores=50, employees=500)
+        ]
+        assert p_df.to_dict('records') == [
+            dict(location='Precioso Store', region='Southern', sales=1000),
+            dict(location='Kalliope Store', region='Southern', sales=200),
         ]
 
     def test_slice_dframe(self, stores):
@@ -526,18 +566,20 @@ class TestSupplement:
             dict(location='Precioso', budget=110000, inventory=4500),
             dict(location='Kalliope', budget=90000, inventory=4500)
         ]
-        assert ge.Supplement.slice_dframe(
-            df, {'inventory': (4500,)}
-        ).to_dict('records') == expected
+        x = ge.Supplement.slice_dframe(df, {'inventory': (4500,)})
+        assert df is not x[0]
+        assert x[0].to_dict('records') == expected
+        assert x[1]
 
-        # Test multiple conditions.
+        # Test multiple conditions:
         expected = [
             dict(location='W Valley', budget=90000, inventory=4500),
             dict(location='Kalliope', budget=90000, inventory=4500)
         ]
-        assert ge.Supplement.slice_dframe(
-            df, {'inventory': (4500,), 'budget': (90000,)}
-        ).to_dict('records') == expected
+        x = ge.Supplement.slice_dframe(df, {'inventory': (4500,),
+                                            'budget': (90000,)})
+        assert x[0].to_dict('records') == expected
+        assert x[1]
 
         # Test no conditions:
         expected = [
@@ -546,29 +588,38 @@ class TestSupplement:
             dict(location='Precioso', budget=110000, inventory=4500),
             dict(location='Kalliope', budget=90000, inventory=4500)
         ]
-        assert ge.Supplement.slice_dframe(
-            df, {None: (None,)}
-        ).to_dict('records') == expected
+        x = ge.Supplement.slice_dframe(df, {None: (None,)})
+        assert x[0].to_dict('records') == expected
+        assert x[1]
 
         # Test unmet conditions:
         expected = []
-        assert ge.Supplement.slice_dframe(
-            df, {'budget': (25000,)}
-        ).to_dict('records') == expected
+        x = ge.Supplement.slice_dframe(df, {'budget': (25000,)})
+        assert x[0].to_dict('records') == expected
+        assert not x[1]
 
     def test_build_plan(self):
         assert ge.Supplement.build_plan(('a', 'b', 'c')) == (
-            ({None: (None,)}, ('a', 'b', 'c')),
+            (('a', 'b', 'c'), {None: (None,)}),
         )
 
-        assert ge.Supplement.build_plan(
-            ('a', 'b', ({'c': 'x'}, 'a'))) == (
-            ({'c': ('x',)}, ('a',)),
-            ({None: (None,)}, ('a', 'b'))
+        # Check that condition/on pairs can be in any order:
+        assert ge.Supplement.build_plan((
+            'a', 'b',
+            ('a', {'c': 'x'})
+        )) == (
+            (('a',), {'c': ('x',)}),
+            (('a', 'b'), {None: (None,)})
+        )
+        assert ge.Supplement.build_plan((
+            'a', 'b',
+            ({'c': 'x'}, 'a')
+        )) == (
+            (('a',), {'c': ('x',)}),
+            (('a', 'b'), {None: (None,)})
         )
 
         assert ge.Supplement.build_plan(
             (({'c': 'x'}, 'a'),)) == (
-            ({'c': ('x',)}, ('a',)),
-            ({None: (None,)}, ())
+            (('a',), {'c': ('x',)}),
         )
