@@ -998,22 +998,87 @@ class Supplement:
         pass
 
     @staticmethod
-    def chunk_dframes(plan, *frames):
-        chunks = dict(**{p[0]: [] for p in plan})
-        for p in plan:
-            condition = p[0]
-            on = p[1]
+    def chunk_dframes(plan, *frames) -> dict:
+        """
+        Takes any number of pandas DataFrames and breaks each one into
+        chunks based on a chunking plan of conditions and corresponding
+        columns to link on.
 
-            chunks[condition].append('x')
+        Args:
+            plan: A tuple created by Supplement.build_plan, which will
+                be used to chunk each DataFrame.
+            *frames: An arbitrary number of pandas DataFrames, each of
+                which must have the column labels named in the plan.
+
+        Returns: A dictionary containing keys for each condition in
+            plan, and then a list of DataFrames containing the matching
+            rows of the frame at the same index.
+
+        """
+        chunks = dict()
+        for p in plan:
+            conditions = p[0]
+            key = Supplement.enkey(conditions)
+            chunks[key] = []
+            for df in frames:
+                match = Supplement.slice_dframe(df, conditions)
+                chunks[key].append(match)
+                if key != ((None,), ((None,),)):
+                    df.drop(match.index, inplace=True)
+        return chunks
 
     @staticmethod
-    def slice_dframe(df: pd.DataFrame, conditions: dict):
+    def enkey(d: dict) -> tuple:
+        """
+        Simple method for turning a dictionary into a tuple so that it
+        can be used as a key in another dictionary.
+
+        Args:
+            d: A dictionary.
+
+        Returns: A tuple pair of the passed dictionary's keys and
+            values.
+
+        """
+        return tuple(d.keys()), tuple(d.values())
+
+    @staticmethod
+    def slice_dframe(df: pd.DataFrame, conditions: dict) -> pd.DataFrame:
+        """
+        Takes a dictionary of conditions in the form of:
+            {'column_label': tuple(of, values, to, match)
+        and returns a dataframe that contains only the rows that match
+        all the passed conditions.
+
+        Args:
+            df: A pandas Dataframe containing the column_labels in
+                conditions.keys()
+            conditions: A dictionary of paired column_labels and tuples
+                of values to match against.
+
+        Returns: A DataFrame containing only the matching rows.
+
+        """
         for k, v in conditions.items():
-            df = df[df[k].isin(v)]
+            if k is not None:
+                df = df[df[k].isin(v)]
         return df
 
     @staticmethod
-    def build_plan(on: tuple):
+    def build_plan(on: tuple) -> tuple:
+        """
+        Takes a tuple of mixed simple and complex on values and ensures
+        they are standardized in the ways that chunk_dframes expects.
+
+        Args:
+            on: A tuple containing simple strings or tuples of
+                dictionary and string/tuple pairs.
+
+        Returns: A tuple of paired dictionary and tuple values, one for
+            each complex on and a single tuple for the simple ons at the
+            end.
+
+        """
         simple_ons = list()
         complex_ons = list()
         for o in on:
@@ -1034,6 +1099,6 @@ class Supplement:
                 x.append(on)
                 complex_ons.append(tuple(x))
         return tuple(
-            [({None: (None,)}, tuple(simple_ons)), *complex_ons]
+            [*complex_ons, ({None: (None,)}, tuple(simple_ons))]
         )
 
