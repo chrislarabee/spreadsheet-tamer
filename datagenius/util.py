@@ -119,6 +119,24 @@ def translate_nans(data: list) -> list:
     return data
 
 
+def tuplify(value, do_none: bool = False) -> tuple:
+    """
+    Simple function that puts the passed object value into a tuple, if
+    it is not already.
+
+    Args:
+        value: Any object.
+        do_none: A boolean, optionally tells tuplify to tuplify Nones.
+            By default, Nones are returned untouched.
+
+    Returns: A tuple, or None.
+
+    """
+    if (value is not None or do_none) and not isinstance(value, tuple):
+        value = tuple([value])
+    return value
+
+
 def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:
     """
     Takes an object and checks its attributes. Designed to see

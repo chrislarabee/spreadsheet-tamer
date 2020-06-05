@@ -989,8 +989,8 @@ class Reformat(Genius):
 class Supplement:
     def __init__(self, *on, thresholds: (float, tuple) = None,
                  block: (str, tuple) = None):
-        self.block: (tuple, None) = self.tuplify(block)
-        self.thresholds: (tuple, None) = self.tuplify(thresholds)
+        self.block: (tuple, None) = u.tuplify(block)
+        self.thresholds: (tuple, None) = u.tuplify(thresholds)
         self.plan = self.build_plan(on)
 
     @staticmethod
@@ -1023,23 +1023,17 @@ class Supplement:
                 x = []
                 if isinstance(o[0], dict):
                     for k, v in o[0].items():
-                        o[0][k] = Supplement.tuplify(v)
+                        o[0][k] = u.tuplify(v)
                     x.append(o[0])
                 else:
                     raise ValueError(
                         f'tuple ons must have a dict as their first '
                         f'value. Invalid tuple={o}'
                     )
-                on = Supplement.tuplify(o[1])
+                on = u.tuplify(o[1])
                 x.append(on)
                 complex_ons.append(tuple(x))
         return tuple(
             [({None: (None,)}, tuple(simple_ons)), *complex_ons]
         )
-
-    @staticmethod
-    def tuplify(value, do_none=False) -> tuple:
-        if (value is not None or do_none) and not isinstance(value, tuple):
-            value = tuple([value])
-        return value
 

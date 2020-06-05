@@ -69,6 +69,13 @@ def test_translate_nans():
     assert u.translate_nans(d) == expected
 
 
+def test_tuplify():
+    assert isinstance(u.tuplify('test'), tuple)
+    assert u.tuplify('test') == ('test',)
+    assert u.tuplify(None) is None
+    assert u.tuplify(None, True) == (None,)
+
+
 def test_validate_parser():
     assert not u.validate_parser('string')
     assert u.validate_parser(parser(lambda x: x + 1))

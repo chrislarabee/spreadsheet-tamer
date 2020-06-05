@@ -495,9 +495,6 @@ class TestSupplement:
         assert ge.Supplement.slice_dframe(
             df, {'inventory': (4500,)}).to_dict('records') == expected
 
-
-
-
     def test_build_plan(self):
         assert ge.Supplement.build_plan(('a', 'b', 'c')) == (
             ({None: (None,)}, ('a', 'b', 'c')),
@@ -508,9 +505,3 @@ class TestSupplement:
             ({None: (None,)}, ('a', 'b')),
             ({'c': ('x',)}, ('a',))
         )
-
-    def test_tuplify(self):
-        assert isinstance(ge.Supplement.tuplify('test'), tuple)
-        assert ge.Supplement.tuplify('test') == ('test',)
-        assert ge.Supplement.tuplify(None) is None
-        assert ge.Supplement.tuplify(None, True) == (None,)
