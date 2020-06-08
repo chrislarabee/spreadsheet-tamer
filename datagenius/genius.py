@@ -1221,12 +1221,12 @@ class Supplement:
         if suffixes is None:
             suffixes = tuple(
                 ['_' + a for a in u.gen_alpha_keys(len(frames) - 1)])
-        elif len(suffixes) != len(frames) - 1:
+        else:
+            suffixes = u.tuplify(suffixes)
+        if len(suffixes) != len(frames) - 1:
             raise ValueError(f'Length of suffixes must be equal to the'
                              f'number of frames passed - 1. Suffix len='
                              f'{len(suffixes)}, suffixes={suffixes}')
-        else:
-            suffixes = u.tuplify(suffixes)
         for on, fs in chunks.items():
             p_frame = fs[0]
             o_frames = fs[1:]
