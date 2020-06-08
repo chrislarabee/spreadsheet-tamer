@@ -1,4 +1,5 @@
 from collections import OrderedDict as od
+import string
 
 import numpy as np
 
@@ -27,6 +28,15 @@ def test_count_true_str():
     assert u.count_true_str(['', '', '']) == 0
     assert u.count_true_str(['a', 'test', 1]) == 2
 
+
+def test_gen_alpha_keys():
+    assert u.gen_alpha_keys(5) == {'A', 'B', 'C', 'D', 'E'}
+    assert u.gen_alpha_keys(26) == set(string.ascii_uppercase)
+    assert u.gen_alpha_keys(27) == {*string.ascii_uppercase, 'AA'}
+    assert u.gen_alpha_keys(28) == {*string.ascii_uppercase, 'AA', 'AB'}
+    assert u.gen_alpha_keys(53) == {
+        *string.ascii_uppercase, *['A' + a for a in string.ascii_uppercase],
+        'BA'}
 
 def test_isnumericplus():
     assert u.isnumericplus(1)

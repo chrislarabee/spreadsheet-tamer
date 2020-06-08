@@ -1,4 +1,5 @@
 import re
+import string
 from collections import OrderedDict
 
 import pandas as pd
@@ -57,6 +58,29 @@ def count_true_str(x: list) -> int:
     return sum(
         [1 if isinstance(y, str) and y != '' else 0 for y in x]
     )
+
+
+def gen_alpha_keys(num: int) -> set:
+    """
+    Generates a set of characters from the Latin alphabet a la excel
+    headers.
+
+    Args:
+        num: The desired length of the set.
+
+    Returns: A set containing as many letters and letter combos as
+        desired. Can be used to generate sets up to 676 in length.
+
+    """
+    a = string.ascii_uppercase
+    result = set()
+    x = num // 26
+    for i in range(x + 1):
+        root = a[i - 1] if i > 0 else ''
+        keys = [root + a[j] for j in range(26)]
+        for k in keys:
+            result.add(k) if len(result) < num else None
+    return result
 
 
 def isnumericplus(x, *options) -> (bool, tuple):
