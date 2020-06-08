@@ -1134,11 +1134,11 @@ class Supplement:
         df1 = frames[0]
         for i, df in enumerate(frames):
             for p in plan:
-                on, conditions = p
+                on, conditions = p.output()
                 if on not in chunks.keys():
-                    chunks[on] = []
+                    chunks[on] = [[], p]
                 match, result = Supplement.slice_dframe(df, conditions)
-                chunks[on].append(match)
+                chunks[on][0].append(match)
                 if result:
                     df.drop(match.index, inplace=True)
         return chunks, df1
@@ -1192,14 +1192,14 @@ class Supplement:
         simple_ons = list()
         complex_ons = list()
         for o in on:
-            if isinstance(o, str):
+            if isinstance(o, e.MatchRule):
+                complex_ons.append(o)
+            elif isinstance(o, str):
                 simple_ons.append(o)
             elif isinstance(o, tuple):
                 pair = [None, None]
                 for oi in o:
                     if isinstance(oi, dict):
-                        for k, v in oi.items():
-                            oi[k] = u.tuplify(v)
                         pair[1] = oi
                     elif isinstance(oi, (str, tuple)):
                         pair[0] = u.tuplify(oi)
@@ -1209,13 +1209,14 @@ class Supplement:
                             f'their arguments and a str/tuple as the '
                             f'other Invalid tuple={o}'
                         )
-                complex_ons.append(tuple(pair))
+                mr = e.MatchRule(*pair[0], conditions=pair[1])
+                complex_ons.append(mr)
         if len(simple_ons) > 0:
-            complex_ons.append((tuple(simple_ons), {None: (None,)}))
+            complex_ons.append(e.MatchRule(*simple_ons))
         return tuple(complex_ons)
 
-    def __call__(self, *frames, suffixes: (str, tuple) = None,
-                 inexact: bool = False) -> pd.DataFrame:
+    def __call__(self, *frames,
+                 suffixes: (str, tuple) = None) -> pd.DataFrame:
         chunks, remainder = self.chunk_dframes(self.plan, *frames)
         results = []
         if suffixes is None:
@@ -1227,7 +1228,9 @@ class Supplement:
             raise ValueError(f'Length of suffixes must be equal to the'
                              f'number of frames passed - 1. Suffix len='
                              f'{len(suffixes)}, suffixes={suffixes}')
-        for on, fs in chunks.items():
+        for on, pack in chunks.items():
+            mr = pack[1]
+            fs = pack[0]
             p_frame = fs[0]
             o_frames = fs[1:]
             for i, other in enumerate(o_frames):
@@ -1239,10 +1242,10 @@ class Supplement:
                             *on, *o_cols.intersection(set(self.select))
                         }] if self.select else other
                     )
-                    if inexact:
+                    if mr.inexact:
                         p_frame = self.do_inexact(
                             p_frame, other, on,
-                            self.thresholds, self.block, rsuffix
+                            mr.thresholds, mr.block, rsuffix
                         )
                     else:
                         p_frame = self.do_exact(

@@ -384,3 +384,8 @@ class TestMapping:
         expected = od(w=1, x=2, y=None, z=1)
         assert m(od(a=1, b=2)) == expected
 
+class TestMatchRule:
+    def test_output(self):
+        mr = e.MatchRule('a', 'b', 'c', conditions={'c': 'x'})
+        assert mr.output() == (('a', 'b', 'c'), {'c': ('x',)})
+        assert mr.output('on', 'thresholds') == (('a', 'b', 'c'), None)

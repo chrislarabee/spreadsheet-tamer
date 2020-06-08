@@ -508,9 +508,10 @@ class TestSupplement:
 
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df3 = pd.DataFrame(stores[1], columns=stores[0])
-        s = ge.Supplement('location', thresholds=.7,
-                          select_cols=('budget', 'location', 'other'))
-        result = s(df1, df3, inexact=True)
+        s = ge.Supplement(
+            e.MatchRule('location', thresholds=.7, inexact=True),
+            select_cols=('budget', 'location', 'other'))
+        result = s(df1, df3)
         assert list(result.budget) == [100000, 90000, 110000, 90000]
         assert list(result.region) == [
             'Northern', 'Northern', 'Southern', 'Southern']
@@ -552,11 +553,11 @@ class TestSupplement:
             ({'inventory': (4500,)}, 'budget')
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df)
-        assert c[('location',)][0].to_dict('records') == [
+        assert c[('location',)][0][0].to_dict('records') == [
             dict(location='W Valley', budget=90000, inventory=4500),
             dict(location='Kalliope', budget=90000, inventory=4500)
         ]
-        assert c[('budget',)][0].to_dict('records') == [
+        assert c[('budget',)][0][0].to_dict('records') == [
             dict(location='Precioso', budget=110000, inventory=4500)
         ]
         assert p_df.to_dict('records') == [
@@ -570,13 +571,13 @@ class TestSupplement:
             ({None: (None,)}, 'region'),
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[('region',)][0].to_dict('records') == [
+        assert c[('region',)][0][0].to_dict('records') == [
             dict(location='Bayside Store', region='Northern', sales=500),
             dict(location='West Valley Store', region='Northern', sales=300),
             dict(location='Precioso Store', region='Southern', sales=1000),
             dict(location='Kalliope Store', region='Southern', sales=200),
         ]
-        assert c[('region',)][1].to_dict('records') == [
+        assert c[('region',)][0][1].to_dict('records') == [
             dict(region='Northern', stores=50, employees=500),
             dict(region='Southern', stores=42, employees=450)
         ]
@@ -588,11 +589,11 @@ class TestSupplement:
             ({'region': ('Northern',)}, 'region'),
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[('region',)][0].to_dict('records') == [
+        assert c[('region',)][0][0].to_dict('records') == [
             dict(location='Bayside Store', region='Northern', sales=500),
             dict(location='West Valley Store', region='Northern', sales=300),
         ]
-        assert c[('region',)][1].to_dict('records') == [
+        assert c[('region',)][0][1].to_dict('records') == [
             dict(region='Northern', stores=50, employees=500)
         ]
         assert p_df.to_dict('records') == [
@@ -640,27 +641,19 @@ class TestSupplement:
         assert not x[1]
 
     def test_build_plan(self):
-        assert ge.Supplement.build_plan(('a', 'b', 'c')) == (
-            (('a', 'b', 'c'), {None: (None,)}),
-        )
+        plan = ge.Supplement.build_plan(('a', 'b', 'c'))
+        assert plan[0].output() == (('a', 'b', 'c'), {None: (None,)})
 
         # Check that condition/on pairs can be in any order:
-        assert ge.Supplement.build_plan((
-            'a', 'b',
-            ('a', {'c': 'x'})
-        )) == (
-            (('a',), {'c': ('x',)}),
-            (('a', 'b'), {None: (None,)})
-        )
-        assert ge.Supplement.build_plan((
-            'a', 'b',
-            ({'c': 'x'}, 'a')
-        )) == (
-            (('a',), {'c': ('x',)}),
-            (('a', 'b'), {None: (None,)})
-        )
+        plan = ge.Supplement.build_plan(('a', 'b', ('a', {'c': 'x'})))
 
-        assert ge.Supplement.build_plan(
-            (({'c': 'x'}, 'a'),)) == (
-            (('a',), {'c': ('x',)}),
-        )
+        assert plan[0].output() == (('a',), {'c': ('x',)})
+        assert plan[1].output() == (('a', 'b'), {None: (None,)})
+
+        plan = ge.Supplement.build_plan(('a', 'b', ({'c': 'x'}, 'a')))
+        assert plan[0].output() == (('a',), {'c': ('x',)})
+        assert plan[1].output() == (('a', 'b'), {None: (None,)})
+
+        plan = ge.Supplement.build_plan((({'c': 'x'}, 'a'),))
+        assert plan[0].output() == (('a',), {'c': ('x',)})
+        assert len(plan) == 1
