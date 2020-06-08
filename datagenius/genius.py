@@ -1214,7 +1214,7 @@ class Supplement:
             complex_ons.append((tuple(simple_ons), {None: (None,)}))
         return tuple(complex_ons)
 
-    def __call__(self, *frames, suffixes: tuple = None,
+    def __call__(self, *frames, suffixes: (str, tuple) = None,
                  inexact: bool = False) -> pd.DataFrame:
         chunks, remainder = self.chunk_dframes(self.plan, *frames)
         results = []
@@ -1225,6 +1225,8 @@ class Supplement:
             raise ValueError(f'Length of suffixes must be equal to the'
                              f'number of frames passed - 1. Suffix len='
                              f'{len(suffixes)}, suffixes={suffixes}')
+        else:
+            suffixes = u.tuplify(suffixes)
         for on, fs in chunks.items():
             p_frame = fs[0]
             o_frames = fs[1:]
