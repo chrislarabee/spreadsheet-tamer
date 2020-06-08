@@ -501,15 +501,19 @@ class TestSupplement:
         s = ge.Supplement('region', select_cols='stores')
         result = s(df1, df2)
         assert list(result.stores) == [50, 50, 42, 42]
+        assert list(result.region) == [
+            'Northern', 'Northern', 'Southern', 'Southern']
         assert set(result.columns).difference({
             'index', 'region', 'stores', 'location', 'sales'}) == set()
 
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df3 = pd.DataFrame(stores[1], columns=stores[0])
         s = ge.Supplement('location', thresholds=.7,
-                          select_cols=('budget', 'location'))
+                          select_cols=('budget', 'location', 'other'))
         result = s(df1, df3, inexact=True)
         assert list(result.budget) == [100000, 90000, 110000, 90000]
+        assert list(result.region) == [
+            'Northern', 'Northern', 'Southern', 'Southern']
         assert set(result.columns).difference({
             'index', 'location', 'budget', 'region', 'sales',
             'location_A'}) == set()
@@ -538,7 +542,7 @@ class TestSupplement:
         assert list(result.budget) == [100000, 90000, 110000, 90000]
         assert list(result.inventory) == [5000, 4500, 4500, 4500]
         assert list(result.columns) == [
-            0, 'location', 'region', 'sales', 'location_s', 'budget',
+            'location', 'region', 'sales', 'location_s', 'budget',
             'inventory']
 
     def test_chunk_dframes(self, stores, sales, regions):

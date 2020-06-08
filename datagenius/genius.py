@@ -1109,7 +1109,7 @@ class Supplement:
 
         a = matches.join(df1, on='level_0', how='outer', rsuffix='')
         b = a.join(df2, on='level_1', how='left', rsuffix=rsuffix)
-        b.drop(columns=['level_0', 'level_1'], inplace=True)
+        b.drop(columns=[0, 'level_0', 'level_1'], inplace=True)
         return b
 
     @staticmethod
@@ -1230,27 +1230,24 @@ class Supplement:
         for on, fs in chunks.items():
             p_frame = fs[0]
             o_frames = fs[1:]
-            for i, o in enumerate(o_frames):
+            for i, other in enumerate(o_frames):
                 rsuffix = suffixes[i]
-                if not o.empty:
+                if not other.empty:
+                    o_cols = set(other.columns)
+                    other = (
+                        other[{
+                            *on, *o_cols.intersection(set(self.select))
+                        }] if self.select else other
+                    )
                     if inexact:
                         p_frame = self.do_inexact(
-                            p_frame, o, on,
+                            p_frame, other, on,
                             self.thresholds, self.block, rsuffix
                         )
                     else:
                         p_frame = self.do_exact(
-                            p_frame, o, on, rsuffix
+                            p_frame, other, on, rsuffix
                         )
-                    if self.select:
-                        drop_cols = set()
-                        for c in p_frame:
-                            suffixes_sel = [
-                                s + rsuffix for s in self.select]
-                            if (c not in self.select
-                                    and c not in suffixes_sel):
-                                drop_cols.add(c)
-                        p_frame.drop(columns=drop_cols, inplace=True)
             results.append(p_frame)
         result_df = pd.concat(results)
         return pd.concat([result_df, remainder]).reset_index()
