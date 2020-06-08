@@ -487,22 +487,41 @@ class TestReformat:
 
 
 class TestSupplement:
+    # def test_call(self, sales, regions):
+    #     # With conditions:
+    #     df1 = pd.DataFrame(sales[1], columns=sales[0])
+    #     df2 = pd.DataFrame(regions[1], columns=regions[0])
+    #     s = ge.Supplement(({'region': 'Northern'}, 'region'))
+    #     result = s.do_exact(s.plan, df1, df2)
+    #     assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
+    #     assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
+    #
     def test_do_exact(self, sales, regions):
-        # Without conditions:
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df2 = pd.DataFrame(regions[1], columns=regions[0])
-        s = ge.Supplement('region')
-        result = s.do_exact(s.plan, df1, df2)
+        result = ge.Supplement.do_exact(df1, df2, ('region',))
         assert list(result.stores) == [50, 50, 42, 42]
         assert list(result.employees) == [500, 500, 450, 450]
 
-        # With conditions:
+    def test_do_inexact(self, sales, regions, stores):
+        # Make sure inexact can replicate exact, just as a sanity
+        # check:
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df2 = pd.DataFrame(regions[1], columns=regions[0])
-        s = ge.Supplement(({'region': 'Northern'}, 'region'))
-        result = s.do_exact(s.plan, df1, df2)
-        assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
-        assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
+        result = ge.Supplement.do_inexact(
+            df1, df2, ('region',), thresholds=(1,), block=(None,))
+        assert list(result.stores) == [50, 50, 42, 42]
+        assert list(result.employees) == [500, 500, 450, 450]
+
+        # Now for a real inexact match:
+        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        result = ge.Supplement.do_inexact(
+            df1, df3, ('location',), thresholds=(.7,), block=(None,))
+        assert list(result.budget) == [100000, 90000, 110000, 90000]
+        assert list(result.inventory) == [5000, 4500, 4500, 4500]
+        assert list(result.columns) == [
+            0, 'location', 'region', 'sales', 'location_s', 'budget',
+            'inventory']
 
     def test_chunk_dframes(self, stores, sales, regions):
         df = pd.DataFrame(stores[1], columns=stores[0])
