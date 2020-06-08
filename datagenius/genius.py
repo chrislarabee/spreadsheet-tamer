@@ -988,10 +988,40 @@ class Reformat(Genius):
 
 
 class Supplement:
-    def __init__(self, *on, thresholds: (float, tuple) = None,
+    """
+    A callable object designed to combine arbitrary numbers of pandas
+    DataFrames via exact and inexact methods. Designed to handle
+    complex merges with some rows in a dataset being joined in one way
+    and other rows being joined in different ways.
+    """
+    def __init__(self, *on, select_cols: (str, tuple) = None,
+                 thresholds: (float, tuple) = None,
                  block: (str, tuple) = None):
+        """
+
+        Args:
+            *on: An arbitrary list of column names in the DataFrames
+                that will be passed to Supplement().
+            select_cols: A list of column names in the secondary
+                DataFrames that you want to include in the results.
+                Useful if you only want some of the columns in the
+                secondary DataFrames.
+            thresholds: Used for inexact Supplementing, a tuple of the
+                percent similarity that each value in on must share
+                between the DataFrames that are merged.
+            block: Also used for inexact Supplementing, a tuple of the
+                columns in DataFrame that must have an exact match
+                before even being considered for other inexact matches.
+
+        """
+        self.select: (tuple, None) = u.tuplify(select_cols)
         self.block: (tuple, None) = u.tuplify(block)
         self.thresholds: (tuple, None) = u.tuplify(thresholds)
+        if self.thresholds:
+            if len(self.thresholds) != len(on):
+                raise ValueError(
+                    f'If provided, thresholds length must match on '
+                    f'length: thresholds={self.thresholds}, on={on}')
         self.plan = self.build_plan(on)
 
     @staticmethod
@@ -1024,7 +1054,7 @@ class Supplement:
 
     @staticmethod
     def do_inexact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
-                   thresholds: tuple, block: tuple,
+                   thresholds: tuple, block: tuple = None,
                    rsuffix: str = '_s') -> pd.DataFrame:
         """
 
@@ -1059,7 +1089,7 @@ class Supplement:
             'ignore', message="the name 'jaro_winkler'",
             category=DeprecationWarning)
         idxr = link.Index()
-        idxr.block(block) if block[0] is not None else idxr.full()
+        idxr.block(block) if block is not None else idxr.full()
         candidate_links = idxr.index(df1, df2)
         compare = link.Compare()
         # Create copies since contents of the Dataframe need to
@@ -1185,23 +1215,40 @@ class Supplement:
         return tuple(complex_ons)
 
     def __call__(self, *frames, suffixes: tuple = None,
-                 thresholds: tuple = None, block: tuple = None):
+                 inexact: bool = False) -> pd.DataFrame:
         chunks, remainder = self.chunk_dframes(self.plan, *frames)
         results = []
         if suffixes is None:
-            pass
+            suffixes = tuple(
+                ['_' + a for a in u.gen_alpha_keys(len(frames) - 1)])
+        elif len(suffixes) != len(frames) - 1:
+            raise ValueError(f'Length of suffixes must be equal to the'
+                             f'number of frames passed - 1. Suffix len='
+                             f'{len(suffixes)}, suffixes={suffixes}')
         for on, fs in chunks.items():
             p_frame = fs[0]
             o_frames = fs[1:]
             for i, o in enumerate(o_frames):
+                rsuffix = suffixes[i]
                 if not o.empty:
-                    p_frame = p_frame.merge(
-                        o,
-                        'left',
-                        on=on,
-                        suffixes=('', '_x')
-                    )
+                    if inexact:
+                        p_frame = self.do_inexact(
+                            p_frame, o, on,
+                            self.thresholds, self.block, rsuffix
+                        )
+                    else:
+                        p_frame = self.do_exact(
+                            p_frame, o, on, rsuffix
+                        )
+                    if self.select:
+                        drop_cols = set()
+                        for c in p_frame:
+                            suffixes_sel = [
+                                s + rsuffix for s in self.select]
+                            if (c not in self.select
+                                    and c not in suffixes_sel):
+                                drop_cols.add(c)
+                        p_frame.drop(columns=drop_cols, inplace=True)
             results.append(p_frame)
         result_df = pd.concat(results)
         return pd.concat([result_df, remainder]).reset_index()
-

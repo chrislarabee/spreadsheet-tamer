@@ -487,15 +487,33 @@ class TestReformat:
 
 
 class TestSupplement:
-    # def test_call(self, sales, regions):
-    #     # With conditions:
-    #     df1 = pd.DataFrame(sales[1], columns=sales[0])
-    #     df2 = pd.DataFrame(regions[1], columns=regions[0])
-    #     s = ge.Supplement(({'region': 'Northern'}, 'region'))
-    #     result = s.do_exact(s.plan, df1, df2)
-    #     assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
-    #     assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
-    #
+    def test_call(self, sales, regions, stores):
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        s = ge.Supplement(({'region': 'Northern'}, 'region'))
+        result = s(df1, df2)
+        assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
+        assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
+
+        # Test select columns functionality on exact match:
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        s = ge.Supplement('region', select_cols='stores')
+        result = s(df1, df2)
+        assert list(result.stores) == [50, 50, 42, 42]
+        assert set(result.columns).difference({
+            'index', 'region', 'stores', 'location', 'sales'}) == set()
+
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        s = ge.Supplement('location', thresholds=.7,
+                          select_cols=('budget', 'location'))
+        result = s(df1, df3, inexact=True)
+        assert list(result.budget) == [100000, 90000, 110000, 90000]
+        assert set(result.columns).difference({
+            'index', 'location', 'budget', 'region', 'sales',
+            'location_A'}) == set()
+
     def test_do_exact(self, sales, regions):
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df2 = pd.DataFrame(regions[1], columns=regions[0])
@@ -509,14 +527,14 @@ class TestSupplement:
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df2 = pd.DataFrame(regions[1], columns=regions[0])
         result = ge.Supplement.do_inexact(
-            df1, df2, ('region',), thresholds=(1,), block=(None,))
+            df1, df2, ('region',), thresholds=(1,))
         assert list(result.stores) == [50, 50, 42, 42]
         assert list(result.employees) == [500, 500, 450, 450]
 
         # Now for a real inexact match:
         df3 = pd.DataFrame(stores[1], columns=stores[0])
         result = ge.Supplement.do_inexact(
-            df1, df3, ('location',), thresholds=(.7,), block=(None,))
+            df1, df3, ('location',), thresholds=(.7,))
         assert list(result.budget) == [100000, 90000, 110000, 90000]
         assert list(result.inventory) == [5000, 4500, 4500, 4500]
         assert list(result.columns) == [
