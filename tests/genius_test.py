@@ -495,6 +495,17 @@ class TestSupplement:
         assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
         assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
 
+        # Test split results:
+        df1 = pd.DataFrame(sales[1], columns=sales[0])
+        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        s = ge.Supplement(({'region': 'Northern'}, 'region'))
+        result = s(df1, df2, split_results=True)
+        assert len(result) == 2
+        assert list(result[0].stores) == [50.0, 50.0]
+        assert list(result[0].employees) == [500.0, 500.0]
+        assert set(result[1].columns).difference(
+            {'location', 'region', 'sales'}) == set()
+
         # Test select columns functionality on exact match:
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df2 = pd.DataFrame(regions[1], columns=regions[0])
@@ -504,7 +515,7 @@ class TestSupplement:
         assert list(result.region) == [
             'Northern', 'Northern', 'Southern', 'Southern']
         assert set(result.columns).difference({
-            'index', 'region', 'stores', 'location', 'sales', 'merged_on'}
+            'region', 'stores', 'location', 'sales', 'merged_on'}
         ) == set()
 
         df1 = pd.DataFrame(sales[1], columns=sales[0])
@@ -517,7 +528,7 @@ class TestSupplement:
         assert list(result.region) == [
             'Northern', 'Northern', 'Southern', 'Southern']
         assert set(result.columns).difference({
-            'index', 'location', 'budget', 'region', 'sales',
+            'location', 'budget', 'region', 'sales',
             'location_A', 'merged_on'}) == set()
 
     def test_do_exact(self, sales, regions):

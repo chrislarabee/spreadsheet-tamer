@@ -1203,7 +1203,31 @@ class Supplement:
         return tuple(complex_ons)
 
     def __call__(self, *frames,
-                 suffixes: (str, tuple) = None) -> pd.DataFrame:
+                 suffixes: (str, tuple) = None,
+                 split_results: bool = False) -> (tuple, pd.DataFrame):
+        """
+        Executes the plan established by instantiation of Supplement
+        on the passed dataframes.
+
+        Args:
+            *frames: An arbitrary number of DataFrames. The first frame
+                will be treated as the primary frame.
+            suffixes: A string or tuple of strings, the suffixes you
+                would like to append to columns in the secondary frames
+                that have overlapping column names in the other frames.
+                If passed, you must pass as many suffixes as the length
+                of frames - 1.
+            split_results: A boolean, set to True if you want to return
+                two DataFrames, one which contains the rows from the
+                primary DataFrame and the successfully matched rows
+                from the subsequent dataframes. Otherwise, will return
+                a single dataframe containing all the rows in the
+                primary frame with the successfully matched rows joined
+                onto it.
+
+        Returns: A tuple of DataFrames or a single DataFrame.
+
+        """
         chunks, remainder = self.chunk_dframes(self.plan, *frames)
         results = []
         if suffixes is None:
@@ -1215,6 +1239,7 @@ class Supplement:
             raise ValueError(f'Length of suffixes must be equal to the'
                              f'number of frames passed - 1. Suffix len='
                              f'{len(suffixes)}, suffixes={suffixes}')
+        p_cols = set(frames[0].columns)
         for mr in chunks:
             p_frame = mr.chunks[0]
             o_frames = mr.chunks[1:]
@@ -1240,4 +1265,10 @@ class Supplement:
                         )
             results.append(p_frame)
         result_df = pd.concat(results)
-        return pd.concat([result_df, remainder]).reset_index()
+        unmatched = result_df[result_df['merged_on'].isna()]
+        matched = result_df[~result_df['merged_on'].isna()]
+        unmatched = pd.concat([unmatched[p_cols], remainder])
+        if split_results:
+            return matched, unmatched
+        else:
+            return pd.concat([matched, unmatched])
