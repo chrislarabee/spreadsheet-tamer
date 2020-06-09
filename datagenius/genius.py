@@ -994,34 +994,21 @@ class Supplement:
     complex merges with some rows in a dataset being joined in one way
     and other rows being joined in different ways.
     """
-    def __init__(self, *on, select_cols: (str, tuple) = None,
-                 thresholds: (float, tuple) = None,
-                 block: (str, tuple) = None):
+    def __init__(self, *on, select_cols: (str, tuple) = None):
         """
 
         Args:
-            *on: An arbitrary list of column names in the DataFrames
-                that will be passed to Supplement().
+            *on: An arbitrary list of column names, tuples of column
+                names and dictionary conditions, or MatchRule objects.
+                All columns referenced must be in the DataFrames that
+                will be passed to Supplement().
             select_cols: A list of column names in the secondary
                 DataFrames that you want to include in the results.
                 Useful if you only want some of the columns in the
                 secondary DataFrames.
-            thresholds: Used for inexact Supplementing, a tuple of the
-                percent similarity that each value in on must share
-                between the DataFrames that are merged.
-            block: Also used for inexact Supplementing, a tuple of the
-                columns in DataFrame that must have an exact match
-                before even being considered for other inexact matches.
 
         """
         self.select: (tuple, None) = u.tuplify(select_cols)
-        self.block: (tuple, None) = u.tuplify(block)
-        self.thresholds: (tuple, None) = u.tuplify(thresholds)
-        if self.thresholds:
-            if len(self.thresholds) != len(on):
-                raise ValueError(
-                    f'If provided, thresholds length must match on '
-                    f'length: thresholds={self.thresholds}, on={on}')
         self.plan = self.build_plan(on)
 
     @staticmethod
@@ -1099,7 +1086,8 @@ class Supplement:
         for i, o in enumerate(on):
             compare.string(
                 o, o, method='jarowinkler', threshold=thresholds[i])
-            # Any columns containing strings should be lowercase:
+            # Any columns containing strings should be lowercase to
+            # improve matching:
             for f in frames:
                 if f.dtypes[o] == 'O':
                     f[o] = f[o].astype(str).str.lower()
@@ -1113,35 +1101,33 @@ class Supplement:
         return b
 
     @staticmethod
-    def chunk_dframes(plan, *frames) -> (dict, tuple):
+    def chunk_dframes(plan: tuple, *frames) -> tuple:
         """
         Takes any number of pandas DataFrames and breaks each one into
-        chunks based on a chunking plan of conditions and corresponding
-        columns to link on.
+        chunks based on a chunking plan of MatchRule objects.
 
         Args:
-            plan: A tuple created by Supplement.build_plan, which will
-                be used to chunk each DataFrame.
+            plan: A tuple of MatchRule objects created by
+                Supplement.build_plan, which will be used to chunk each
+                DataFrame.
             *frames: An arbitrary number of pandas DataFrames, each of
                 which must have the column labels named in the plan.
 
-        Returns: A dictionary containing keys for each condition in
-            plan, and then a list of DataFrames containing the matching
-            rows of the frame at the same index.
+        Returns: Plan, with each MatchRule in the plan now having the
+            chunk of rows that match its conditions, and the first
+            DataFrame from frames, which contains any remaining rows
+            that didn't match any of the conditions.
 
         """
-        chunks = dict()
         df1 = frames[0]
         for i, df in enumerate(frames):
             for p in plan:
-                on, conditions = p.output()
-                if on not in chunks.keys():
-                    chunks[on] = [[], p]
+                conditions = p.output('conditions')
                 match, result = Supplement.slice_dframe(df, conditions)
-                chunks[on][0].append(match)
+                p.append(match)
                 if result:
                     df.drop(match.index, inplace=True)
-        return chunks, df1
+        return plan, df1
 
     @staticmethod
     def slice_dframe(df: pd.DataFrame, conditions: dict) -> tuple:
@@ -1181,12 +1167,12 @@ class Supplement:
         they are standardized in the ways that chunk_dframes expects.
 
         Args:
-            on: A tuple containing simple strings or tuples of
-                dictionary and string/tuple pairs.
+            on: A tuple containing simple strings, tuples of
+                dictionary and string/tuple pairs, or Match Rule
+                objects.
 
-        Returns: A tuple of paired dictionary and tuple values, one for
-            each complex on and a single tuple for the simple ons at the
-            end.
+        Returns: A tuple of MatchRule objects, one for each complex on
+            and a single MatchRule for the simple ons at the end.
 
         """
         simple_ons = list()
@@ -1228,28 +1214,26 @@ class Supplement:
             raise ValueError(f'Length of suffixes must be equal to the'
                              f'number of frames passed - 1. Suffix len='
                              f'{len(suffixes)}, suffixes={suffixes}')
-        for on, pack in chunks.items():
-            mr = pack[1]
-            fs = pack[0]
-            p_frame = fs[0]
-            o_frames = fs[1:]
+        for mr in chunks:
+            p_frame = mr.chunks[0]
+            o_frames = mr.chunks[1:]
             for i, other in enumerate(o_frames):
                 rsuffix = suffixes[i]
                 if not other.empty:
                     o_cols = set(other.columns)
                     other = (
                         other[{
-                            *on, *o_cols.intersection(set(self.select))
+                            *mr.on, *o_cols.intersection(set(self.select))
                         }] if self.select else other
                     )
                     if mr.inexact:
                         p_frame = self.do_inexact(
-                            p_frame, other, on,
+                            p_frame, other, mr.on,
                             mr.thresholds, mr.block, rsuffix
                         )
                     else:
                         p_frame = self.do_exact(
-                            p_frame, other, on, rsuffix
+                            p_frame, other, mr.on, rsuffix
                         )
             results.append(p_frame)
         result_df = pd.concat(results)

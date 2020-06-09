@@ -553,11 +553,11 @@ class TestSupplement:
             ({'inventory': (4500,)}, 'budget')
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df)
-        assert c[('location',)][0][0].to_dict('records') == [
+        assert c[0][0].to_dict('records') == [
             dict(location='W Valley', budget=90000, inventory=4500),
             dict(location='Kalliope', budget=90000, inventory=4500)
         ]
-        assert c[('budget',)][0][0].to_dict('records') == [
+        assert c[1][0].to_dict('records') == [
             dict(location='Precioso', budget=110000, inventory=4500)
         ]
         assert p_df.to_dict('records') == [
@@ -571,13 +571,13 @@ class TestSupplement:
             ({None: (None,)}, 'region'),
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[('region',)][0][0].to_dict('records') == [
+        assert c[0][0].to_dict('records') == [
             dict(location='Bayside Store', region='Northern', sales=500),
             dict(location='West Valley Store', region='Northern', sales=300),
             dict(location='Precioso Store', region='Southern', sales=1000),
             dict(location='Kalliope Store', region='Southern', sales=200),
         ]
-        assert c[('region',)][0][1].to_dict('records') == [
+        assert c[0][1].to_dict('records') == [
             dict(region='Northern', stores=50, employees=500),
             dict(region='Southern', stores=42, employees=450)
         ]
@@ -589,11 +589,11 @@ class TestSupplement:
             ({'region': ('Northern',)}, 'region'),
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[('region',)][0][0].to_dict('records') == [
+        assert c[0][0].to_dict('records') == [
             dict(location='Bayside Store', region='Northern', sales=500),
             dict(location='West Valley Store', region='Northern', sales=300),
         ]
-        assert c[('region',)][0][1].to_dict('records') == [
+        assert c[0][1].to_dict('records') == [
             dict(region='Northern', stores=50, employees=500)
         ]
         assert p_df.to_dict('records') == [
