@@ -1221,9 +1221,11 @@ class Supplement:
                 rsuffix = suffixes[i]
                 if not other.empty:
                     o_cols = set(other.columns)
+                    other['merged_on'] = ','.join(mr.on)
                     other = (
                         other[{
-                            *mr.on, *o_cols.intersection(set(self.select))
+                            *mr.on, *o_cols.intersection(set(self.select)),
+                            'merged_on'
                         }] if self.select else other
                     )
                     if mr.inexact:

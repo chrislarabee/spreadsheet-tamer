@@ -504,7 +504,8 @@ class TestSupplement:
         assert list(result.region) == [
             'Northern', 'Northern', 'Southern', 'Southern']
         assert set(result.columns).difference({
-            'index', 'region', 'stores', 'location', 'sales'}) == set()
+            'index', 'region', 'stores', 'location', 'sales', 'merged_on'}
+        ) == set()
 
         df1 = pd.DataFrame(sales[1], columns=sales[0])
         df3 = pd.DataFrame(stores[1], columns=stores[0])
@@ -517,7 +518,7 @@ class TestSupplement:
             'Northern', 'Northern', 'Southern', 'Southern']
         assert set(result.columns).difference({
             'index', 'location', 'budget', 'region', 'sales',
-            'location_A'}) == set()
+            'location_A', 'merged_on'}) == set()
 
     def test_do_exact(self, sales, regions):
         df1 = pd.DataFrame(sales[1], columns=sales[0])
