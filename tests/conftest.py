@@ -41,12 +41,12 @@ def regions():
 @pytest.fixture
 def stores():
     return (
-        ['location', 'budget', 'inventory'],
+        ['location', 'region', 'budget', 'inventory'],
         [
-            ['Bayside', 100000, 5000],
-            ['W Valley', 90000, 4500],
-            ['Precioso', 110000, 4500],
-            ['Kalliope', 90000, 4500]
+            ['Bayside', 'Northern', 100000, 5000],
+            ['W Valley', 'Northern', 90000, 4500],
+            ['Precioso', 'Southern', 110000, 4500],
+            ['Kalliope', 'Southern', 90000, 4500]
         ]
     )
 

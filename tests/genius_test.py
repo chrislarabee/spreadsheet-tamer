@@ -543,9 +543,19 @@ class TestSupplement:
             df1, df3, ('location',), thresholds=(.7,))
         assert list(result.budget) == [100000, 90000, 110000, 90000]
         assert list(result.inventory) == [5000, 4500, 4500, 4500]
-        assert list(result.columns) == [
-            'location', 'region', 'sales', 'location_s', 'budget',
-            'inventory']
+        assert set(result.columns).difference({
+            'location', 'region', 'region_s', 'sales', 'location_s',
+            'budget', 'inventory'}) == set()
+
+        # Same match, but with block:
+        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        result = ge.Supplement.do_inexact(
+            df1, df3, ('location',), thresholds=(.7,), block=('region',))
+        assert list(result.budget) == [100000, 90000, 110000, 90000]
+        assert list(result.inventory) == [5000, 4500, 4500, 4500]
+        assert set(result.columns).difference({
+            'location', 'region', 'region_s', 'sales', 'location_s',
+            'budget', 'inventory'}) == set()
 
     def test_chunk_dframes(self, stores, sales, regions):
         df = pd.DataFrame(stores[1], columns=stores[0])
@@ -555,14 +565,18 @@ class TestSupplement:
         ))
         c, p_df = ge.Supplement.chunk_dframes(plan, df)
         assert c[0][0].to_dict('records') == [
-            dict(location='W Valley', budget=90000, inventory=4500),
-            dict(location='Kalliope', budget=90000, inventory=4500)
+            dict(location='W Valley', region='Northern', budget=90000,
+                 inventory=4500),
+            dict(location='Kalliope', region='Southern', budget=90000,
+                 inventory=4500)
         ]
         assert c[1][0].to_dict('records') == [
-            dict(location='Precioso', budget=110000, inventory=4500)
+            dict(location='Precioso', region='Southern', budget=110000,
+                 inventory=4500)
         ]
         assert p_df.to_dict('records') == [
-            dict(location='Bayside', budget=100000, inventory=5000)
+            dict(location='Bayside', region='Northern', budget=100000,
+                 inventory=5000)
         ]
         # Test multiple dframes:
         df1 = pd.DataFrame(sales[1], columns=sales[0])
@@ -605,9 +619,12 @@ class TestSupplement:
     def test_slice_dframe(self, stores):
         df = pd.DataFrame(stores[1], columns=stores[0])
         expected = [
-            dict(location='W Valley', budget=90000, inventory=4500),
-            dict(location='Precioso', budget=110000, inventory=4500),
-            dict(location='Kalliope', budget=90000, inventory=4500)
+            dict(location='W Valley', region='Northern', budget=90000,
+                 inventory=4500),
+            dict(location='Precioso', region='Southern', budget=110000,
+                 inventory=4500),
+            dict(location='Kalliope', region='Southern', budget=90000,
+                 inventory=4500)
         ]
         x = ge.Supplement.slice_dframe(df, {'inventory': (4500,)})
         assert df is not x[0]
@@ -616,8 +633,10 @@ class TestSupplement:
 
         # Test multiple conditions:
         expected = [
-            dict(location='W Valley', budget=90000, inventory=4500),
-            dict(location='Kalliope', budget=90000, inventory=4500)
+            dict(location='W Valley', region='Northern', budget=90000,
+                 inventory=4500),
+            dict(location='Kalliope', region='Southern', budget=90000,
+                 inventory=4500)
         ]
         x = ge.Supplement.slice_dframe(df, {'inventory': (4500,),
                                             'budget': (90000,)})
@@ -626,10 +645,14 @@ class TestSupplement:
 
         # Test no conditions:
         expected = [
-            dict(location='Bayside', budget=100000, inventory=5000),
-            dict(location='W Valley', budget=90000, inventory=4500),
-            dict(location='Precioso', budget=110000, inventory=4500),
-            dict(location='Kalliope', budget=90000, inventory=4500)
+            dict(location='Bayside', region='Northern', budget=100000,
+                 inventory=5000),
+            dict(location='W Valley', region='Northern', budget=90000,
+                 inventory=4500),
+            dict(location='Precioso', region='Southern', budget=110000,
+                 inventory=4500),
+            dict(location='Kalliope', region='Southern', budget=90000,
+                 inventory=4500)
         ]
         x = ge.Supplement.slice_dframe(df, {None: (None,)})
         assert x[0].to_dict('records') == expected
