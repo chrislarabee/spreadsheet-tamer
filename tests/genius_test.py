@@ -557,6 +557,16 @@ class TestSupplement:
             'location', 'region', 'region_s', 'sales', 'location_s',
             'budget', 'inventory'}) == set()
 
+        # Same match, but with multiple ons:
+        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        result = ge.Supplement.do_inexact(
+            df1, df3, ('location', 'region'), thresholds=(.7, 1))
+        assert list(result.budget) == [100000, 90000, 110000, 90000]
+        assert list(result.inventory) == [5000, 4500, 4500, 4500]
+        assert set(result.columns).difference({
+            'location', 'region', 'region_s', 'sales', 'location_s',
+            'budget', 'inventory'}) == set()
+
     def test_chunk_dframes(self, stores, sales, regions):
         df = pd.DataFrame(stores[1], columns=stores[0])
         plan = ge.Supplement.build_plan((

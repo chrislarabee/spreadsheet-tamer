@@ -1097,7 +1097,8 @@ class Supplement:
 
         a = matches.join(df1, on='level_0', how='outer', rsuffix='')
         b = a.join(df2, on='level_1', how='left', rsuffix=rsuffix)
-        b.drop(columns=[0, 'level_0', 'level_1'], inplace=True)
+        drop_cols = ['level_0', 'level_1', *[i for i in range(len(on))]]
+        b.drop(columns=drop_cols, inplace=True)
         return b
 
     @staticmethod
