@@ -1007,7 +1007,7 @@ class MatchRule(col.abc.MutableSequence):
         self.inexact: bool = inexact
         if self.inexact:
             if self.thresholds is None:
-                self.thresholds = (.9 for _ in range(len(self.on)))
+                self.thresholds = tuple([.9 for _ in range(len(self.on))])
             elif len(self.thresholds) != len(self.on):
                 raise ValueError(
                     f'If provided, thresholds length must match on '
