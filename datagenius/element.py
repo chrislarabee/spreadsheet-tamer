@@ -530,7 +530,7 @@ class Dataset(Element, col.abc.Sequence):
             for k in self.meta_data.header:
                 v = self.meta_data.get(k)
                 t = v['probable_type'] if v is not None else 'uncertain'
-                schema[k] = type_map[t]
+                schema[str(k)] = type_map[t]
             o = options.get('db_conn', odbc.ODBConnector())
             o.setup(p)
             odbc.write_sqlite(o, f, self._data, schema)
