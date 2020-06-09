@@ -389,3 +389,4 @@ class TestMatchRule:
         mr = e.MatchRule('a', 'b', 'c', conditions={'c': 'x'})
         assert mr.output() == (('a', 'b', 'c'), {'c': ('x',)})
         assert mr.output('on', 'thresholds') == (('a', 'b', 'c'), None)
+        assert mr.output('on') == ('a', 'b', 'c')

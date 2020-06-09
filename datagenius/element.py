@@ -992,7 +992,7 @@ class MatchRule(col.abc.MutableSequence):
         """
 
         Args:
-            *on:
+            *on: An arbitrary list of
             conditions:
             thresholds:
             block:
@@ -1008,16 +1008,33 @@ class MatchRule(col.abc.MutableSequence):
         if self.inexact:
             if self.thresholds is None:
                 self.thresholds = (.9 for _ in range(len(self.on)))
+            elif len(self.thresholds) != len(self.on):
+                raise ValueError(
+                    f'If provided, thresholds length must match on '
+                    f'length: thresholds={self.thresholds}, on={self.on}')
         self.chunks: list = []
 
     def insert(self, index: int, x):
         self.chunks.insert(index, x)
 
     def output(self, *attrs) -> tuple:
+        """
+        Convenience method for quickly collecting a tuple of attributes
+        from MatchRule.
+
+        Args:
+            *attrs: An arbitrary number of strings, which must be
+                attributes in MatchRule. If no attrs are passed, output
+                will just return on and conditions attributes.
+
+        Returns: A tuple of attribute values.
+
+        """
         if len(attrs) == 0:
             return self.on, self.conditions
         else:
-            return tuple([getattr(self, a) for a in attrs])
+            results = [getattr(self, a) for a in attrs]
+            return results[0] if len(results) == 1 else tuple(results)
 
     def __getitem__(self, item: int):
         return self.chunks[item]
