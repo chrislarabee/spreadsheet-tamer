@@ -3,15 +3,29 @@ import pytest
 
 @pytest.fixture
 def customers():
-    return (
-        ['id', 'fname', 'lname', 'foreign_key'],
-        [
-            ['1', 'Yancy', 'Cordwainer', '00025'],
-            ['2', 'Muhammad', 'El-Kanan', '00076'],
-            ['3', 'Luisa', 'Romero', '00123'],
-            ['4', 'Semaj', 'Soto', '01234']
-        ]
-    )
+    """
+    Generates a simple, ideal dataset for tests. The inner function
+    _gen is used so that simple_data() can return its data with
+    the id values interpreted as strings (for csv reading) or
+    integers (for excel reading).
+
+    Returns: A list of lists.
+
+    """
+    def _gen(f=str):
+        d = dict(
+            columns=['id', 'fname', 'lname', 'foreign_key'],
+            data=[
+                [f(1), 'Yancy', 'Cordwainer', '00025'],
+                [f(2), 'Muhammad', 'El-Kanan', '00076'],
+                [f(3), 'Luisa', 'Romero', '00123'],
+                [f(4), 'Semaj', 'Soto', '01234']
+            ],
+            dtype=object
+        )
+        return d
+
+    return _gen
 
 
 @pytest.fixture

@@ -77,184 +77,72 @@ class TestMetaData:
         assert md.test_other == 1
 
 
-class TestDataset:
-    def test_copy(self, customers):
-        d = e.Dataset(customers[1], customers[0])
+class TestGeniusAccessor:
+    def test_from_file(self, customers):
+        d = pd.DataFrame.genius.from_file('tests/samples/csv/simple.csv')
+        pd.testing.assert_frame_equal(
+            d, pd.DataFrame(**customers()))
 
-        d2 = d.copy()
-        assert d2 != d
-        assert d2.meta_data != d.meta_data
+        d = pd.DataFrame.genius.from_file('tests/samples/excel/simple.xlsx')
+        pd.testing.assert_frame_equal(
+            d, pd.DataFrame(**customers(int)))
 
-    def test_transpose(self):
-        data = [
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, 9]
-        ]
-        d = e.Dataset(data)
-        assert d.data_orientation == 'row'
-        d.transpose('column')
-        assert d == [
-            [1, 4, 7],
-            [2, 5, 8],
-            [3, 6, 9]
-        ]
-        assert d.data_orientation == 'column'
-        d.transpose('set')
-        assert d == data
-        assert d.data_orientation == 'row'
 
-    def test_from_file(self, simple_data):
-        d = e.Dataset.from_file('tests/samples/csv/simple.csv')
-        assert isinstance(d, e.Dataset)
-        assert d == simple_data()
-
-        d = e.Dataset.from_file('tests/samples/excel/simple.xlsx')
-        assert isinstance(d, e.Dataset)
-        assert d == simple_data(int)
-
-    def test_remove(self, simple_data):
-        d = e.Dataset(simple_data())
-        d.remove(0)
-        assert d == [
-            ['1', 'Yancy', 'Cordwainer', '00025'],
-            ['2', 'Muhammad', 'El-Kanan', '00076'],
-            ['3', 'Luisa', 'Romero', '00123'],
-            ['4', 'Semaj', 'Soto', '01234']
-        ]
-
-        d.remove(['4', 'Semaj', 'Soto', '01234'])
-        assert d == [
-            ['1', 'Yancy', 'Cordwainer', '00025'],
-            ['2', 'Muhammad', 'El-Kanan', '00076'],
-            ['3', 'Luisa', 'Romero', '00123']
-        ]
-
-        with pytest.raises(ValueError,
-                           match='can only take int or list'):
-            d.remove('bad input')
-
-    def test_format_changes(self):
-        raw = [
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, 9]
-        ]
-        header = ['a', 'b', 'c']
-        expected = [
-            {'a': 1, 'b': 2, 'c': 3},
-            {'a': 4, 'b': 5, 'c': 6},
-            {'a': 7, 'b': 8, 'c': 9},
-        ]
-
-        d = e.Dataset(raw, header=header)
-
-        assert d.to_dicts() == expected
-        assert d.to_lists() == raw
-        assert d.to_format('dicts')
-        assert d == expected
-        assert d.to_format('lists')
-        assert d == raw
-
-        d.to_df()
-        assert isinstance(d._data, pd.DataFrame)
-        assert list(d._data.columns) == ['a', 'b', 'c']
-        assert d._data.shape == (3, 3)
-        assert d.to_dicts() == expected
-        assert isinstance(d._data[0], od)
-        d.to_df()
-        assert d.to_lists() == raw
-
-    def test_getitem(self):
-        d = e.Dataset([
-            [1, 2, 3],
-            [4, 5, 6]
-        ])
-
-        assert d[0] == [1, 2, 3]
-
-    def test_index(self):
-        d = e.Dataset([
-            [1, 2, 3],
-            [4, 5, 6]
-        ])
-
-        assert d.index([1, 2, 3]) == 0
-
-    def test_comparison(self):
-        d = e.Dataset([
-            [1, 2, 3],
-            [4, 5, 6]
-        ])
-
-        assert d == [[1, 2, 3], [4, 5, 6]]
-        assert d != [[0, 0, 0], [9, 9, 9]]
-
-    def test_to_file_sqlite(self, sales):
-        d = e.Dataset(sales[1], sales[0])
-        d.rejects = [
-            ['Sales by Location Report', None, None],
-            ['Grouping: Region', 43956.0, None],
-            [None, None, 800],
-            [None, None, 1200]
-        ]
-        d.to_format('dicts')
-        d.meta_data.update('location', probable_type='uncertain')
-        d.meta_data.update('region', probable_type='string')
-        d.meta_data.update('sales', probable_type='integer')
-        o = odbc.ODBConnector()
-        d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
-        d2 = e.Dataset(o.select('sales'))
-        assert d2._data == d._data
-
-        # Check meta data tables:
-        assert e.Dataset(o.select('sales_col_meta_data')) == [
-            od(column='location', probable_type='uncertain'),
-            od(column='region', probable_type='string'),
-            od(column='sales', probable_type='integer')
-        ]
-        assert e.Dataset(o.select('sales_dset_meta_data')) == [
-            od(feature='Number of columns', value='3'),
-            od(feature='Number of rows', value='4'),
-            od(feature='Number of rejected rows', value='4'),
-            od(feature='Number of values in rejected rows', value='5'),
-            od(feature='Number of strings cleared of whitespace', value='0')
-        ]
-
-        # Check rejects table:
-        assert e.Dataset(o.select('sales_rejects')) == [
-            od(location='Sales by Location Report', region=None, sales=None),
-            od(location='Grouping: Region', region='43956.0', sales=None),
-            od(location=None, region=None, sales='800'),
-            od(location=None, region=None, sales='1200'),
-        ]
-
-    def test_to_file_csv(self, customers, simple_data):
-        p = 'tests/samples/customers.csv'
-        if os.path.exists(p):
-            os.remove(p)
-        d = e.Dataset(customers[1], customers[0])
-        d.to_format('dicts')
-        d.to_file('tests/samples', 'customers', to='csv')
-        d2 = e.Dataset.from_file(p)
-        assert d2 == simple_data()
-
-    def test_package_rejects(self):
-        d = e.Dataset([
-            [1, 2, 3],
-            [4, 5, 6]
-        ])
-        d.rejects = [
-            ['Integers', None, None],
-            [None, None, 9]
-        ]
-        assert d.package_rejects() == (
-            [
-                od({'0': 'Integers', '1': None, '2': None}),
-                od({'0': None, '1': None, '2': 9})
-            ],
-            {'0': str, '1': str, '2': str}
-        )
+    # def test_to_file_sqlite(self, sales):
+    #     d = e.Dataset(sales[1], sales[0])
+    #     d.rejects = [
+    #         ['Sales by Location Report', None, None],
+    #         ['Grouping: Region', 43956.0, None],
+    #         [None, None, 800],
+    #         [None, None, 1200]
+    #     ]
+    #     d.to_format('dicts')
+    #     d.meta_data.update('location', probable_type='uncertain')
+    #     d.meta_data.update('region', probable_type='string')
+    #     d.meta_data.update('sales', probable_type='integer')
+    #     o = odbc.ODBConnector()
+    #     d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
+    #     d2 = e.Dataset(o.select('sales'))
+    #     assert d2._data == d._data
+    #
+    #     # Check meta data tables:
+    #     assert e.Dataset(o.select('sales_col_meta_data')) == [
+    #         od(column='location', probable_type='uncertain'),
+    #         od(column='region', probable_type='string'),
+    #         od(column='sales', probable_type='integer')
+    #     ]
+    #     assert e.Dataset(o.select('sales_dset_meta_data')) == [
+    #         od(feature='Number of columns', value='3'),
+    #         od(feature='Number of rows', value='4'),
+    #         od(feature='Number of rejected rows', value='4'),
+    #         od(feature='Number of values in rejected rows', value='5'),
+    #         od(feature='Number of strings cleared of whitespace', value='0')
+    #     ]
+    #
+    #     # Check rejects table:
+    #     assert e.Dataset(o.select('sales_rejects')) == [
+    #         od(location='Sales by Location Report', region=None, sales=None),
+    #         od(location='Grouping: Region', region='43956.0', sales=None),
+    #         od(location=None, region=None, sales='800'),
+    #         od(location=None, region=None, sales='1200'),
+    #     ]
+    #
+    # def test_package_rejects(self):
+    #     d = e.Dataset([
+    #         [1, 2, 3],
+    #         [4, 5, 6]
+    #     ])
+    #     d.rejects = [
+    #         ['Integers', None, None],
+    #         [None, None, 9]
+    #     ]
+    #     assert d.package_rejects() == (
+    #         [
+    #             od({'0': 'Integers', '1': None, '2': None}),
+    #             od({'0': None, '1': None, '2': 9})
+    #         ],
+    #         {'0': str, '1': str, '2': str}
+    #     )
 
 
 class TestRule:

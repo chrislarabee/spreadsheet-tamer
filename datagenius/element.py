@@ -6,9 +6,8 @@ from abc import ABC
 from typing import Callable
 
 import pandas as pd
-import recordlinkage as link
 
-from datagenius.io import text, odbc
+from datagenius.io import odbc
 import datagenius.util as u
 
 
@@ -280,107 +279,32 @@ class MetaData(Element, col.abc.MutableMapping):
         self._data[key] = value
 
 
-class Dataset(Element, col.abc.Sequence):
+class Dataset:
+    def __init__(self):
+        pass
+
+
+@pd.api.extensions.register_dataframe_accessor("genius")
+class GeniusAccessor:
     """
-    A wrapper object for lists of lists. Datasets are the primary
-    data-containing object for datagenius.
+    A custom pandas DataFrame accessor that adds a number of additional
+    methods, properties, and attributes that extend the DataFrame's
+    functionality.
     """
-    def __init__(self, data: list, header: list = None):
+    def __init__(self, df: pd.DataFrame):
         """
-        Datasets must be instantiated with a list of lists.
 
         Args:
-            data: A list of lists.
-            header: A list, the header of the Dataset. Mostly used as a
-                convenience attribute for testing.
+            df: A pandas DataFrame.
         """
-        struct_error_msg = (
-            'Dataset data must be instantiated as a list of lists or '
-            'OrderedDicts.')
-        self.data_format: (str, None) = None
-        self.data_orientation: str = 'row'
+        self.df = df
         # Stores rows when parsers reject them and need to store them:
         self.rejects: list = list()
         # Stores results from Explore objects.
         self.meta_data: MetaData = MetaData()
-        if isinstance(data, (tuple, list)):
-            row1 = data[0]
-            self.row_ct: int = len(data)
-            self.col_ct: int = len(row1)
-            if isinstance(row1, list):
-                self.meta_data.gen_temp_header(self.col_ct, header)
-                self.data_format = 'lists'
-            elif isinstance(row1, col.OrderedDict):
-                self.meta_data.header = list(row1.keys())
-                self.data_format = 'dicts'
-            else:
-                raise ValueError(struct_error_msg)
-            for row in data:
-                if len(row) != self.col_ct:
-                    raise ValueError(
-                        f'All rows must have the same length. '
-                        f'Invalid row={row}')
-            super(Dataset, self).__init__(data)
-        else:
-            raise ValueError(struct_error_msg)
 
-    def copy(self):
-        """
-        Creates a copy of the Dataset with the same data and meta_data.
-
-        Returns: A copy of the Dataset object.
-
-        """
-        d = Dataset(self._data.copy())
-        d.meta_data = self.meta_data.copy()
-        return d
-
-    def transpose(self, orientation: str) -> None:
-        """
-        Transposes the Dataset's data, making the columns rows and the
-        rows columns.
-
-        Args:
-            orientation: A string, indicates what the desired
-                data_orientation value is.
-
-        Returns: None
-
-        """
-        orientation = 'row' if orientation == 'set' else orientation
-        self.to_format('lists')
-        if self.data_orientation != orientation:
-            self._data = list(map(list, zip(*self._data)))
-            if self.data_orientation == 'row':
-                self.data_orientation = 'column'
-            else:
-                self.data_orientation = 'row'
-
-    def to_format(self, to: str) -> bool:
-        """
-        Triggers the passed data_format change.
-
-        Args:
-            to: A string found in format_funcs dict, below.
-
-        Returns: A boolean indicating whether to_format
-            needed to execute a formatting function.
-
-        """
-        format_funcs = {
-            'dicts': self.to_dicts,
-            'lists': self.to_lists,
-            'df': self.to_df
-        }
-        if to == 'any':
-            return False
-        else:
-            prev_format = self.data_format
-            format_funcs[to]()
-            return True if prev_format != self.data_format else False
-
-    @staticmethod
-    def from_file(file_path: str):
+    @classmethod
+    def from_file(cls, file_path: str, **kwargs) -> pd.DataFrame:
         """
         Uses read_file to read in the passed file path.
 
@@ -394,161 +318,95 @@ class Dataset(Element, col.abc.Sequence):
             data, it will return a Dataset object.
 
         """
-        raw = text.read_file(file_path)
-        if len(raw.keys()) == 1:
-            return Dataset(list(raw.values())[0])
+        read_funcs = {
+            '.xls': pd.read_excel,
+            '.xlsx': pd.read_excel,
+            '.csv': pd.read_csv,
+            '.json': pd.read_json,
+            '.db': None  # TODO: Add GeniusAccessor.from_sqlite
+        }
+        _, ext = os.path.splitext(file_path)
+        # Expectation is that no column for these exts will have data
+        # types that are safe for pandas to interpret.
+        if ext in ('.xls', '.xlsx', '.csv'):
+            kwargs['dtype'] = object
+        if ext not in read_funcs.keys():
+            raise ValueError(f'read_file error: file extension must be '
+                             f'one of {read_funcs.keys()}')
         else:
-            return raw
+            return read_funcs[ext](file_path, **kwargs)
 
-    def remove(self, key: (int, list)) -> None:
+    @staticmethod
+    def from_sqlite(dir_path: str, table: str, **options):
+        pass
+
+    def to_sqlite(self, dir_path: str, table: str, **options):
         """
-        Removes a row from the dataset based on its index or
-        an exact match of the rows contents.
+        Writes the Dataset to a sqlite db.
 
         Args:
-            key: An integer corresponding to an index in self._data
-                or a list corresponding to a row in self._data.
-
-        Returns: None
-
-        """
-        if isinstance(key, int):
-            self._data.pop(key)
-        elif isinstance(key, (list, col.OrderedDict)):
-            self._data.remove(key)
-        else:
-            raise ValueError(
-                'Dataset.remove can only take int or list/OrderedDict '
-                'arguments.')
-
-    def to_df(self):
-        """
-        Converts self._data to OrderedDicts and then a pandas
-        DataFrame.
-
-        Returns: self, with self._data modified to be a pandas
-            DataFrame.
-
-        """
-        if self.data_format != 'df':
-            if self.data_format != 'dicts':
-                self.to_dicts()
-            self._data = pd.DataFrame(self._data)
-            self.data_format = 'df'
-        return self
-
-    def to_dicts(self):
-        """
-        Uses self.header and self._data to convert self._data into
-        a list of OrderedDicts.
-
-        Returns: self, with self._data modified to be a list of
-            OrderedDicts.
-
-        """
-        if self.meta_data.header is None:
-            raise AttributeError(
-                'This Dataset has no header. Cannot convert to dicts '
-                'data_format without a header.')
-        elif self.data_format == 'lists':
-            results = []
-            for row in self:
-                d = col.OrderedDict()
-                for i, h in enumerate(self.meta_data.header):
-                    d[h] = row[i]
-                results.append(d)
-            self._data = results
-            self.data_format = 'dicts'
-        elif self.data_format == 'df':
-            self.meta_data.header = list(self._data.columns)
-            self._data = self._data.to_dict('records', into=col.OrderedDict)
-            self._data = u.translate_nans(self._data)
-            self.data_format = 'dicts'
-        return self
-
-    def to_lists(self):
-        """
-        Converts self._data into a list of lists and uses the keys of
-        the first row as the new header (in case changes were made).
-
-        Returns: self, with self._data modified to be a list of
-            lists.
-
-        """
-        if self.data_format == 'dicts':
-            results = []
-            self.meta_data.header = list(self[0].keys())
-            for row in self:
-                results.append([*list(row.values())])
-            self._data = results
-            self.data_format = 'lists'
-        elif self.data_format == 'df':
-            self.meta_data.header = list(self._data.columns)
-            self._data = self._data.values.tolist()
-            self._data = u.translate_nans(self._data)
-            self.data_format = 'lists'
-        return self
-
-    def to_file(self, dir_path: str, output_name: str, to: str = 'sqlite',
-                **options):
-        """
-        Converts the dataset into dicts data_format and then writes its
-        data to a local sqlite db or to a csv file.
-
-        Args:
-            dir_path: A string, the directory to locate the sqlite db
-                or csv file.
-            output_name: A string, the name of the csv file or table in
-                the sqlite db to use.
-            to: A string, either 'sqlite' or 'csv'.
-            **options: Key-value options to alter to_file's behavior.
+            dir_path: The directory path where the db file is/should
+                be located.
+            table: A string, the name of the table(s) to enter data in.
+            **options: Key-value options to alter to_sqlite's behavior.
                 Currently in use options:
                     db_conn: An io.odbc.ODBConnector object if you have
-                        one already, otherwise to_file will create one.
+                        one, otherwise to_sqlite will create it.
                     db_name: A string to specifically name the db to
                         output to. Default is 'datasets'
 
         Returns: None
 
         """
-        self.transpose('row')
-        self.to_dicts()
-        f, ext = os.path.splitext(output_name)
-        if to == 'csv':
-            ext = 'csv' if ext == '' else ext
-            p = os.path.join(dir_path, f + '.' + ext)
-            text.write_csv(p, self._data, self.meta_data.header)
-        elif to == 'sqlite':
-            p = os.path.join(dir_path, options.get('db_name', 'datasets') + '.db')
-            type_map = {
-                'uncertain': str,
-                'numeric': float,
-                'string': str,
-                'integer': int
-            }
-            schema = dict()
-            for k in self.meta_data.header:
-                v = self.meta_data.get(k)
-                t = v['probable_type'] if v is not None else 'uncertain'
-                schema[str(k)] = type_map[t]
-            o = options.get('db_conn', odbc.ODBConnector())
-            o.setup(p)
-            odbc.write_sqlite(o, f, self._data, schema)
-            # Add meta_data tables for this dataset:
-            dset_md_tbl = f + '_dset_meta_data'
-            col_md_tbl = f + '_col_meta_data'
-            (dset_md, dset_md_schema,
-             col_md, col_md_schema) = self.meta_data_report()
-            odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
-            odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
-            # Add reject table for this dataset:
-            reject_tbl = f + '_rejects'
-            rejects, reject_schema = self.package_rejects()
-            odbc.write_sqlite(o, reject_tbl, rejects, reject_schema)
-        else:
-            raise ValueError(
-                f'Unrecognized "to": {to}'
-            )
+        p = os.path.join(
+            dir_path, options.get('db_name', 'datasets') + '.db')
+        type_map = {
+            'O': str,
+            'string': str,
+            'float64': float,
+            'int64': int,
+        }
+        schema = {
+            k: type_map[self.dtypes[k]] for k in list(self.columns)
+        }
+        data = self.to_dict('records', into=col.OrderedDict)
+        conn = options.get('db_conn', odbc.ODBConnector())
+        conn.setup(p)
+        odbc.write_sqlite(conn, table, data, schema)
+
+    # def to_file(self, dir_path: str, output_name: str, to: str = 'sqlite',
+    #             **options):
+    #     """
+    #     Converts the dataset into dicts data_format and then writes its
+    #     data to a local sqlite db or to a csv file.
+    #
+    #     Args:
+    #         dir_path: A string, the directory to locate the sqlite db
+    #             or csv file.
+    #         output_name: A string, the name of the csv file or table in
+    #             the sqlite db to use.
+    #         to: A string, either 'sqlite' or 'csv'.
+    #         **options: Key-value options to alter to_file's behavior.
+    #             Currently in use options:
+    #                 db_conn: An io.odbc.ODBConnector object if you have
+    #                     one already, otherwise to_file will create one.
+    #                 db_name: A string to specifically name the db to
+    #                     output to. Default is 'datasets'
+    #
+    #     Returns: None
+    #
+    #     """
+        # Add meta_data tables for this dataset:
+        # dset_md_tbl = f + '_dset_meta_data'
+        # col_md_tbl = f + '_col_meta_data'
+        # (dset_md, dset_md_schema,
+        #  col_md, col_md_schema) = self.meta_data_report()
+        # odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
+        # odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
+        # # Add reject table for this dataset:
+        # reject_tbl = f + '_rejects'
+        # rejects, reject_schema = self.package_rejects()
+        # odbc.write_sqlite(o, reject_tbl, rejects, reject_schema)
 
     def package_rejects(self):
         """
