@@ -323,7 +323,8 @@ class GeniusAccessor:
             '.xlsx': pd.read_excel,
             '.csv': pd.read_csv,
             '.json': pd.read_json,
-            '.db': None  # TODO: Add GeniusAccessor.from_sqlite
+            # file_paths with no extension are presumed to be dir_paths
+            '': cls.from_sqlite
         }
         _, ext = os.path.splitext(file_path)
         # Expectation is that no column for these exts will have data
@@ -336,18 +337,41 @@ class GeniusAccessor:
         else:
             return read_funcs[ext](file_path, **kwargs)
 
-    @staticmethod
-    def from_sqlite(dir_path: str, table: str, **options):
-        pass
+    @classmethod
+    def from_sqlite(cls, dir_path: str, table: str,
+                    **options) -> pd.DataFrame:
+        """
+        Creates a pandas DataFrame from a sqlite database table.
+
+        Args:
+            dir_path: The directory path where the db file is located.
+            table: A string, the name of the table to pull data from.
+            **options: Key-value options to alter to_sqlite's behavior.
+                Currently in use options:
+                    db_conn: An io.odbc.ODBConnector object if you have
+                        one, otherwise from_sqlite will create it.
+                    db_name: A string, the name of the db file to pull
+                        from. Default is 'datasets'.
+
+        Returns: A pandas DataFrame containing the contents of the
+            passed table.
+
+        """
+        conn = cls._quick_conn_setup(
+            dir_path,
+            options.get('db_name'),
+            options.get('db_conn')
+        )
+        return pd.DataFrame(conn.select(table))
 
     def to_sqlite(self, dir_path: str, table: str, **options):
         """
-        Writes the Dataset to a sqlite db.
+        Writes the DataFrame to a sqlite db.
 
         Args:
             dir_path: The directory path where the db file is/should
                 be located.
-            table: A string, the name of the table(s) to enter data in.
+            table: A string, the name of the table to enter data in.
             **options: Key-value options to alter to_sqlite's behavior.
                 Currently in use options:
                     db_conn: An io.odbc.ODBConnector object if you have
@@ -358,44 +382,23 @@ class GeniusAccessor:
         Returns: None
 
         """
-        p = os.path.join(
-            dir_path, options.get('db_name', 'datasets') + '.db')
+        conn = self._quick_conn_setup(
+            dir_path,
+            options.get('db_name'),
+            options.get('db_conn')
+        )
         type_map = {
-            'O': str,
+            'object': str,
             'string': str,
             'float64': float,
             'int64': int,
         }
         schema = {
-            k: type_map[self.dtypes[k]] for k in list(self.columns)
+            k: type_map[str(self.df.dtypes[k])] for k in list(self.df.columns)
         }
-        data = self.to_dict('records', into=col.OrderedDict)
-        conn = options.get('db_conn', odbc.ODBConnector())
-        conn.setup(p)
+        data = self.df.to_dict('records', into=col.OrderedDict)
         odbc.write_sqlite(conn, table, data, schema)
 
-    # def to_file(self, dir_path: str, output_name: str, to: str = 'sqlite',
-    #             **options):
-    #     """
-    #     Converts the dataset into dicts data_format and then writes its
-    #     data to a local sqlite db or to a csv file.
-    #
-    #     Args:
-    #         dir_path: A string, the directory to locate the sqlite db
-    #             or csv file.
-    #         output_name: A string, the name of the csv file or table in
-    #             the sqlite db to use.
-    #         to: A string, either 'sqlite' or 'csv'.
-    #         **options: Key-value options to alter to_file's behavior.
-    #             Currently in use options:
-    #                 db_conn: An io.odbc.ODBConnector object if you have
-    #                     one already, otherwise to_file will create one.
-    #                 db_name: A string to specifically name the db to
-    #                     output to. Default is 'datasets'
-    #
-    #     Returns: None
-    #
-    #     """
         # Add meta_data tables for this dataset:
         # dset_md_tbl = f + '_dset_meta_data'
         # col_md_tbl = f + '_col_meta_data'
@@ -474,6 +477,27 @@ class GeniusAccessor:
         ]
         dataset_md_schema = {'feature': str, 'value': str}
         return dataset_md, dataset_md_schema, column_md, column_md_schema
+
+    @staticmethod
+    def _quick_conn_setup(dir_path, db_name=None, db_conn=None):
+        """
+        Convenience method for creating a sqlite databse or connecting
+        to an existing one.
+
+        Args:
+            dir_path: The directory path where the db file is/should
+                be located.
+            db_name: An io.odbc.ODBConnector object if you have
+                one, otherwise to_sqlite will create it.
+            db_conn:
+
+        Returns:
+
+        """
+        db_name = 'datasets' if not db_name else db_name
+        db_conn = odbc.ODBConnector() if not db_conn else db_conn
+        db_conn.setup(os.path.join(dir_path, db_name + '.db'))
+        return db_conn
 
 
 class Rule:

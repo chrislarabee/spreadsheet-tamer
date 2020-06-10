@@ -81,29 +81,38 @@ class TestGeniusAccessor:
     def test_from_file(self, customers):
         d = pd.DataFrame.genius.from_file('tests/samples/csv/simple.csv')
         pd.testing.assert_frame_equal(
-            d, pd.DataFrame(**customers()))
+            d, pd.DataFrame(**customers())
+        )
 
         d = pd.DataFrame.genius.from_file('tests/samples/excel/simple.xlsx')
         pd.testing.assert_frame_equal(
-            d, pd.DataFrame(**customers(int)))
+            d, pd.DataFrame(**customers(int))
+        )
 
+        d = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='customers', db_name='element_test')
+        pd.testing.assert_frame_equal(
+            d, pd.DataFrame(**customers())
+        )
 
-    # def test_to_file_sqlite(self, sales):
-    #     d = e.Dataset(sales[1], sales[0])
-    #     d.rejects = [
-    #         ['Sales by Location Report', None, None],
-    #         ['Grouping: Region', 43956.0, None],
-    #         [None, None, 800],
-    #         [None, None, 1200]
-    #     ]
-    #     d.to_format('dicts')
-    #     d.meta_data.update('location', probable_type='uncertain')
-    #     d.meta_data.update('region', probable_type='string')
-    #     d.meta_data.update('sales', probable_type='integer')
-    #     o = odbc.ODBConnector()
-    #     d.to_file('tests/samples', 'sales', db_conn=o, db_name='element_test')
-    #     d2 = e.Dataset(o.select('sales'))
-    #     assert d2._data == d._data
+    def test_to_from_sqlite(self, sales):
+        d = pd.DataFrame(**sales)
+        o = odbc.ODBConnector()
+        d.genius.to_sqlite(
+            'tests/samples', 'sales', db_conn=o, db_name='element_test')
+        d2 = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='sales', db_conn=o, db_name='element_test')
+        pd.testing.assert_frame_equal(d, d2)
+
+        # d.rejects = [
+        #     ['Sales by Location Report', None, None],
+        #     ['Grouping: Region', 43956.0, None],
+        #     [None, None, 800],
+        #     [None, None, 1200]
+        # ]
+        # d.meta_data.update('location', probable_type='uncertain')
+        # d.meta_data.update('region', probable_type='string')
+        # d.meta_data.update('sales', probable_type='integer')
     #
     #     # Check meta data tables:
     #     assert e.Dataset(o.select('sales_col_meta_data')) == [
