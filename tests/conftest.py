@@ -30,9 +30,9 @@ def customers():
 
 @pytest.fixture
 def sales():
-    return (
-        ['location', 'region', 'sales'],
-        [
+    return dict(
+        columns=['location', 'region', 'sales'],
+        data=[
             ['Bayside Store', 'Northern', 500],
             ['West Valley Store', 'Northern', 300],
             ['Precioso Store', 'Southern', 1000],
