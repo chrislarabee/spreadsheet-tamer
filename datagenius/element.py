@@ -285,6 +285,14 @@ class Dataset(pd.DataFrame, ABC):
 
     @property
     def _constructor(self):
+        """
+        Overriding this property ensures that when pandas operates on
+        a Dataset it will stay a Dataset and not be returned as a
+        DataFrame.
+
+        Returns: Dataset class.
+
+        """
         return Dataset
 
     def __init__(self, data, columns=None, index=None, dtype=None, copy=False):
@@ -293,28 +301,8 @@ class Dataset(pd.DataFrame, ABC):
         self.meta_data = MetaData(self)
         self.rejects = []
 
-
-@pd.api.extensions.register_dataframe_accessor("genius")
-class GeniusAccessor:
-    """
-    A custom pandas DataFrame accessor that adds a number of additional
-    methods, properties, and attributes that extend the DataFrame's
-    functionality.
-    """
-    def __init__(self, df: pd.DataFrame):
-        """
-
-        Args:
-            df: A pandas DataFrame.
-        """
-        self.df = df
-        # Stores rows when parsers reject them and need to store them:
-        self.rejects: list = list()
-        # Stores data about self.df:
-        self.meta_data: MetaData = MetaData(self.df)
-
     @classmethod
-    def from_file(cls, file_path: str, **kwargs) -> Dataset:
+    def from_file(cls, file_path: str, **kwargs):
         """
         Uses read_file to read in the passed file path.
 
@@ -405,9 +393,9 @@ class GeniusAccessor:
             'int64': int,
         }
         schema = {
-            k: type_map[str(self.df.dtypes[k])] for k in list(self.df.columns)
+            k: type_map[str(self.dtypes[k])] for k in list(self.columns)
         }
-        data = self.df.to_dict('records', into=col.OrderedDict)
+        data = self.to_dict('records', into=col.OrderedDict)
         odbc.write_sqlite(conn, table, data, schema)
 
         # Add meta_data tables for this dataset:

@@ -170,6 +170,22 @@ class ParserSubset(col.abc.MutableSequence, ABC):
         self.data[key] = value
 
 
+@pd.api.extensions.register_dataframe_accessor("genius")
+class GeniusAccessor:
+    """
+    A custom pandas DataFrame accessor that adds a number of additional
+    methods, properties, and attributes that extend the DataFrame's
+    functionality.
+    """
+    def __init__(self, df: pd.DataFrame):
+        """
+
+        Args:
+            df: A pandas DataFrame.
+        """
+        self.df = df
+
+
 class Genius:
     """
     The base class for pre-built and custom genius objects.

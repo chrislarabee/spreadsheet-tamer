@@ -82,6 +82,10 @@ class TestParserSubset:
             ))
 
 
+class TestGeniusAccessor:
+    pass
+
+
 # class TestGenius:
 #     def test_validate_steps(self):
 #         parsers = (

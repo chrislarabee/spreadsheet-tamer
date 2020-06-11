@@ -20,10 +20,10 @@ class TestMetaData:
         assert md.init_col_ct == 4
         assert md.init_row_ct == 4
 
-        d = pd.DataFrame.genius.from_file('tests/samples/csv/gaps.csv')
+        d = e.Dataset.from_file('tests/samples/csv/gaps.csv')
         assert d.genius.meta_data.header_idx is None
 
-        d = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        d = e.Dataset([[1, 2, 3], [4, 5, 6]])
         assert d.genius.meta_data.header_idx is None
 
     def test_reject_ct(self, products):
@@ -109,10 +109,8 @@ class TestDataset:
         assert isinstance(d2, e.Dataset)
         assert d2.meta_data == md
 
-
-class TestGeniusAccessor:
     def test_from_file(self, customers):
-        d = pd.DataFrame.genius.from_file(
+        d = e.Dataset.from_file(
             'tests/samples/csv/simple.csv')
         pd.testing.assert_frame_equal(
             d, pd.DataFrame(**customers())
@@ -120,37 +118,37 @@ class TestGeniusAccessor:
         assert isinstance(d, e.Dataset)
 
         # Ensure null rows are being dropped from csv:
-        d = pd.DataFrame.genius.from_file(
+        d = e.Dataset.from_file(
             'tests/samples/csv/gaps.csv')
         assert d.shape == (5, 4)
         assert isinstance(d, e.Dataset)
 
-        d = pd.DataFrame.genius.from_file(
+        d = e.Dataset.from_file(
             'tests/samples/excel/simple.xlsx')
         pd.testing.assert_frame_equal(
-            d, pd.DataFrame(**customers(int))
+            d, e.Dataset(**customers(int))
         )
         assert isinstance(d, e.Dataset)
 
         # Ensure null rows are being dropped from excel:
-        d = pd.DataFrame.genius.from_file(
+        d = e.Dataset.from_file(
             'tests/samples/excel/gaps_totals.xlsx')
         assert d.shape == (8, 3)
         assert isinstance(d, e.Dataset)
 
-        d = pd.DataFrame.genius.from_file(
+        d = e.Dataset.from_file(
             'tests/samples/sqlite', table='customers', db_name='read_testing')
         pd.testing.assert_frame_equal(
-            d, pd.DataFrame(**customers())
+            d, e.Dataset(**customers())
         )
         assert isinstance(d, e.Dataset)
 
     def test_to_from_sqlite(self, sales):
         d = e.Dataset(**sales)
         o = odbc.ODBConnector()
-        d.genius.to_sqlite(
+        d.to_sqlite(
             'tests/samples', 'sales', db_conn=o, db_name='element_test')
-        d2 = pd.DataFrame.genius.from_file(
+        d2 = e.Dataset.from_file(
             'tests/samples/', table='sales', db_conn=o, db_name='element_test')
         pd.testing.assert_frame_equal(d, d2)
 
