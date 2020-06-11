@@ -335,7 +335,8 @@ class GeniusAccessor:
             raise ValueError(f'read_file error: file extension must be '
                              f'one of {read_funcs.keys()}')
         else:
-            return read_funcs[ext](file_path, **kwargs)
+            return read_funcs[ext](file_path, **kwargs).dropna(
+                how='all').reset_index(drop=True)
 
     @classmethod
     def from_sqlite(cls, dir_path: str, table: str,

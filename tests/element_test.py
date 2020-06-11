@@ -79,15 +79,27 @@ class TestMetaData:
 
 class TestGeniusAccessor:
     def test_from_file(self, customers):
-        d = pd.DataFrame.genius.from_file('tests/samples/csv/simple.csv')
+        d = pd.DataFrame.genius.from_file(
+            'tests/samples/csv/simple.csv')
         pd.testing.assert_frame_equal(
             d, pd.DataFrame(**customers())
         )
 
-        d = pd.DataFrame.genius.from_file('tests/samples/excel/simple.xlsx')
+        # Ensure null rows are being dropped from csv:
+        d = pd.DataFrame.genius.from_file(
+            'tests/samples/csv/gaps.csv')
+        assert d.shape == (5, 4)
+
+        d = pd.DataFrame.genius.from_file(
+            'tests/samples/excel/simple.xlsx')
         pd.testing.assert_frame_equal(
             d, pd.DataFrame(**customers(int))
         )
+
+        # Ensure null rows are being dropped from excel:
+        d = pd.DataFrame.genius.from_file(
+            'tests/samples/excel/gaps_totals.xlsx')
+        assert d.shape == (8, 3)
 
         d = pd.DataFrame.genius.from_file(
             'tests/samples/sqlite', table='customers', db_name='read_testing')
