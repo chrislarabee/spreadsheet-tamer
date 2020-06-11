@@ -21,10 +21,10 @@ class TestMetaData:
         assert md.init_row_ct == 4
 
         d = e.Dataset.from_file('tests/samples/csv/gaps.csv')
-        assert d.genius.meta_data.header_idx is None
+        assert d.meta_data.header_idx is None
 
         d = e.Dataset([[1, 2, 3], [4, 5, 6]])
-        assert d.genius.meta_data.header_idx is None
+        assert d.meta_data.header_idx is None
 
     def test_reject_ct(self, products):
         d = e.Dataset(**products)

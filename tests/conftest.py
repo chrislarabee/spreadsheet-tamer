@@ -1,6 +1,7 @@
 import pytest
 from numpy import nan
 
+
 @pytest.fixture
 def customers():
     """
