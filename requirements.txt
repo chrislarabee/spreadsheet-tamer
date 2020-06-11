@@ -1,5 +1,5 @@
 pytest
-pandas
+pandas>=1.0.4
 xlrd
 SQLalchemy
 recordlinkage
