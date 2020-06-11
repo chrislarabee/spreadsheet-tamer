@@ -480,511 +480,471 @@ class Preprocess(Genius):
                 f'executing a header-finding function. Current '
                 f'header_func priority = {header_func.priority}. '
                 f'Consider reducing it below 100')
-        preprocess_steps = [
-            self.cleanse_gaps,
-            self.nullify_empty_vals,
-            self.detect_header if header_func is None else header_func,
-            self.cleanse_pre_header,
-            self.normalize_whitespace,
-            *custom_steps
-        ]
-        super(Preprocess, self).__init__(*self.order_parsers(preprocess_steps))
-
-    def go(self, dset: e.Dataset, **options) -> e.Dataset:
-        """
-        Executes the preprocessing steps on the Dataset and then
-        ensures the Dataset has a header.
-
-        Args:
-            dset: A Dataset object.
-            **options: Keywords for customizing the functionality
-                of go. Currently in use keywords:
-                    manual_header: A list. Use this when your
-                        data doesn't have a header and you are
-                        manually creating one.
-                    ignore: A tuple, a list of indices in your dataset
-                        with meaningful empty strings that should NOT
-                        be converted to NoneType.
-        Returns: The Dataset object, or a copy of it.
-
-        """
-        wdset = super(Preprocess, self).go(dset, **options)
-        if wdset.meta_data.header in wdset:
-            wdset.remove(wdset.meta_data.header)
-        return wdset
-
-    @staticmethod
-    @parser(requires_format='lists', priority=100)
-    def cleanse_gaps(row: list) -> (None, list):
-        """
-        Checks a list to see if it contains only null values.
-
-        Args:
-            row: A list.
-
-        Returns: None if the list contains only null values, else the
-            list.
-
-        """
-        return None if u.count_nulls(row, strict=False) == len(row) else row
-
-    @staticmethod
-    @parser('breaks_loop', parses='set',
-            requires_format='lists')
-    def detect_header(row: list, meta_data: e.MetaData, index: (int, None) = None,
-                      manual_header: (list, None) = None) -> (list, None):
-        """
-        Checks a list to see if it contains only strings. If it
-        does, then it could probably be a header row.
-
-        Args:
-            row: A list.
-            meta_data: A MetaData object.
-            index: The index of the row in the Dataset it came from.
-            manual_header: A list, which will be used to override any
-                automatically detected header. Useful if the Dataset
-                has no discernible header.
-
-        Returns: The list if it contains only non-null strings,
-            otherwise None.
-
-        """
-        if manual_header is not None:
-            meta_data.header_idx = index
-            meta_data.header = manual_header
-            return row
-        else:
-            w = len(row)
-            ts = u.count_true_str(row)
-            if ts == w:
-                meta_data.header_idx = index
-                meta_data.header = row
-                return row
-            else:
-                return None
-
-    @staticmethod
-    @parser(requires_format='any', priority=100)
-    def nullify_empty_vals(
-            row: (list, dict, col.OrderedDict),
-            ignore: (tuple, None) = None) -> (list, dict, col.OrderedDict):
-        """
-        Takes a list, dict, or OrderedDict and ensures that any of its
-        values that are empty strings are replaced by None, unless the
-        index or key is in *ignore.
-        Args:
-            row: A list, dict, or OrderedDict.
-            ignore: A tuple of keys/indices to NOT nullify.
-
-        Returns: An object of the same type as row.
-
-        """
-        indices = range(len(row)) if isinstance(row, list) else list(row.keys())
-        ignore = tuple() if ignore is None else ignore
-        result = [
-            None if row[i] == '' and i not in ignore else row[i] for i in indices
-        ]
-        if isinstance(row, (dict, col.OrderedDict)):
-            return type(row)(zip(indices, result))
-        else:
-            return result
-
-    @staticmethod
-    @parser('collect_rejects', requires_format='lists', priority=9)
-    def cleanse_pre_header(row: list, meta_data: e.MetaData,
-                           index: (int, None)) -> (list, None):
-        """
-        Checks if a passed list's index came before the header's
-        index. If it did, then the row will be rejected.
-
-        Args:
-            row: A list.
-            meta_data: A meta_data object.
-            index: The index of the row in the Dataset it came from.
-
-        Returns: None if the index came before meta_Data.header_idx,
-            otherwise the list.
-
-        """
-        if meta_data.header_idx is not None and index < meta_data.header_idx:
-            return None
-        else:
-            return row
-
-    @staticmethod
-    @parser(requires_format='lists', priority=8)
-    def normalize_whitespace(row: list, meta_data: e.MetaData) -> list:
-        """
-        Checks every string value in the passed list for whitespace
-        typos (more than one space in a row and spaces a the beginning
-        and end of strings, etc) and corrects them.
-
-        Args:
-            row: A list.
-            meta_data: A MetaData object.
-
-        Returns: The list, with string values amended appropriately.
-
-        """
-        for i, val in enumerate(row):
-            if isinstance(val, str):
-                new_val = val.strip()
-                row[i] = re.sub(r' +', ' ', new_val)
-                meta_data.white_space_cleaned += 1 if new_val != val else 0
-        return row
-
-
-class Clean(Genius):
-    """
-    A Genius designed to clean up typos, type errors, and basically
-    any other bad data entry in a Preprocessed Dataset.
-    """
-    def __init__(self, *custom_steps):
-        """
-
-        Args:
-            *custom_steps: Any number of parser functions or
-                ParserSubsets.
-        """
-        super(Clean, self).__init__(*self.order_parsers(custom_steps))
-
-    def go(self, dset: e.Dataset, **options) -> e.Dataset:
-        """
-        Executes the clean steps on the Dataset.
-
-        Args:
-            dset: A Dataset object.
-            **options: Keywords for customizing the functionality of go.
-                Currently in use keywords:
-                    extrapolate: A list/tuple of strings corresponding
-                        to columns in the Dataset, which will be
-                        extrapolated.
-                    data_rules: A tuple of Rule objects to apply to
-                        each row in the Dataset.
-                    required_columns: A list/tuple of strings
-                        corresponding to columns in the Dataset. Rows
-                        without values in those columns will be
-                        rejected.
-
-        Returns: The Dataset object, or a copy of it.
-
-        """
-        if options.get('required_columns'):
-            self.steps.append(self.cleanse_incomplete_rows)
-        if options.get('extrapolate'):
-            options['cols'] = options.get('extrapolate')
-            self.steps.append(self.extrapolate)
-        if options.get('reject_conditions'):
-            self.steps.append(self.cleanse_rejects)
-        # TODO: Add automatic tuplify to data_rules:
-        if options.get('data_rules'):
-            self.steps.append(self.apply_rules)
-        self.steps = self.order_parsers(self.steps)
-        return super(Clean, self).go(dset, **options)
-
-    @staticmethod
-    @parser
-    def extrapolate(row: col.OrderedDict, cols: (list, tuple),
-                    cache: col.OrderedDict = None):
-        """
-        Uses the values in a cached row to fill in values in the current
-        row by index. Useful when your dataset has grouped rows.
-
-        Args:
-            row: An OrderedDict.
-            cols: A list of keys, which must be found in row.
-            cache: An OrderedDict, which contains values to be
-                pulled by key in cols into row. If cache is None,
-                extrapolate will just return a copy of row.
-
-        Returns: row with null values overwritten with populated
-            values from the cached OrderedDict.
-
-        """
-        result = row.copy()
-        if cache is not None:
-            for c in cols:
-                if result[c] is None:
-                    result[c] = cache[c]
-        return result
-
-    @staticmethod
-    @parser('collect_rejects', priority=20)
-    def cleanse_incomplete_rows(
-            row: col.OrderedDict,
-            required_columns: (list, tuple)) -> (None, col.OrderedDict):
-        """
-        Returns the row if it has a value at each of the keys found
-        in required_columns, otherwise None.
-
-        Args:
-            row: An OrderedDict that may contain the keys found in
-                required_columns.
-            required_columns: A list or tuple of strings corresponding
-                to keys in row.
-
-        Returns: Returns the row if it has a value at each of the keys
-            found in required_columns, otherwise None.
-
-        """
-        for rc in required_columns:
-            if row.get(rc) is None:
-                return None
-        return row
-
-    @parser('collect_rejects')
-    def cleanse_rejects(self, row: col.OrderedDict,
-                        reject_conditions: tuple) -> (None, col.OrderedDict):
-        """
-        Loops a set of supplied python conditional strings (as expected
-        by Genius.eval_condition and if the row matches any of them it
-        is rejected.
-
-        Args:
-            row: An OrderedDict.
-            reject_conditions: A tuple of any number of strings
-                formatted as python conditionals accepted by
-                Genius.eval_condition.
-
-        Returns: None if the row meets any of the reject_conditions,
-            otherwise the row.
-
-        """
-        for c in reject_conditions:
-            if self.eval_condition(row, c):
-                return None
-        return row
-
-    @staticmethod
-    @parser
-    def apply_rules(row: col.OrderedDict,
-                    data_rules: tuple = None) -> col.OrderedDict:
-        """
-        Takes a tuple of Rule objects and applies each one to
-        the passed OrderedDict.
-
-        Args:
-            row: An OrderedDict containing data expected by the passed
-                rules.
-            data_rules: A tuple of Rule objects.
-
-        Returns: The row with all Rules applied.
-
-        """
-        if data_rules is not None:
-            for r in data_rules:
-                row = r(row)
-        return row
-
-    @staticmethod
-    @parser
-    def clean_typos(row: dict, meta_data: dict):
-        typo_funcs = {
-            'numeric': Clean.clean_numeric_typos
-        }
-        result = dict()
-        for k, v in row.items():
-            f = typo_funcs.get(
-                meta_data[k]['probable_type'],
-                lambda y: y
-            )
-            result[k] = f(v)
-        return result
-
-    @staticmethod
-    def clean_numeric_typos(value: str) -> (float, str):
-        """
-        Attempts to turn a string which might be a number with typos in
-        it into a number. Should only be used on columns that you are
-        confident *should* be entirely numbers, as it will remove
-        any non-numerals or periods from the passed string
-
-        Args:
-            value: A string.
-
-        Returns: A float or the string.
-
-        """
-        result = value
-        if not result.isnumeric():
-            result = result.replace(',', '.')
-            result = ''.join(re.findall(r'[0-9]+|\.', result))
-            try:
-                result = float(result)
-            except ValueError:
-                result = value
-        return result
-
-
-class Explore(Genius):
-    """
-    A Genius designed to create meta_data for a Dataset and help guide
-    creation of Clean steps.
-    """
-    def __init__(self, *custom_steps):
-        """
-
-        Args:
-            *custom_steps: Any number of functions, which must take a
-                single list argument.
-        """
-
-        explore_steps = [
-            ParserSubset(
-                self.uniques_report,
-                self.types_report,
-                self.nulls_report
-            ),
-            *custom_steps
-        ]
-        super(Explore, self).__init__(*self.order_parsers(explore_steps))
-
-    def go(self, dset: e.Dataset, **options) -> e.Dataset:
-        """
-        Executes the explore steps on the Dataset.
-
-        Args:
-            dset: A Dataset object.
-            **options: Keywords for customizing the functionality of go.
-                Currently in use keywords:
-
-        Returns: The Dataset object, or a copy of it.
-        """
-        return super(Explore, self).go(dset, **options)
-
-    @staticmethod
-    @parser(parses='column', requires_format='any')
-    def nulls_report(column: list, col_name: str,
-                     meta_data: e.MetaData) -> list:
-        """
-        Takes a list and creates a dictionary report on the null values
-        found in the list and uses it to update meta_data.
-
-        Args:
-            column: A list.
-            col_name: A string indicating the name of the column this
-                data came from.
-            meta_data: A MetaData object.
-
-        Returns: column
-
-        """
-        null_ct = u.count_nulls(column)
-        meta_data.update(
-            col_name,
-            null_ct=null_ct,
-            nullable=True if null_ct > 0 else False
-        )
-        return column
-
-    @staticmethod
-    @parser(parses='column', requires_format='lists')
-    def types_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
-        """
-        Takes a list and creates a dictionary report on the types of
-        data found in the list and uses it to update meta_data.
-
-        Args:
-            column: A list.
-            col_name: A string indicating the name of the column this
-                data came from.
-            meta_data: A MetaData object.
-
-        Returns: column
-
-        """
-        types = []
-        for val in column:
-            if isinstance(val, (float, int)):
-                types.append(1)
-            elif isinstance(val, str):
-                types.append(1 if val.isnumeric() else 0)
-            else:
-                types.append(0)
-        type_sum = sum(types)
-        value_ct = len(column)
-        if value_ct > 0:
-            str_pct = round((value_ct - type_sum) / value_ct, 2)
-            num_pct = round(type_sum / value_ct, 2)
-        else:
-            str_pct = 0
-            num_pct = 0
-        if num_pct > str_pct:
-            prob_type = 'numeric'
-        elif str_pct > num_pct:
-            prob_type = 'string'
-        else:
-            prob_type = 'uncertain'
-        meta_data.update(
-            col_name,
-            string_pct=str_pct,
-            numeric_pct=num_pct,
-            probable_type=prob_type
-        )
-        return column
-
-    @staticmethod
-    @parser(parses='column', requires_format='lists')
-    def uniques_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
-        """
-        Takes a list and creates a dictionary report on the unique
-        values of data found in the list and uses it to update
-        meta_data.
-
-        # TODO: Add functionality to not count nulls as uniques?
-
-        Args:
-            column: A list.
-            col_name: A string indicating the name of the column this
-                data came from.
-            meta_data: A MetaData object.
-
-        Returns: column
-
-        """
-        uniques = set(column)
-        unique_ct = len(uniques)
-        pk = len(uniques) == len(column)
-        meta_data.update(
-            col_name, unique_ct=unique_ct, primary_key=pk)
-        return column
-
-
-class Reformat(Genius):
-    """
-    A Genius designed to take data in a source format with a distinct
-    header and mutate into a target format with a different header.
-    """
-    def __init__(self, mapping: e.Mapping, *custom_steps):
-        """
-
-        Args:
-            mapping: A Mapping object containing the rules for doing
-                the reformat.
-            *custom_steps: Any number of parser functions or
-                ParserSubsets.
-        """
-        reform_steps = [
-            self.do_mapping,
-            *custom_steps
-        ]
-        super(Reformat, self).__init__(*self.order_parsers(reform_steps))
-        self.mapping = mapping
-
-    @parser
-    def do_mapping(self, row: col.OrderedDict) -> col.OrderedDict:
-        """
-        Very simple parser to execute the mapping object on each row.
-
-        # TODO: Think about whether this can be rolled into Mapping?
-
-        Args:
-            row: An OrderedDict.
-
-        Returns: An OrderedDict.
-
-        """
-        return self.mapping(row)
+        # preprocess_steps = [
+        #     self.cleanse_gaps,
+        #     self.nullify_empty_vals,
+        #     self.detect_header if header_func is None else header_func,
+        #     self.cleanse_pre_header,
+        #     self.normalize_whitespace,
+        #     *custom_steps
+        # ]
+        # super(Preprocess, self).__init__(*self.order_parsers(preprocess_steps))
+
+    # def go(self, dset: e.Dataset, **options) -> e.Dataset:
+    #     """
+    #     Executes the preprocessing steps on the Dataset and then
+    #     ensures the Dataset has a header.
+    #
+    #     Args:
+    #         dset: A Dataset object.
+    #         **options: Keywords for customizing the functionality
+    #             of go. Currently in use keywords:
+    #                 manual_header: A list. Use this when your
+    #                     data doesn't have a header and you are
+    #                     manually creating one.
+    #                 ignore: A tuple, a list of indices in your dataset
+    #                     with meaningful empty strings that should NOT
+    #                     be converted to NoneType.
+    #     Returns: The Dataset object, or a copy of it.
+    #
+    #     """
+    #     wdset = super(Preprocess, self).go(dset, **options)
+    #     if wdset.meta_data.header in wdset:
+    #         wdset.remove(wdset.meta_data.header)
+    #     return wdset
+
+
+#     @staticmethod
+#     @parser('breaks_loop', parses='set',
+#             requires_format='lists')
+#     def detect_header(row: list, meta_data: e.MetaData, index: (int, None) = None,
+#                       manual_header: (list, None) = None) -> (list, None):
+#         """
+#         Checks a list to see if it contains only strings. If it
+#         does, then it could probably be a header row.
+#
+#         Args:
+#             row: A list.
+#             meta_data: A MetaData object.
+#             index: The index of the row in the Dataset it came from.
+#             manual_header: A list, which will be used to override any
+#                 automatically detected header. Useful if the Dataset
+#                 has no discernible header.
+#
+#         Returns: The list if it contains only non-null strings,
+#             otherwise None.
+#
+#         """
+#         if manual_header is not None:
+#             meta_data.header_idx = index
+#             meta_data.header = manual_header
+#             return row
+#         else:
+#             w = len(row)
+#             ts = u.count_true_str(row)
+#             if ts == w:
+#                 meta_data.header_idx = index
+#                 meta_data.header = row
+#                 return row
+#             else:
+#                 return None
+#
+#     @staticmethod
+#     @parser('collect_rejects', requires_format='lists', priority=9)
+#     def cleanse_pre_header(row: list, meta_data: e.MetaData,
+#                            index: (int, None)) -> (list, None):
+#         """
+#         Checks if a passed list's index came before the header's
+#         index. If it did, then the row will be rejected.
+#
+#         Args:
+#             row: A list.
+#             meta_data: A meta_data object.
+#             index: The index of the row in the Dataset it came from.
+#
+#         Returns: None if the index came before meta_Data.header_idx,
+#             otherwise the list.
+#
+#         """
+#         if meta_data.header_idx is not None and index < meta_data.header_idx:
+#             return None
+#         else:
+#             return row
+#
+#     @staticmethod
+#     @parser(requires_format='lists', priority=8)
+#     def normalize_whitespace(row: list, meta_data: e.MetaData) -> list:
+#         """
+#         Checks every string value in the passed list for whitespace
+#         typos (more than one space in a row and spaces a the beginning
+#         and end of strings, etc) and corrects them.
+#
+#         Args:
+#             row: A list.
+#             meta_data: A MetaData object.
+#
+#         Returns: The list, with string values amended appropriately.
+#
+#         """
+#         for i, val in enumerate(row):
+#             if isinstance(val, str):
+#                 new_val = val.strip()
+#                 row[i] = re.sub(r' +', ' ', new_val)
+#                 meta_data.white_space_cleaned += 1 if new_val != val else 0
+#         return row
+#
+#
+# class Clean(Genius):
+#     """
+#     A Genius designed to clean up typos, type errors, and basically
+#     any other bad data entry in a Preprocessed Dataset.
+#     """
+#     def __init__(self, *custom_steps):
+#         """
+#
+#         Args:
+#             *custom_steps: Any number of parser functions or
+#                 ParserSubsets.
+#         """
+#         super(Clean, self).__init__(*self.order_parsers(custom_steps))
+#
+#     def go(self, dset: e.Dataset, **options) -> e.Dataset:
+#         """
+#         Executes the clean steps on the Dataset.
+#
+#         Args:
+#             dset: A Dataset object.
+#             **options: Keywords for customizing the functionality of go.
+#                 Currently in use keywords:
+#                     extrapolate: A list/tuple of strings corresponding
+#                         to columns in the Dataset, which will be
+#                         extrapolated.
+#                     data_rules: A tuple of Rule objects to apply to
+#                         each row in the Dataset.
+#                     required_columns: A list/tuple of strings
+#                         corresponding to columns in the Dataset. Rows
+#                         without values in those columns will be
+#                         rejected.
+#
+#         Returns: The Dataset object, or a copy of it.
+#
+#         """
+#         if options.get('required_columns'):
+#             self.steps.append(self.cleanse_incomplete_rows)
+#         if options.get('extrapolate'):
+#             options['cols'] = options.get('extrapolate')
+#             self.steps.append(self.extrapolate)
+#         if options.get('reject_conditions'):
+#             self.steps.append(self.cleanse_rejects)
+#         # TODO: Add automatic tuplify to data_rules:
+#         if options.get('data_rules'):
+#             self.steps.append(self.apply_rules)
+#         self.steps = self.order_parsers(self.steps)
+#         return super(Clean, self).go(dset, **options)
+#
+#     @staticmethod
+#     @parser
+#     def extrapolate(row: col.OrderedDict, cols: (list, tuple),
+#                     cache: col.OrderedDict = None):
+#         """
+#         Uses the values in a cached row to fill in values in the current
+#         row by index. Useful when your dataset has grouped rows.
+#
+#         Args:
+#             row: An OrderedDict.
+#             cols: A list of keys, which must be found in row.
+#             cache: An OrderedDict, which contains values to be
+#                 pulled by key in cols into row. If cache is None,
+#                 extrapolate will just return a copy of row.
+#
+#         Returns: row with null values overwritten with populated
+#             values from the cached OrderedDict.
+#
+#         """
+#         result = row.copy()
+#         if cache is not None:
+#             for c in cols:
+#                 if result[c] is None:
+#                     result[c] = cache[c]
+#         return result
+#
+#     @staticmethod
+#     @parser('collect_rejects', priority=20)
+#     def cleanse_incomplete_rows(
+#             row: col.OrderedDict,
+#             required_columns: (list, tuple)) -> (None, col.OrderedDict):
+#         """
+#         Returns the row if it has a value at each of the keys found
+#         in required_columns, otherwise None.
+#
+#         Args:
+#             row: An OrderedDict that may contain the keys found in
+#                 required_columns.
+#             required_columns: A list or tuple of strings corresponding
+#                 to keys in row.
+#
+#         Returns: Returns the row if it has a value at each of the keys
+#             found in required_columns, otherwise None.
+#
+#         """
+#         for rc in required_columns:
+#             if row.get(rc) is None:
+#                 return None
+#         return row
+#
+#     @parser('collect_rejects')
+#     def cleanse_rejects(self, row: col.OrderedDict,
+#                         reject_conditions: tuple) -> (None, col.OrderedDict):
+#         """
+#         Loops a set of supplied python conditional strings (as expected
+#         by Genius.eval_condition and if the row matches any of them it
+#         is rejected.
+#
+#         Args:
+#             row: An OrderedDict.
+#             reject_conditions: A tuple of any number of strings
+#                 formatted as python conditionals accepted by
+#                 Genius.eval_condition.
+#
+#         Returns: None if the row meets any of the reject_conditions,
+#             otherwise the row.
+#
+#         """
+#         for c in reject_conditions:
+#             if self.eval_condition(row, c):
+#                 return None
+#         return row
+#
+#     @staticmethod
+#     @parser
+#     def apply_rules(row: col.OrderedDict,
+#                     data_rules: tuple = None) -> col.OrderedDict:
+#         """
+#         Takes a tuple of Rule objects and applies each one to
+#         the passed OrderedDict.
+#
+#         Args:
+#             row: An OrderedDict containing data expected by the passed
+#                 rules.
+#             data_rules: A tuple of Rule objects.
+#
+#         Returns: The row with all Rules applied.
+#
+#         """
+#         if data_rules is not None:
+#             for r in data_rules:
+#                 row = r(row)
+#         return row
+#
+#     @staticmethod
+#     @parser
+#     def clean_typos(row: dict, meta_data: dict):
+#         typo_funcs = {
+#             'numeric': Clean.clean_numeric_typos
+#         }
+#         result = dict()
+#         for k, v in row.items():
+#             f = typo_funcs.get(
+#                 meta_data[k]['probable_type'],
+#                 lambda y: y
+#             )
+#             result[k] = f(v)
+#         return result
+#
+#     @staticmethod
+#     def clean_numeric_typos(value: str) -> (float, str):
+#         """
+#         Attempts to turn a string which might be a number with typos in
+#         it into a number. Should only be used on columns that you are
+#         confident *should* be entirely numbers, as it will remove
+#         any non-numerals or periods from the passed string
+#
+#         Args:
+#             value: A string.
+#
+#         Returns: A float or the string.
+#
+#         """
+#         result = value
+#         if not result.isnumeric():
+#             result = result.replace(',', '.')
+#             result = ''.join(re.findall(r'[0-9]+|\.', result))
+#             try:
+#                 result = float(result)
+#             except ValueError:
+#                 result = value
+#         return result
+#
+#
+# class Explore(Genius):
+#     """
+#     A Genius designed to create meta_data for a Dataset and help guide
+#     creation of Clean steps.
+#     """
+#     def __init__(self, *custom_steps):
+#         """
+#
+#         Args:
+#             *custom_steps: Any number of functions, which must take a
+#                 single list argument.
+#         """
+#
+#         explore_steps = [
+#             ParserSubset(
+#                 self.uniques_report,
+#                 self.types_report,
+#                 self.nulls_report
+#             ),
+#             *custom_steps
+#         ]
+#         super(Explore, self).__init__(*self.order_parsers(explore_steps))
+#
+#     def go(self, dset: e.Dataset, **options) -> e.Dataset:
+#         """
+#         Executes the explore steps on the Dataset.
+#
+#         Args:
+#             dset: A Dataset object.
+#             **options: Keywords for customizing the functionality of go.
+#                 Currently in use keywords:
+#
+#         Returns: The Dataset object, or a copy of it.
+#         """
+#         return super(Explore, self).go(dset, **options)
+#
+#     @staticmethod
+#     @parser(parses='column', requires_format='any')
+#     def nulls_report(column: list, col_name: str,
+#                      meta_data: e.MetaData) -> list:
+#         """
+#         Takes a list and creates a dictionary report on the null values
+#         found in the list and uses it to update meta_data.
+#
+#         Args:
+#             column: A list.
+#             col_name: A string indicating the name of the column this
+#                 data came from.
+#             meta_data: A MetaData object.
+#
+#         Returns: column
+#
+#         """
+#         null_ct = u.count_nulls(column)
+#         meta_data.update(
+#             col_name,
+#             null_ct=null_ct,
+#             nullable=True if null_ct > 0 else False
+#         )
+#         return column
+#
+#     @staticmethod
+#     @parser(parses='column', requires_format='lists')
+#     def types_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
+#         """
+#         Takes a list and creates a dictionary report on the types of
+#         data found in the list and uses it to update meta_data.
+#
+#         Args:
+#             column: A list.
+#             col_name: A string indicating the name of the column this
+#                 data came from.
+#             meta_data: A MetaData object.
+#
+#         Returns: column
+#
+#         """
+#         types = []
+#         for val in column:
+#             if isinstance(val, (float, int)):
+#                 types.append(1)
+#             elif isinstance(val, str):
+#                 types.append(1 if val.isnumeric() else 0)
+#             else:
+#                 types.append(0)
+#         type_sum = sum(types)
+#         value_ct = len(column)
+#         if value_ct > 0:
+#             str_pct = round((value_ct - type_sum) / value_ct, 2)
+#             num_pct = round(type_sum / value_ct, 2)
+#         else:
+#             str_pct = 0
+#             num_pct = 0
+#         if num_pct > str_pct:
+#             prob_type = 'numeric'
+#         elif str_pct > num_pct:
+#             prob_type = 'string'
+#         else:
+#             prob_type = 'uncertain'
+#         meta_data.update(
+#             col_name,
+#             string_pct=str_pct,
+#             numeric_pct=num_pct,
+#             probable_type=prob_type
+#         )
+#         return column
+#
+#     @staticmethod
+#     @parser(parses='column', requires_format='lists')
+#     def uniques_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
+#         """
+#         Takes a list and creates a dictionary report on the unique
+#         values of data found in the list and uses it to update
+#         meta_data.
+#
+#         # TODO: Add functionality to not count nulls as uniques?
+#
+#         Args:
+#             column: A list.
+#             col_name: A string indicating the name of the column this
+#                 data came from.
+#             meta_data: A MetaData object.
+#
+#         Returns: column
+#
+#         """
+#         uniques = set(column)
+#         unique_ct = len(uniques)
+#         pk = len(uniques) == len(column)
+#         meta_data.update(
+#             col_name, unique_ct=unique_ct, primary_key=pk)
+#         return column
+#
+#
+# class Reformat(Genius):
+#     """
+#     A Genius designed to take data in a source format with a distinct
+#     header and mutate into a target format with a different header.
+#     """
+#     def __init__(self, mapping: e.Mapping, *custom_steps):
+#         """
+#
+#         Args:
+#             mapping: A Mapping object containing the rules for doing
+#                 the reformat.
+#             *custom_steps: Any number of parser functions or
+#                 ParserSubsets.
+#         """
+#         reform_steps = [
+#             self.do_mapping,
+#             *custom_steps
+#         ]
+#         super(Reformat, self).__init__(*self.order_parsers(reform_steps))
+#         self.mapping = mapping
+#
+#     @parser
+#     def do_mapping(self, row: col.OrderedDict) -> col.OrderedDict:
+#         """
+#         Very simple parser to execute the mapping object on each row.
+#
+#         # TODO: Think about whether this can be rolled into Mapping?
+#
+#         Args:
+#             row: An OrderedDict.
+#
+#         Returns: An OrderedDict.
+#
+#         """
+#         return self.mapping(row)
 
 
 class Supplement:
