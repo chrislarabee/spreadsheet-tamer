@@ -31,5 +31,6 @@ def detect_header(
             (i for i, v in true_str_series.items() if v), None)
         if first_idx:
             ds.columns = list(ds.iloc[first_idx])
+            ds.meta_data.header_idx = first_idx
             return ds.drop(index=first_idx).reset_index(drop=True)
     return ds
