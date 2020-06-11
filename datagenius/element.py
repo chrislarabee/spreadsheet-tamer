@@ -99,19 +99,29 @@ class MetaData(Element, col.abc.MutableMapping):
     convenience methods for updating and interacting with the meta
     data.
     """
-    def __init__(self, data: dict = None, **init_attrs):
+    @property
+    def reject_ct(self):
+        return self.init_row_ct - self.parent.shape[0]
+
+    def __init__(self, parent: pd.DataFrame = None,
+                 data: dict = None, **init_attrs):
         """
 
         Args:
+            parent: A pandas DataFrame.
             data: A dictionary.
         """
         data = data if data is not None else dict()
         super(MetaData, self).__init__(data)
-        self.header: list = list()
+        self.parent: pd.DataFrame = parent
         self.header_idx: (int, None) = None
         self.init_row_ct: (int, None) = None
         self.init_col_ct: (int, None) = None
-        self.white_space_cleaned: int = 0
+        if self.parent is not None:
+            self.header_idx = (
+                None if self.parent.columns[0] in ('Unnamed: 0', 0) else 0)
+            self.init_row_ct = self.parent.shape[0]
+            self.init_col_ct = self.parent.shape[1]
         for k, v in init_attrs.items():
             if k in self.__dict__.keys():
                 setattr(self, k, v)
@@ -130,20 +140,6 @@ class MetaData(Element, col.abc.MutableMapping):
             init_col_ct=self.init_col_ct
         )
         return md
-
-    def gen_temp_header(self, x: int,
-                        manual_header: (list, None) = None) -> None:
-        """
-        Assigns a manual_header to self.header if passed, otherwise
-        creates a temporary header with indices as strings.
-
-        Returns: None
-
-        """
-        if manual_header:
-            self.header = manual_header
-        else:
-            self.header = [str(i) for i in range(x)]
 
     def calculate(self, func, key: str, attr: (str, None) = None):
         """
@@ -300,8 +296,8 @@ class GeniusAccessor:
         self.df = df
         # Stores rows when parsers reject them and need to store them:
         self.rejects: list = list()
-        # Stores results from Explore objects.
-        self.meta_data: MetaData = MetaData()
+        # Stores data about self.df:
+        self.meta_data: MetaData = MetaData(self.df)
 
     @classmethod
     def from_file(cls, file_path: str, **kwargs) -> pd.DataFrame:

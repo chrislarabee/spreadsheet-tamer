@@ -10,71 +10,87 @@ from datagenius.io import odbc
 
 
 class TestMetaData:
-    def test_update_and_clear(self):
+    def test_basics(self, customers):
         md = e.MetaData()
+        assert md.parent is None
 
-        md.update('test', a=1)
-        assert md['test']['a'] == 1
-        md.update('test', b=2, c=3)
-        assert md['test'] == {
-            'a': 1, 'b': 2, 'c': 3
-        }
+        df = pd.DataFrame(**customers())
+        md = e.MetaData(df)
+        assert md.header_idx == 0
+        assert md.init_col_ct == 4
+        assert md.init_row_ct == 4
 
-        md.clear_col_data('test')
-        assert md == {}
+        df = pd.DataFrame.genius.from_file('tests/samples/csv/gaps.csv')
+        assert df.genius.meta_data.header_idx is None
 
-    def test_calculate(self):
-        md = e.MetaData(
-            dict(
-                a={'null_ct': 5},
-                b={'null_ct': 7},
-                c={'null_ct': 3},
-            )
-        )
-        assert md.calculate(
-            sum,
-            'null_ct'
-        ) == 15
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        assert df.genius.meta_data.header_idx is None
 
-        assert md.calculate(
-            statistics.mean,
-            'null_ct',
-            'avg_null_ct'
-        ) == 5
-        assert md.avg_null_ct == 5
-
-    def test_check_key(self):
-        md = e.MetaData(dict(
-            a={'w': True, 'x': 1},
-            b={'w': False, 'x': 2},
-            c={'w': True, 'x': 3}
-        ))
-        assert md.check_key('x')
-        assert not md.check_key('y')
-        # Ensure boolean values still evaluate properly:
-        assert md.check_key('w')
-
-    def test_concat_header(self):
-        md = e.MetaData()
-        md.header = ['a', 'b', 'c']
-        assert md.concat_header(['c', 'd']) == ['a', 'b', 'c', 'd']
-
-    def test_update_attr(self):
-        md = e.MetaData()
-        md.update_attr('test_list', 1, list)
-        assert md.test_list == [1]
-        md.update_attr('test_list', 2)
-        assert md.test_list == [1, 2]
-        md.update_attr('test_dict', {'a': 1}, dict)
-        assert md.test_dict == {'a': 1}
-        md.update_attr('test_dict', {'b': 2})
-        assert md.test_dict == {'a': 1, 'b': 2}
-        md.update_attr('test_odict', od(c=3), od)
-        assert md.test_odict == od(c=3)
-        md.update_attr('test_odict', od(d=4))
-        assert md.test_odict == od(c=3, d=4)
-        md.update_attr('test_other', 1)
-        assert md.test_other == 1
+    # def test_update_and_clear(self):
+    #     md = e.MetaData()
+    #
+    #     md.update('test', a=1)
+    #     assert md['test']['a'] == 1
+    #     md.update('test', b=2, c=3)
+    #     assert md['test'] == {
+    #         'a': 1, 'b': 2, 'c': 3
+    #     }
+    #
+    #     md.clear_col_data('test')
+    #     assert md == {}
+    #
+    # def test_calculate(self):
+    #     md = e.MetaData(
+    #         dict(
+    #             a={'null_ct': 5},
+    #             b={'null_ct': 7},
+    #             c={'null_ct': 3},
+    #         )
+    #     )
+    #     assert md.calculate(
+    #         sum,
+    #         'null_ct'
+    #     ) == 15
+    #
+    #     assert md.calculate(
+    #         statistics.mean,
+    #         'null_ct',
+    #         'avg_null_ct'
+    #     ) == 5
+    #     assert md.avg_null_ct == 5
+    #
+    # def test_check_key(self):
+    #     md = e.MetaData(dict(
+    #         a={'w': True, 'x': 1},
+    #         b={'w': False, 'x': 2},
+    #         c={'w': True, 'x': 3}
+    #     ))
+    #     assert md.check_key('x')
+    #     assert not md.check_key('y')
+    #     # Ensure boolean values still evaluate properly:
+    #     assert md.check_key('w')
+    #
+    # def test_concat_header(self):
+    #     md = e.MetaData()
+    #     md.header = ['a', 'b', 'c']
+    #     assert md.concat_header(['c', 'd']) == ['a', 'b', 'c', 'd']
+    #
+    # def test_update_attr(self):
+    #     md = e.MetaData()
+    #     md.update_attr('test_list', 1, list)
+    #     assert md.test_list == [1]
+    #     md.update_attr('test_list', 2)
+    #     assert md.test_list == [1, 2]
+    #     md.update_attr('test_dict', {'a': 1}, dict)
+    #     assert md.test_dict == {'a': 1}
+    #     md.update_attr('test_dict', {'b': 2})
+    #     assert md.test_dict == {'a': 1, 'b': 2}
+    #     md.update_attr('test_odict', od(c=3), od)
+    #     assert md.test_odict == od(c=3)
+    #     md.update_attr('test_odict', od(d=4))
+    #     assert md.test_odict == od(c=3, d=4)
+    #     md.update_attr('test_other', 1)
+    #     assert md.test_other == 1
 
 
 class TestGeniusAccessor:
