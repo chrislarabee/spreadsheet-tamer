@@ -1,5 +1,5 @@
 import pytest
-
+from numpy import nan
 
 @pytest.fixture
 def customers():
@@ -67,13 +67,16 @@ def stores():
 
 @pytest.fixture
 def products():
-    return (
-        ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
-         'attr4', 'attr5'],
-        [
-            [1, 'Widget', 8.5, 4.0, 1234567890, None, None, None, None, None],
-            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large', None, None, None],
-            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small', None, None, None]
+    return dict(
+        columns=['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2',
+                 'attr3', 'attr4', 'attr5'],
+        data=[
+            [1, 'Widget', 8.5, 4.0, 1234567890,
+             nan, nan, nan, nan, nan],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901,
+             'copper', 'large', nan, nan, nan],
+            [3, 'Flange', 1.0, 0.2, 3456789012,
+             'steel', 'small', nan, nan, nan]
         ]
     )
 

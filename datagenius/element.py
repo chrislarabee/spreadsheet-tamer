@@ -101,19 +101,24 @@ class MetaData(Element, col.abc.MutableMapping):
     """
     @property
     def reject_ct(self):
+        """
+
+        Returns: The number of rows that have been rejected since the
+            parent Dataset was instantiated.
+
+        """
         return self.init_row_ct - self.parent.shape[0]
 
-    def __init__(self, parent: pd.DataFrame = None,
-                 data: dict = None, **init_attrs):
+    def __init__(self, parent=None, data: dict = None, **init_attrs):
         """
 
         Args:
-            parent: A pandas DataFrame.
+            parent: A Dataset object.
             data: A dictionary.
         """
         data = data if data is not None else dict()
         super(MetaData, self).__init__(data)
-        self.parent: pd.DataFrame = parent
+        self.parent: Dataset = parent
         self.header_idx: (int, None) = None
         self.init_row_ct: (int, None) = None
         self.init_col_ct: (int, None) = None
@@ -275,9 +280,18 @@ class MetaData(Element, col.abc.MutableMapping):
         self._data[key] = value
 
 
-class Dataset:
-    def __init__(self):
-        pass
+class Dataset(pd.DataFrame, ABC):
+    _metadata = ['meta_data', 'rejects']
+
+    @property
+    def _constructor(self):
+        return Dataset
+
+    def __init__(self, data, columns=None, index=None, dtype=None, copy=False):
+        super(Dataset, self).__init__(
+            data, columns=columns, index=index, dtype=dtype, copy=copy)
+        self.meta_data = MetaData(self)
+        self.rejects = []
 
 
 @pd.api.extensions.register_dataframe_accessor("genius")
@@ -300,7 +314,7 @@ class GeniusAccessor:
         self.meta_data: MetaData = MetaData(self.df)
 
     @classmethod
-    def from_file(cls, file_path: str, **kwargs) -> pd.DataFrame:
+    def from_file(cls, file_path: str, **kwargs) -> Dataset:
         """
         Uses read_file to read in the passed file path.
 
@@ -331,8 +345,8 @@ class GeniusAccessor:
             raise ValueError(f'read_file error: file extension must be '
                              f'one of {read_funcs.keys()}')
         else:
-            return read_funcs[ext](file_path, **kwargs).dropna(
-                how='all').reset_index(drop=True)
+            raw = Dataset(read_funcs[ext](file_path, **kwargs))
+            return raw.dropna(how='all').reset_index(drop=True)
 
     @classmethod
     def from_sqlite(cls, dir_path: str, table: str,
