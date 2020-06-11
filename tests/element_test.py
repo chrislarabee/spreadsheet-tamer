@@ -90,7 +90,7 @@ class TestGeniusAccessor:
         )
 
         d = pd.DataFrame.genius.from_file(
-            'tests/samples/', table='customers', db_name='element_test')
+            'tests/samples/sqlite', table='customers', db_name='read_testing')
         pd.testing.assert_frame_equal(
             d, pd.DataFrame(**customers())
         )
