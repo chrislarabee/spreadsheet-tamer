@@ -44,13 +44,13 @@ def count_nulls(x: (list, OrderedDict, dict),
     return sum([1 if y in nulls else 0 for y in x])
 
 
-def count_true_str(x: list) -> int:
+def count_true_str(x: (list, pd.Series)) -> int:
     """
-    Takes a list and returns the number of values in it that are
-    strings that are not ''.
+    Takes a list or pandas Series and returns the number of values in
+    it that are strings that are not ''.
 
     Args:
-        x: A list.
+        x: A list or pandas Series.
 
     Returns: An integer, the count of non-blank strings.
 

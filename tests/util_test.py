@@ -1,6 +1,7 @@
 from collections import OrderedDict as od
 import string
 
+import pandas as pd
 import numpy as np
 
 import datagenius.util as u
@@ -27,6 +28,8 @@ def test_count_nulls():
 def test_count_true_str():
     assert u.count_true_str(['', '', '']) == 0
     assert u.count_true_str(['a', 'test', 1]) == 2
+    assert u.count_true_str(pd.Series(['a', 'test', 1])) == 2
+    assert u.count_true_str(pd.Series([np.nan, 'test', 1])) == 1
 
 
 def test_gen_alpha_keys():
@@ -37,6 +40,7 @@ def test_gen_alpha_keys():
     assert u.gen_alpha_keys(53) == {
         *string.ascii_uppercase, *['A' + a for a in string.ascii_uppercase],
         'BA'}
+
 
 def test_isnumericplus():
     assert u.isnumericplus(1)
