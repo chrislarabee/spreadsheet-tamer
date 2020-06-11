@@ -4,6 +4,27 @@ import datagenius.element as e
 import datagenius.util as u
 
 
+def purge_pre_header(ds: e.Dataset) -> e.Dataset:
+    """
+    Removes any rows that appear before the header row in a Dataset
+    where the header row wasn't the first row in the source data.
+
+    Args:
+        ds: A Dataset object.
+
+    Returns: The Dataset object, cleaned of rows that came before the
+        header, if any.
+
+    """
+    h = ds.meta_data.header_idx
+    if h:
+        if h > 0:
+            ds.rejects += [*ds.iloc[:h].values.tolist()]
+        return ds.drop(index=[i for i in range(h)])
+    else:
+        return ds
+
+
 def detect_header(
         ds: e.Dataset,
         manual_header: Optional[Sequence] = None) -> e.Dataset:

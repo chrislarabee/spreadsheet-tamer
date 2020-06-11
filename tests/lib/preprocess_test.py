@@ -2,6 +2,23 @@ import datagenius.element as e
 import datagenius.lib.preprocess as pp
 
 
+def test_purge_pre_header(gaps_totals, customers):
+    d = e.Dataset(gaps_totals())
+    d = d.pipe(pp.detect_header).pipe(pp.purge_pre_header)
+    assert d.shape == (6, 3)
+    assert d.rejects == [
+        ['Sales by Location Report', '', ''],
+        ['Grouping: Region', '', ''],
+        ['', '', ''],
+        ['', '', '']
+    ]
+
+    d = e.Dataset(**customers())
+    d = d.pipe(pp.detect_header).pipe(pp.purge_pre_header)
+    assert d.shape == (4, 4)
+    assert d.rejects == []
+
+
 def test_detect_header(gaps):
     d = e.Dataset(gaps)
     d = d.pipe(pp.detect_header)
