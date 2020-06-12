@@ -1,3 +1,4 @@
+import functools
 import re
 import string
 from collections import OrderedDict
@@ -5,7 +6,7 @@ from collections import OrderedDict
 import pandas as pd
 
 
-def clean_whitespace(x) -> tuple:
+def clean_whitespace(x):
     """
     When passed a string, removes leading and trailing whitespace from
     it and also replaces any chains of more than one space with a
@@ -14,16 +15,14 @@ def clean_whitespace(x) -> tuple:
     Args:
         x: An object.
 
-    Returns: A tuple consisting of a boolean indicating if whitespace
-        was cleaned from x, and x, cleaned if applicable.
+    Returns: x, cleaned of whitespace if applicable.
 
     """
     if isinstance(x, str):
         clean_x = x.strip()
-        clean_x = re.sub(r' +', ' ', clean_x)
-        return True if clean_x != x else False, clean_x
+        return re.sub(r' +', ' ', clean_x)
     else:
-        return False, x
+        return x
 
 
 def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):

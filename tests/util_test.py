@@ -9,9 +9,10 @@ from datagenius.genius import parser
 
 
 def test_clean_whitespace():
-    assert u.clean_whitespace(1) == (False, 1)
-    assert u.clean_whitespace(' a bad  string ') == (True, 'a bad string')
-    assert u.clean_whitespace('a good string') == (False, 'a good string')
+    assert u.clean_whitespace(1) == 1
+    assert u.clean_whitespace(' a bad  string ') == 'a bad string'
+    assert u.clean_whitespace('a good string') == 'a good string'
+    assert u.clean_whitespace('     what       even     ') == 'what even'
 
 
 def test_collect_by_keys():
