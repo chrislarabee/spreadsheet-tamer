@@ -8,6 +8,7 @@ def purge_pre_header(ds: e.Dataset) -> e.Dataset:
     """
     Removes any rows that appear before the header row in a Dataset
     where the header row wasn't the first row in the source data.
+    Purged rows are stored in the Dataset's rejects attribute.
 
     Args:
         ds: A Dataset object.
@@ -55,3 +56,18 @@ def detect_header(
             ds.meta_data.header_idx = first_idx
             return ds.drop(index=first_idx).reset_index(drop=True)
     return ds
+
+
+def normalize_whitespace(ds: e.Dataset) -> e.Dataset:
+    """
+    Simple function that applies util.clean_whitespace to every cell
+    in a Dataset.
+
+    Args:
+        ds: A Dataset.
+
+    Returns: The Dataset, with any string values cleaned of excess
+        whitespace.
+
+    """
+    return ds.applymap(u.clean_whitespace)
