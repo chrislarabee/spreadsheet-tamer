@@ -5,6 +5,27 @@ from collections import OrderedDict
 import pandas as pd
 
 
+def clean_whitespace(x) -> tuple:
+    """
+    When passed a string, removes leading and trailing whitespace from
+    it and also replaces any chains of more than one space with a
+    single space.
+
+    Args:
+        x: An object.
+
+    Returns: A tuple consisting of a boolean indicating if whitespace
+        was cleaned from x, and x, cleaned if applicable.
+
+    """
+    if isinstance(x, str):
+        clean_x = x.strip()
+        clean_x = re.sub(r' +', ' ', clean_x)
+        return True if clean_x != x else False, clean_x
+    else:
+        return False, x
+
+
 def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
     """
     A simple function to collect an arbitrary and not-necessarily

@@ -8,6 +8,12 @@ import datagenius.util as u
 from datagenius.genius import parser
 
 
+def test_clean_whitespace():
+    assert u.clean_whitespace(1) == (False, 1)
+    assert u.clean_whitespace(' a bad  string ') == (True, 'a bad string')
+    assert u.clean_whitespace('a good string') == (False, 'a good string')
+
+
 def test_collect_by_keys():
     x = u.collect_by_keys({'a': 1, 'b': 2, 'c': 3, 'd': 4}, 'a', 'c')
     assert x == {'a': 1, 'c': 3}
