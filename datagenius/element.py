@@ -301,6 +301,19 @@ class Dataset(pd.DataFrame, ABC):
         self.meta_data = MetaData(self)
         self.rejects = []
 
+    @staticmethod
+    def purge_gap_rows(ds):
+        """
+        Drops rows that contain only nans from Dataset objects.
+
+        Args:
+            ds: A Dataset object.
+
+        Returns: The Dataset object without entirely nan rows.
+
+        """
+        return ds.dropna(how='all').reset_index(drop=True)
+
     @classmethod
     def from_file(cls, file_path: str, **kwargs):
         """
@@ -334,7 +347,7 @@ class Dataset(pd.DataFrame, ABC):
                              f'one of {read_funcs.keys()}')
         else:
             raw = Dataset(read_funcs[ext](file_path, **kwargs))
-            return raw.dropna(how='all').reset_index(drop=True)
+            return cls.purge_gap_rows(raw)
 
     @classmethod
     def from_sqlite(cls, dir_path: str, table: str,
