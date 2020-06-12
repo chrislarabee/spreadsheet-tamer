@@ -13,10 +13,10 @@ def test_purge_pre_header(gaps_totals, customers):
     assert d.meta_data.init_row_ct == 11
     assert d.shape == (6, 3)
     assert d.rejects == [
-        ['Sales by Location Report', '', ''],
-        ['Grouping: Region', '', ''],
-        ['', '', ''],
-        ['', '', '']
+        ['Sales by Location Report', nan, nan],
+        ['Grouping: Region', nan, nan],
+        [nan, nan, nan],
+        [nan, nan, nan]
     ]
     # assert d.meta_data.reject_ct == 4
 

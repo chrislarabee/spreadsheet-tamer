@@ -130,12 +130,12 @@ def gaps():
 
     """
     return [
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
+            [nan, nan, nan, nan],
+            [nan, nan, nan, nan],
+            [nan, nan, nan, nan],
+            [nan, nan, nan, nan],
             ['id', 'fname', 'lname', 'foreign_key'],
-            ['', '', '', ''],
+            [nan, nan, nan, nan],
             ['1', 'Yancy', 'Cordwainer', '00025'],
             ['2', 'Muhammad', 'El-Kanan', '00076'],
             ['3', 'Luisa', 'Romero', '00123'],
@@ -154,21 +154,21 @@ def gaps_totals():
     """
     def _gen(w_gaps=True, w_pre_header=True):
         ph = [
-            ['Sales by Location Report', '', ''],
-            ['Grouping: Region', '', '']
+            ['Sales by Location Report', nan, nan],
+            ['Grouping: Region', nan, nan]
         ]
         g = [
-            ['', '', ''],
-            ['', '', '']
+            [nan, nan, nan],
+            [nan, nan, nan]
         ]
         x = [
             ['location', 'region', 'sales'],
             ['Bayside Store', 'Northern', 500],
             ['West Valley Store', 'Northern', 300],
-            ['', '', 800],
+            [nan, nan, 800],
             ['Precioso Store', 'Southern', 1000],
             ['Kalliope Store', 'Southern', 200],
-            ['', '', 1200]
+            [nan, nan, 1200]
         ]
         y = []
         if w_pre_header:
