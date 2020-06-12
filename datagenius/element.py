@@ -199,7 +199,7 @@ class MetaData(Element, col.abc.MutableMapping):
         else:
             self.pop(column)
 
-    def update(self, column: str, **kwargs) -> None:
+    def update_col_data(self, column: str, **kwargs) -> None:
         """
         Convenience method for updating the MetaData's information
         for a given column. Can add as many key-value pairs as desired
