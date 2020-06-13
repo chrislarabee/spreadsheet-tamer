@@ -107,7 +107,7 @@ class MetaData(Element, col.abc.MutableMapping):
             parent Dataset was instantiated.
 
         """
-        return self.init_row_ct - self.parent.shape[0]
+        return len(self.parent.rejects)
 
     def __init__(self, parent=None, data: dict = None, **init_attrs):
         """
@@ -282,6 +282,28 @@ class MetaData(Element, col.abc.MutableMapping):
 
 class Dataset(pd.DataFrame, ABC):
     _metadata = ['meta_data', 'rejects']
+    _md = None
+    _rejects = None
+
+    @property
+    def meta_data(self):
+        if getattr(self, '_md') is None:
+            self._md = MetaData(self)
+        return self._md
+
+    @meta_data.setter
+    def meta_data(self, value):
+        self._md = value
+
+    @property
+    def rejects(self):
+        if getattr(self, '_rejects') is None:
+            self._rejects = []
+        return self._rejects
+
+    @rejects.setter
+    def rejects(self, value):
+        self._rejects = value
 
     @property
     def _constructor(self):
@@ -294,12 +316,6 @@ class Dataset(pd.DataFrame, ABC):
 
         """
         return Dataset
-
-    def __init__(self, data, columns=None, index=None, dtype=None, copy=False):
-        super(Dataset, self).__init__(
-            data, columns=columns, index=index, dtype=dtype, copy=copy)
-        self.meta_data = MetaData(self)
-        self.rejects = []
 
     @staticmethod
     def purge_gap_rows(ds):

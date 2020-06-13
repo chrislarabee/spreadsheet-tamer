@@ -31,7 +31,6 @@ class TestMetaData:
         d.dropna(thresh=7, inplace=True)
         assert d.shape[0] == 2
         assert d.meta_data.init_row_ct == 3
-        assert d.meta_data.reject_ct == 1
 
     # def test_update_and_clear(self):
     #     md = e.MetaData()
@@ -103,11 +102,20 @@ class TestMetaData:
 class TestDataset:
     def test_basics(self):
         d = e.Dataset([dict(a=1, b=2, c=3), dict(a=4, b=5, c=6)])
-        md = d.meta_data
         assert isinstance(d, pd.DataFrame)
+        # Test meta data retention:
+        md = d.meta_data
         d2 = d[['a', 'b']]
         assert isinstance(d2, e.Dataset)
-        assert d2.meta_data == md
+        assert d2.meta_data is md
+        d3 = d.drop(columns='c')
+        assert d3.meta_data is md
+
+        d4 = e.Dataset([dict(a=7, b=8, c=9)])
+        assert d4.meta_data is not md
+
+        d.rejects.append('test')
+        assert d.rejects == ['test']
 
     def test_from_file(self, customers):
         d = e.Dataset.from_file(
