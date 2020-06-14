@@ -8,82 +8,98 @@ import datagenius.element as e
 import datagenius.genius as ge
 
 
-def test_parser():
-    # Decorator without arguments:
-    @ge.parser
-    def f(x):
-        return x * 10
-
-    assert f.is_parser
-    assert not f.breaks_loop
-    assert f.null_val is None
-
-    # Decorator with arguments:
-    @ge.parser('breaks_loop')
-    def g(x):
-        return x + 1
-
-    assert g.breaks_loop
-    assert g.null_val is None
-
-    @ge.parser(parses='set')
-    def e(x):
-        return x - 3
-    assert e.parses == 'set'
-
-    # Sanity check to ensure pre-built parsers work:
-    assert not ge.Preprocess.cleanse_gaps.breaks_loop
-
-    # Sanity check to ensure lambda function parsers work:
-    p = ge.parser(lambda x: x + 1, null_val=0)
-
-    assert p.null_val == 0
-    assert p(3) == 4
-
-
-class TestParserSubset:
-    def test_general(self):
-        parsers = (
-            ge.parser(lambda x: x + 1),
-            ge.parser(lambda y: y * 2)
-        )
-
-        subset = ge.ParserSubset(*parsers)
-        assert tuple(subset) == parsers
-
-        assert [*subset] == list(parsers)
-
-    def test_validate_steps(self):
-        parsers = (
-            ge.parser(lambda x: x + 1),
-            ge.parser(lambda y: y * 2)
-        )
-        p, ps, rf = ge.ParserSubset.validate_steps(parsers)
-        assert tuple(p) == parsers
-        assert ps == 'row'
-        assert rf == 'dicts'
-        with pytest.raises(
-            ValueError, match='only take parser functions'
-        ):
-            ge.ParserSubset.validate_steps(('string', parsers))
-
-        with pytest.raises(
-                ValueError, match='same value for requires_format'):
-            ge.ParserSubset.validate_steps((
-                ge.parser(lambda z: z ** 2, requires_format='lists'),
-                *parsers
-            ))
-
-        with pytest.raises(
-                ValueError, match='same value for parses'):
-            ge.ParserSubset.validate_steps((
-                ge.parser(lambda w: w / 100, parses='set'),
-                *parsers
-            ))
+# def test_parser():
+#     # Decorator without arguments:
+#     @ge.parser
+#     def f(x):
+#         return x * 10
+#
+#     assert f.is_parser
+#     assert not f.breaks_loop
+#     assert f.null_val is None
+#
+#     # Decorator with arguments:
+#     @ge.parser('breaks_loop')
+#     def g(x):
+#         return x + 1
+#
+#     assert g.breaks_loop
+#     assert g.null_val is None
+#
+#     @ge.parser(parses='set')
+#     def e(x):
+#         return x - 3
+#     assert e.parses == 'set'
+#
+#     # Sanity check to ensure pre-built parsers work:
+#     assert not ge.Preprocess.cleanse_gaps.breaks_loop
+#
+#     # Sanity check to ensure lambda function parsers work:
+#     p = ge.parser(lambda x: x + 1, null_val=0)
+#
+#     assert p.null_val == 0
+#     assert p(3) == 4
+#
+#
+# class TestParserSubset:
+#     def test_general(self):
+#         parsers = (
+#             ge.parser(lambda x: x + 1),
+#             ge.parser(lambda y: y * 2)
+#         )
+#
+#         subset = ge.ParserSubset(*parsers)
+#         assert tuple(subset) == parsers
+#
+#         assert [*subset] == list(parsers)
+#
+#     def test_validate_steps(self):
+#         parsers = (
+#             ge.parser(lambda x: x + 1),
+#             ge.parser(lambda y: y * 2)
+#         )
+#         p, ps, rf = ge.ParserSubset.validate_steps(parsers)
+#         assert tuple(p) == parsers
+#         assert ps == 'row'
+#         assert rf == 'dicts'
+#         with pytest.raises(
+#             ValueError, match='only take parser functions'
+#         ):
+#             ge.ParserSubset.validate_steps(('string', parsers))
+#
+#         with pytest.raises(
+#                 ValueError, match='same value for requires_format'):
+#             ge.ParserSubset.validate_steps((
+#                 ge.parser(lambda z: z ** 2, requires_format='lists'),
+#                 *parsers
+#             ))
+#
+#         with pytest.raises(
+#                 ValueError, match='same value for parses'):
+#             ge.ParserSubset.validate_steps((
+#                 ge.parser(lambda w: w / 100, parses='set'),
+#                 *parsers
+#             ))
 
 
 class TestGeniusAccessor:
-    pass
+    def test_preprocess(self, gaps, customers, gaps_totals):
+        expected = e.Dataset(**customers())
+        d = e.Dataset(gaps)
+        assert not d.header_idx
+        d = d.purge_gap_rows(d)
+        d = d.genius.preprocess()
+        pd.testing.assert_frame_equal(d, expected)
+
+        g = gaps_totals(False, False)
+        expected = e.Dataset(g[1:], columns=g[0])
+        d = e.Dataset(gaps_totals())
+        d = d.purge_gap_rows(d)
+        assert not d.header_idx
+        d = d.genius.preprocess()
+        assert d.header_idx == 2
+        assert d.rejects == gaps_totals()[:2]
+        pd.testing.assert_frame_equal(d, expected)
 
 
 # class TestGenius:
@@ -203,68 +219,6 @@ class TestGeniusAccessor:
     #
     #     row = {'a': 'list, of, strings', 'b': 'foo'}
     #     assert ge.Genius.eval_condition(row, '"list" in a')
-
-
-class TestPreprocess:
-    def test_cleanse_gaps(self):
-        pp = ge.Preprocess()
-        # First test doesn't use pp to verify staticmethod status.
-        assert ge.Preprocess.cleanse_gaps([1, 2, 3]) == [1, 2, 3]
-        assert pp.cleanse_gaps(['', '', '']) is None
-        assert pp.cleanse_gaps([1, 2, None]) == [1, 2, None]
-
-#     def test_detect_header(self):
-#         pp = ge.Preprocess()
-#         md = e.MetaData()
-#         # First test doesn't use pp to verify staticmethod status.
-#         assert ge.Preprocess.detect_header([1, 2, 3], md, 0) is None
-#         assert md.header_idx is None
-#         assert pp.detect_header(['a', 'b', 'c'], md, 7) == ['a', 'b', 'c']
-#         assert md.header == ['a', 'b', 'c']
-#         assert md.header_idx == 7
-#         # Test manual_header:
-#         assert pp.detect_header([1, 2, 3], md, None, ['x', 'y', 'z']) == [1, 2, 3]
-#         assert md.header == ['x', 'y', 'z']
-#         assert md.header_idx is None
-#
-#     def test_nullify_empty_vals(self):
-#         expected = [None, 1, 'a', None]
-#         x = ge.Preprocess.nullify_empty_vals([None, 1, 'a', ''])
-#         assert x == expected
-#         assert isinstance(x, list)
-#
-#         expected = od(a=None, b=None, c=1, d='foo')
-#         x = ge.Preprocess.nullify_empty_vals(od(a='', b='', c=1, d='foo'))
-#         assert x == expected
-#         assert isinstance(x, od)
-#
-#         expected = dict(a=None, b=None, c=1)
-#         x = ge.Preprocess.nullify_empty_vals(dict(a='', b=None, c=1))
-#         assert x == expected
-#         assert isinstance(x, dict)
-#
-#         # Test ignore functionality:
-#         expected = ['', None, 1, 'a']
-#         x = ge.Preprocess.nullify_empty_vals(['', '', 1, 'a'], ignore=(0,))
-#         assert x == expected
-#
-#         expected = dict(a='', b=None, c=1)
-#         x = ge.Preprocess.nullify_empty_vals(dict(a='', b='', c=1), ignore=('a',))
-#         assert x == expected
-#
-#     def test_cleanse_pre_header(self):
-#         x = [1, 2, 3]
-#         md = e.MetaData()
-#         md.header_idx = 4
-#         assert ge.Preprocess.cleanse_pre_header(x, md, 1) is None
-#         assert ge.Preprocess.cleanse_pre_header(x, md, 4) == x
-#
-#     def test_normalize_whitespace(self):
-#         md = e.MetaData()
-#         assert ge.Preprocess.normalize_whitespace(
-#             ['a good string', ' a bad   string ', 1, None, 123.45], md
-#         ) == ['a good string', 'a bad string', 1, None, 123.45]
-#         assert md.white_space_cleaned == 1
 #
 #     def test_basic_go(self, customers, simple_data, gaps, gaps_totals,
 #                       needs_cleanse_totals):

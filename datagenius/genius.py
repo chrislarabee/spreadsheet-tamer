@@ -4,11 +4,12 @@ import collections as col
 import functools
 import warnings
 from abc import ABC
-from typing import Callable
+from typing import Callable, Optional, Sequence
 
 import pandas as pd
 import recordlinkage as link
 
+import datagenius.lib.preprocess as pp
 import datagenius.element as e
 import datagenius.util as u
 
@@ -177,13 +178,47 @@ class GeniusAccessor:
     methods, properties, and attributes that extend the DataFrame's
     functionality.
     """
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, ds: e.Dataset):
         """
 
         Args:
-            df: A pandas DataFrame.
+            ds: A Dataset object.
         """
-        self.df = df
+        self.ds = ds
+
+    def preprocess(
+            self,
+            header_func: Callable = pp.detect_header,
+            **options):
+        """
+        A convenient way to run functions from lib.preprocess on
+        self.ds.
+
+        Args:
+            header_func: A callable object that takes a Dataset object
+                and kwargs.
+            options: Keyword args. Currently in use:
+                manual_header: Used to override detect_header with a
+                    list of labels if the Dataset has no derivable
+                    header.
+        Returns:
+
+        """
+        if not self.ds.header_idx:
+            hf_args = inspect.getfullargspec(header_func).args
+            if 'ds' in hf_args:
+                hf_args.remove('ds')
+            kwargs = {k: options.get(k) for k in hf_args}
+            self.ds = (
+                self.ds.pipe(header_func, **kwargs)
+                .pipe(pp.purge_pre_header)
+            )
+        self.ds = pp.normalize_whitespace(self.ds)
+        return self.ds.reset_index(drop=True)
+
+
+# TODO: Add handling for things like duplicate variants
+
 
 
 class Genius:
@@ -528,64 +563,6 @@ class Preprocess(Genius):
     #     if wdset.meta_data.header in wdset:
     #         wdset.remove(wdset.meta_data.header)
     #     return wdset
-
-
-#     @staticmethod
-#     @parser('breaks_loop', parses='set',
-#             requires_format='lists')
-#     def detect_header(row: list, meta_data: e.MetaData, index: (int, None) = None,
-#                       manual_header: (list, None) = None) -> (list, None):
-#         """
-#         Checks a list to see if it contains only strings. If it
-#         does, then it could probably be a header row.
-#
-#         Args:
-#             row: A list.
-#             meta_data: A MetaData object.
-#             index: The index of the row in the Dataset it came from.
-#             manual_header: A list, which will be used to override any
-#                 automatically detected header. Useful if the Dataset
-#                 has no discernible header.
-#
-#         Returns: The list if it contains only non-null strings,
-#             otherwise None.
-#
-#         """
-#         if manual_header is not None:
-#             meta_data.header_idx = index
-#             meta_data.header = manual_header
-#             return row
-#         else:
-#             w = len(row)
-#             ts = u.count_true_str(row)
-#             if ts == w:
-#                 meta_data.header_idx = index
-#                 meta_data.header = row
-#                 return row
-#             else:
-#                 return None
-#
-#     @staticmethod
-#     @parser('collect_rejects', requires_format='lists', priority=9)
-#     def cleanse_pre_header(row: list, meta_data: e.MetaData,
-#                            index: (int, None)) -> (list, None):
-#         """
-#         Checks if a passed list's index came before the header's
-#         index. If it did, then the row will be rejected.
-#
-#         Args:
-#             row: A list.
-#             meta_data: A meta_data object.
-#             index: The index of the row in the Dataset it came from.
-#
-#         Returns: None if the index came before meta_Data.header_idx,
-#             otherwise the list.
-#
-#         """
-#         if meta_data.header_idx is not None and index < meta_data.header_idx:
-#             return None
-#         else:
-#             return row
 #
 #     @staticmethod
 #     @parser(requires_format='lists', priority=8)
