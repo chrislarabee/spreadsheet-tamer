@@ -1,13 +1,11 @@
 import collections as col
 import inspect
-import os
 import re
 from abc import ABC
-from typing import Callable, Collection
+from typing import Callable
 
 import pandas as pd
 
-from datagenius.io import odbc
 import datagenius.util as u
 
 
@@ -92,454 +90,72 @@ class Element(ABC):
     def __str__(self):
         return f'{self.__repr__()}({self._data})'
 
-
-class MetaData(Element, col.abc.MutableMapping):
-    """
-    Stores meta data on the columns of a Dataset object and provides
-    convenience methods for updating and interacting with the meta
-    data.
-    """
-    @property
-    def reject_ct(self):
-        """
-
-        Returns: The number of rows that have been rejected since the
-            parent Dataset was instantiated.
-
-        """
-        return len(self.parent.rejects)
-
-    def __init__(self, parent=None, data: dict = None, **init_attrs):
-        """
-
-        Args:
-            parent: A Dataset object.
-            data: A dictionary.
-        """
-        data = data if data is not None else dict()
-        super(MetaData, self).__init__(data)
-        self.parent: Dataset = parent
-        self.header_idx: (int, None) = None
-        self.init_row_ct: (int, None) = None
-        self.init_col_ct: (int, None) = None
-        if self.parent is not None:
-            self.header_idx = (
-                None if self.parent.columns[0] in ('Unnamed: 0', 0) else 0)
-            self.init_row_ct = self.parent.shape[0]
-            self.init_col_ct = self.parent.shape[1]
-        for k, v in init_attrs.items():
-            if k in self.__dict__.keys():
-                setattr(self, k, v)
-
-    def copy(self):
-        """
-        Creates a copy of the MetaData.
-
-        Returns: A copy of the MetaData object.
-
-        """
-        md = MetaData(
-            self._data.copy(),
-            header=self.header.copy(),
-            init_row_ct=self.init_row_ct,
-            init_col_ct=self.init_col_ct
-        )
-        return md
-
-    def calculate(self, func, key: str, attr: (str, None) = None):
-        """
-        Applies the passed function to all the values in
-        self._data's dictionaries stored at the passed key.
-
-        Args:
-            func: Any function that takes a single list argument.
-            key: A string, the key of the values you want to pull from
-                the dictionary of meta data for each column in
-                self._data.
-            attr: A string, the name of the attribute you wish to
-                create on MetaData that will store the result of func's
-                calculation. If None, the value will not be stored in an
-                attribute.
-
-        Returns: The return of func.
-
-        """
-        f = func([v[key] for v in self._data.values()])
-        setattr(self, attr, f) if attr is not None else None
-        return f
-
-    def check_key(self, key: str) -> bool:
-        """
-        Checks all the column dictionaries in self._data and returns
-        True if they all have the passed key and False if any of them
-        don't.
-
-        Args:
-            key: A string, a key in self._data.
-
-        Returns: A boolean.
-
-        """
-        x = {True if v.get(key) is not None else False for v in self.values()}
-        return len(x) == 1 and list(x)[0]
-
-    def clear_col_data(self, column: str = None) -> None:
-        """
-        Clears all the meta data for the given column or the entire
-        MetaData object if no column is passed.
-
-        Args:
-            column: A string, a key found in self._data.
-
-        Returns: None
-
-        """
-        if column is None:
-            self._data.clear()
-        else:
-            self.pop(column)
-
-    def update_col_data(self, column: str, **kwargs) -> None:
-        """
-        Convenience method for updating the MetaData's information
-        for a given column. Can add as many key-value pairs as desired
-        to the column's entry in self._data.
-
-        Args:
-            column: A string.
-            **kwargs: Key value pairs to add to the sub-dictionary
-                found in self._data[column]
-
-        Returns: None
-
-        """
-        if not self.get(column):
-            self[column] = dict()
-        self[column] = {**self[column], **kwargs}
-
-    def concat_header(self, new: list) -> list:
-        """
-        Used to append one or more values to header without duplicating
-        existing values.
-
-        Args:
-            new: A list of values to append to header.
-
-        Returns: A list, the altered header.
-
-        """
-        h_set = set(self.header)
-        n_set = set(new)
-        to_add = list(n_set.difference(h_set))
-        self.header += to_add
-        return self.header
-
-    def update_attr(self, attr: str, value, _type=None) -> None:
-        """
-        Takes an attribute and a value, and optionally a type, and
-        uses them to update an attribute on the MetaData object, or to
-        create a new attribute.
-        Args:
-            attr: A string, the name of the target attribute.
-            value: An object, the value to set attr to or to update
-                attr with.
-            _type: None, collections.OrderedDict, list, or dict. Pass
-                one of the latter three to tell update_attr to create
-                and empty attribute of that type and/or add value to
-                that attribute rather than setting directly.
-
-        Returns: None
-
-        """
-        update_funcs = {
-            'dict_like': lambda x: setattr(
-                self, attr, {**getattr(self, attr), **x}),
-            'list': lambda x: getattr(self, attr).append(x),
-            'other': lambda x: setattr(self, attr, x)
-        }
-        a = getattr(self, attr, None)
-        t = 'other'
-        if _type is None and a is not None:
-            if isinstance(a, (col.OrderedDict, dict)):
-                t = 'dict_like'
-            elif isinstance(a, list):
-                t = 'list'
-        elif a is None and _type is not None:
-            if _type in (col.OrderedDict, dict, list):
-                setattr(self, attr, _type())
-                t = 'list' if _type == list else 'dict_like'
-        update_funcs[t](value)
-
-    def __delitem__(self, key):
-        self._data.pop(key)
-
-    def __iter__(self):
-        return self._data.__iter__()
-
-    def __setitem__(self, key, value):
-        self._data[key] = value
-
-
-class Dataset(pd.DataFrame, ABC):
-    _metadata = ['_rejects', '_header_idx']
-
-    @property
-    def header_idx(self):
-        return self._header_idx
-
-    @header_idx.setter
-    def header_idx(self, value):
-        self._header_idx = value
-
-    @property
-    def rejects(self):
-        return self._rejects
-
-    @rejects.setter
-    def rejects(self, value):
-        self._rejects = value
-
-    @property
-    def reject_ct(self):
-        return len(self.rejects)
-
-    @property
-    def _constructor(self):
-        """
-        Overriding this property ensures that when pandas operates on
-        a Dataset it will stay a Dataset and not be returned as a
-        DataFrame.
-
-        Returns: Dataset class.
-
-        """
-        return Dataset
-
-    def __init__(
-            self,
-            data=None,
-            index=None,
-            columns=None,
-            dtype=None,
-            copy: bool = False):
-        super(Dataset, self).__init__(
-            data, index, columns, dtype, copy)
-        self._rejects: list = []
-        self._header_idx: int = (
-            None if self.columns[0] in ('Unnamed: 0', 0) else 0
-        )
-
-    @staticmethod
-    def purge_gap_rows(ds):
-        """
-        Takes a Dataset object and drops rows that are entirely nan.
-
-        Args:
-            ds: A Dataset object.
-
-        Returns: A Dataset without entirely nan rows.
-
-        """
-        return ds.dropna(how='all').reset_index(drop=True)
-
-    @classmethod
-    def from_file(cls, file_path: str, **kwargs):
-        """
-        Uses read_file to read in the passed file path.
-
-        Args:
-            file_path: The file path to the desired data file.
-
-        Returns: For excel workbooks with multiple sheets, it will
-            return a dictionary of sheet names as keys and raw
-            sheet contents as values. For excel workbooks with
-            one sheet and other file formats with a single set of
-            data, it will return a Dataset object.
-
-        """
-        read_funcs = {
-            '.xls': pd.read_excel,
-            '.xlsx': pd.read_excel,
-            '.csv': pd.read_csv,
-            '.json': pd.read_json,
-            # file_paths with no extension are presumed to be dir_paths
-            '': cls.from_sqlite
-        }
-        _, ext = os.path.splitext(file_path)
-        # Expectation is that no column for these exts will have data
-        # types that are safe for pandas to interpret.
-        if ext in ('.xls', '.xlsx', '.csv'):
-            kwargs['dtype'] = 'object'
-        if ext not in read_funcs.keys():
-            raise ValueError(f'read_file error: file extension must be '
-                             f'one of {read_funcs.keys()}')
-        else:
-            ds = cls.purge_gap_rows(
-                cls(read_funcs[ext](file_path, **kwargs))
-            )
-            return ds
-
-    @classmethod
-    def from_sqlite(cls, dir_path: str, table: str,
-                    **options) -> pd.DataFrame:
-        """
-        Creates a pandas DataFrame from a sqlite database table.
-
-        Args:
-            dir_path: The directory path where the db file is located.
-            table: A string, the name of the table to pull data from.
-            **options: Key-value options to alter to_sqlite's behavior.
-                Currently in use options:
-                    db_conn: An io.odbc.ODBConnector object if you have
-                        one, otherwise from_sqlite will create it.
-                    db_name: A string, the name of the db file to pull
-                        from. Default is 'datasets'.
-
-        Returns: A pandas DataFrame containing the contents of the
-            passed table.
-
-        """
-        conn = cls._quick_conn_setup(
-            dir_path,
-            options.get('db_name'),
-            options.get('db_conn')
-        )
-        return pd.DataFrame(conn.select(table))
-
-    def to_sqlite(self, dir_path: str, table: str, **options):
-        """
-        Writes the DataFrame to a sqlite db.
-
-        Args:
-            dir_path: The directory path where the db file is/should
-                be located.
-            table: A string, the name of the table to enter data in.
-            **options: Key-value options to alter to_sqlite's behavior.
-                Currently in use options:
-                    db_conn: An io.odbc.ODBConnector object if you have
-                        one, otherwise to_sqlite will create it.
-                    db_name: A string to specifically name the db to
-                        output to. Default is 'datasets'
-
-        Returns: None
-
-        """
-        conn = self._quick_conn_setup(
-            dir_path,
-            options.get('db_name'),
-            options.get('db_conn')
-        )
-        type_map = {
-            'object': str,
-            'string': str,
-            'float64': float,
-            'int64': int,
-        }
-        schema = {
-            k: type_map[str(self.dtypes[k])] for k in list(self.columns)
-        }
-        data = self.to_dict('records', into=col.OrderedDict)
-        odbc.write_sqlite(conn, table, data, schema)
-
-        # Add meta_data tables for this dataset:
-        # dset_md_tbl = f + '_dset_meta_data'
-        # col_md_tbl = f + '_col_meta_data'
-        # (dset_md, dset_md_schema,
-        #  col_md, col_md_schema) = self.meta_data_report()
-        # odbc.write_sqlite(o, dset_md_tbl, dset_md, dset_md_schema)
-        # odbc.write_sqlite(o, col_md_tbl, col_md, col_md_schema)
-        # # Add reject table for this dataset:
-        # reject_tbl = f + '_rejects'
-        # rejects, reject_schema = self.package_rejects()
-        # odbc.write_sqlite(o, reject_tbl, rejects, reject_schema)
-
-    def package_rejects(self):
-        """
-        Bundles rejects into dictionaries and generates a schema dict
-        so that the rejects can be written to SQLite.
-
-        Returns: A tuple containing a list of dictionaries (one for
-            each row in self.rejects) and a dictionary containing a
-            simple schema for the rejects table.
-
-        """
-        m = self.meta_data.header
-        return (
-            [col.OrderedDict(zip(m, r)) for r in self.rejects],
-            dict(zip(m, [str for _ in range(len(m))]))
-        )
-
-    def meta_data_report(self):
-        """
-        Produces a tuple of values related to the Dataset's meta_data
-        attribute and meta data on the Dataset itself, as well as
-        schemas for each of those objects so that they can be easily
-        written to sqlite if desired.
-
-        Returns: A tuple of:
-            dataset_md: A list of dictionaries containing meta data
-                features of the Dataset.
-            dataset_md_schema: A dictionary schema for dataset_md.
-            column_md: A list of dictionaries containing meta data for
-                each column described in self.meta_data.
-            column_md_schema: A dictionary schema for column_md.
-
-        """
-        column_md = []
-        column_md_schema = dict()
-        for k, v in self.meta_data.items():
-            column_md_schema['column'] = str
-            result = col.OrderedDict(
-                column=k
-            )
-            for vk, vv in v.items():
-                column_md_schema[vk] = str
-                if isinstance(vv, (list, tuple)):
-                    result[vk] = str(vv)[:30]
-                else:
-                    result[vk] = vv
-            if len(column_md) > 0:
-                if set(result.keys()) != set(column_md[-1].keys()):
-                    raise ValueError(
-                        f'Inconsistent keys for column meta_data. '
-                        f'Invalid meta_data info = {k, v}')
-            column_md.append(result)
-
-        reject_val_ct = sum([len(x) - u.count_nulls(x) for x in self.rejects])
-        dataset_md_features = {
-            'Number of columns': f'{self.col_ct}',
-            'Number of rows': f'{self.row_ct}',
-            'Number of rejected rows': f'{len(self.rejects)}',
-            'Number of values in rejected rows': f'{reject_val_ct}',
-            'Number of strings cleared of whitespace':
-                f'{self.meta_data.white_space_cleaned}'
-        }
-        dataset_md = [
-            {'feature': k, 'value': v} for k, v in dataset_md_features.items()
-        ]
-        dataset_md_schema = {'feature': str, 'value': str}
-        return dataset_md, dataset_md_schema, column_md, column_md_schema
-
-    @staticmethod
-    def _quick_conn_setup(dir_path, db_name=None, db_conn=None):
-        """
-        Convenience method for creating a sqlite databse or connecting
-        to an existing one.
-
-        Args:
-            dir_path: The directory path where the db file is/should
-                be located.
-            db_name: An io.odbc.ODBConnector object if you have
-                one, otherwise to_sqlite will create it.
-            db_conn:
-
-        Returns:
-
-        """
-        db_name = 'datasets' if not db_name else db_name
-        db_conn = odbc.ODBConnector() if not db_conn else db_conn
-        db_conn.setup(os.path.join(dir_path, db_name + '.db'))
-        return db_conn
+    # def package_rejects(self):
+    #     """
+    #     Bundles rejects into dictionaries and generates a schema dict
+    #     so that the rejects can be written to SQLite.
+    #
+    #     Returns: A tuple containing a list of dictionaries (one for
+    #         each row in self.rejects) and a dictionary containing a
+    #         simple schema for the rejects table.
+    #
+    #     """
+    #     m = self.meta_data.header
+    #     return (
+    #         [col.OrderedDict(zip(m, r)) for r in self.rejects],
+    #         dict(zip(m, [str for _ in range(len(m))]))
+    #     )
+    #
+    # def meta_data_report(self):
+    #     """
+    #     Produces a tuple of values related to the Dataset's meta_data
+    #     attribute and meta data on the Dataset itself, as well as
+    #     schemas for each of those objects so that they can be easily
+    #     written to sqlite if desired.
+    #
+    #     Returns: A tuple of:
+    #         dataset_md: A list of dictionaries containing meta data
+    #             features of the Dataset.
+    #         dataset_md_schema: A dictionary schema for dataset_md.
+    #         column_md: A list of dictionaries containing meta data for
+    #             each column described in self.meta_data.
+    #         column_md_schema: A dictionary schema for column_md.
+    #
+    #     """
+    #     column_md = []
+    #     column_md_schema = dict()
+    #     for k, v in self.meta_data.items():
+    #         column_md_schema['column'] = str
+    #         result = col.OrderedDict(
+    #             column=k
+    #         )
+    #         for vk, vv in v.items():
+    #             column_md_schema[vk] = str
+    #             if isinstance(vv, (list, tuple)):
+    #                 result[vk] = str(vv)[:30]
+    #             else:
+    #                 result[vk] = vv
+    #         if len(column_md) > 0:
+    #             if set(result.keys()) != set(column_md[-1].keys()):
+    #                 raise ValueError(
+    #                     f'Inconsistent keys for column meta_data. '
+    #                     f'Invalid meta_data info = {k, v}')
+    #         column_md.append(result)
+    #
+    #     reject_val_ct = sum([len(x) - u.count_nulls(x) for x in self.rejects])
+    #     dataset_md_features = {
+    #         'Number of columns': f'{self.col_ct}',
+    #         'Number of rows': f'{self.row_ct}',
+    #         'Number of rejected rows': f'{len(self.rejects)}',
+    #         'Number of values in rejected rows': f'{reject_val_ct}',
+    #         'Number of strings cleared of whitespace':
+    #             f'{self.meta_data.white_space_cleaned}'
+    #     }
+    #     dataset_md = [
+    #         {'feature': k, 'value': v} for k, v in dataset_md_features.items()
+    #     ]
+    #     dataset_md_schema = {'feature': str, 'value': str}
+    #     return dataset_md, dataset_md_schema, column_md, column_md_schema
 
 
 class Rule:

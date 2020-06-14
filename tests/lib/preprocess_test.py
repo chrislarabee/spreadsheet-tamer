@@ -1,69 +1,72 @@
 from numpy import nan
 import pandas as pd
 
-import datagenius.element as e
+from datagenius.genius import GeniusAccessor
 import datagenius.lib.preprocess as pp
 
 
 def test_purge_pre_header(gaps_totals, customers):
-    d = e.Dataset(gaps_totals())
-    assert d.shape == (11, 3)
-    d = d.purge_gap_rows(d)
-    d = pp.detect_header(d)
-    d = pp.purge_pre_header(d)
-    assert list(d.columns) == ['location', 'region', 'sales']
-    assert d.shape == (6, 3)
-    assert d.rejects == [
-        ['Sales by Location Report', nan, nan],
-        ['Grouping: Region', nan, nan],
-    ]
-    assert d.reject_ct == 2
+    df = pd.DataFrame(gaps_totals())
+    assert df.shape == (11, 3)
+    df = df.genius.purge_gap_rows(df)
+    df, h = pp.detect_header(df)
+    df = pp.purge_pre_header(df, h)
+    assert list(df.columns) == ['location', 'region', 'sales']
+    assert df.shape == (6, 3)
+    # TODO: Uncomment this when OperationsMetaData is implemented:
+    # assert df.rejects == [
+    #     ['Sales by Location Report', nan, nan],
+    #     ['Grouping: Region', nan, nan],
+    # ]
 
-    # Test a dataset that doesn't need a purge:
-    d = e.Dataset(**customers())
-    d = pp.purge_pre_header(d)
-    assert d.shape == (4, 4)
-    assert d.rejects == []
+    # Test a DataFrame that doesn't need a purge:
+    df = pd.DataFrame(**customers())
+    df = pp.purge_pre_header(df)
+    assert df.shape == (4, 4)
+    # TODO: Uncomment this when OperationsMetaData is implemented:
+    # assert df.rejects == []
 
 
 def test_detect_header(gaps):
-    d = e.Dataset(gaps)
-    assert d.header_idx is None
-    d = pp.detect_header(d)
-    assert list(d.columns) == [
+    df = pd.DataFrame(gaps)
+    df, header_idx = pp.detect_header(df)
+    assert list(df.columns) == [
         'id', 'fname', 'lname', 'foreign_key'
     ]
-    assert d.shape == (9, 4)
-    assert d.header_idx == 4
+    assert df.shape == (9, 4)
+    assert header_idx == 4
 
-    man_header = ['A', 'B', 'C', 'D']
-    d = e.Dataset(gaps)
-    assert d.header_idx is None
-    d = pp.detect_header(d, manual_header=man_header)
-    assert list(d.columns) == man_header
-    assert d.header_idx is None
+    man_header = ['A', 'B', 'C', 'df']
+    df = pd.DataFrame(gaps)
+    df, header_idx = pp.detect_header(df, manual_header=man_header)
+    assert list(df.columns) == man_header
+    assert header_idx is None
 
     # Test headerless Dataset:
-    d = e.Dataset([[1, 2, 3], [4, 5, 6]])
-    d = pp.detect_header(d)
-    assert list(d.columns) == [0, 1, 2]
-    assert d.header_idx is None
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+    df, header_idx = pp.detect_header(df)
+    assert list(df.columns) == [0, 1, 2]
+    assert header_idx is None
 
 
 def test_normalize_whitespace(gaps_totals):
-    d = e.Dataset([
+    df = pd.DataFrame([
         dict(a='a good string', b=' a  bad   string  ', c=nan),
         dict(a='     what       even     ', b=nan, c=123)
     ])
-    expected = e.Dataset([
+    expected = pd.DataFrame([
         dict(a='a good string', b='a bad string', c=nan),
         dict(a='what even', b=nan, c=123)
     ])
-    d = pp.normalize_whitespace(d)
-    pd.testing.assert_frame_equal(d, expected)
+    df = pp.normalize_whitespace(df)
+    pd.testing.assert_frame_equal(df, expected)
+    # TODO: Uncomment this when OperationsMetadata is implemented:
+    # assert df['a'].whitespace_cleaned == 1
+    # assert df['b'].whitespace_cleaned == 1
+    # assert df['c'].whitespace_cleaned == 0
 
     g = gaps_totals(False, False)
-    d = e.Dataset(g[1:], columns=g[0])
-    expected = e.Dataset(g[1:], columns=g[0])
-    d = pp.normalize_whitespace(d)
-    pd.testing.assert_frame_equal(d, expected)
+    df = pd.DataFrame(g[1:], columns=g[0])
+    expected = pd.DataFrame(g[1:], columns=g[0])
+    df = pp.normalize_whitespace(df)
+    pd.testing.assert_frame_equal(df, expected)

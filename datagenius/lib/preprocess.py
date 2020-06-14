@@ -2,78 +2,85 @@ from typing import Optional, Sequence
 
 import pandas as pd
 
-import datagenius.element as e
 import datagenius.util as u
 
 
-def purge_pre_header(ds: e.Dataset) -> e.Dataset:
+def purge_pre_header(df: pd.DataFrame, header_idx=None) -> pd.DataFrame:
     """
-    Removes any rows that appear before the header row in a Dataset
+    Removes any rows that appear before the header row in a DataFrame
     where the header row wasn't the first row in the source data.
-    Purged rows are stored in the Dataset's rejects attribute.
+    Purged rows are stored in the DataFrame's rejects attribute.
 
     Args:
-        ds: A Dataset object.
+        df: A pandas DataFrame object.
 
-    Returns: The Dataset object, cleaned of rows that came before the
+    Returns: The DataFrame object, cleaned of rows that came before the
         header, if any.
 
     """
-    h = ds.header_idx
-    if h:
-        if h > 0:
-            ds.rejects += [*ds.iloc[:h].values.tolist()]
-        return ds.drop(index=[i for i in range(h)]).reset_index(drop=True)
+    if header_idx:
+        # TODO: Replace this with update to planned OperationsMetadata
+        #       object.
+        # if header_idx > 0:
+        #     df.rejects += [*df.iloc[:header_idx].values.tolist()]
+        return df.drop(
+            index=[i for i in range(header_idx)]).reset_index(drop=True)
     else:
-        return ds
+        return df
 
 
 def detect_header(
-        ds: e.Dataset,
-        manual_header: Optional[Sequence] = None) -> e.Dataset:
+        df: pd.DataFrame,
+        manual_header: Optional[Sequence] = None) -> tuple:
     """
-    Takes a Dataset object and sets its column names to be the
+    Takes a pandas DataFrame and sets its column names to be the
     values of the first row containing all true strings and removes
-    that row from the Dataset.
+    that row from the DataFrame.
 
     Args:
-        ds: A Dataset object.
+        df: A pandas DataFrame.
         manual_header: A Sequence of labels to use as column names.
-            Useful when your Dataset has no discernible header.
+            Useful when your DataFrame has no discernible header.
 
-    Returns: The Dataset, with the header row extracted as column
-        names.
+    Returns: A tuple containing the DataFrame, with the header row
+        extracted as column names, and an integer indicating the idx
+        where the header row was found (None if it was not pulled from
+        the data).
 
     """
+    header_idx = None
     if manual_header:
-        ds.columns = manual_header
+        header_idx = None
+        df.columns = manual_header
     else:
-        true_str_series = ds.apply(
+        true_str_series = df.apply(
             lambda x: u.count_true_str(x) == len(x), axis=1
         )
         first_idx = next(
             (i for i, v in true_str_series.items() if v), None)
         if first_idx is not None:
-            ds.columns = list(ds.iloc[first_idx])
-            ds.header_idx = first_idx
-            return ds.drop(index=first_idx).reset_index(drop=True)
-    return ds
+            df.columns = list(df.iloc[first_idx])
+            header_idx = first_idx
+            return df.drop(index=first_idx).reset_index(drop=True), header_idx
+    return df, header_idx
 
 
-def normalize_whitespace(ds: e.Dataset) -> e.Dataset:
+def normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
     """
     Simple function that applies util.clean_whitespace to every cell
-    in a Dataset.
+    in a DataFrame.
 
     Args:
-        ds: A Dataset.
+        df: A DataFrame.
 
-    Returns: The Dataset, with any string values cleaned of excess
+    Returns: The DataFrame, with any string values cleaned of excess
         whitespace.
 
     """
-    for c in ds.columns:
-        result = ds[c].apply(u.clean_whitespace)
+    for c in df.columns:
+        result = df[c].apply(u.clean_whitespace)
         result = pd.DataFrame(result.to_list())
-        ds[c] = result[1]
-    return ds
+        df[c] = result[1]
+        # TODO: Add whitespace_cleaned counts to planned
+        #       OperationsMetadata object.
+    return df

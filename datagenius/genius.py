@@ -1,4 +1,5 @@
 import inspect
+import os
 import re
 import collections as col
 import functools
@@ -12,6 +13,7 @@ import recordlinkage as link
 import datagenius.lib.preprocess as pp
 import datagenius.element as e
 import datagenius.util as u
+from datagenius.io import odbc
 
 
 def parser(func=None, *tags,
@@ -171,20 +173,19 @@ class ParserSubset(col.abc.MutableSequence, ABC):
         self.data[key] = value
 
 
-@pd.api.extensions.register_dataframe_accessor("genius")
+@pd.api.extensions.register_dataframe_accessor('genius')
 class GeniusAccessor:
     """
     A custom pandas DataFrame accessor that adds a number of additional
-    methods, properties, and attributes that extend the DataFrame's
-    functionality.
+    methods and properties that extend the DataFrame's functionality.
     """
-    def __init__(self, ds: e.Dataset):
+    def __init__(self, df: pd.DataFrame):
         """
 
         Args:
-            ds: A Dataset object.
+            df: A pandas DataFrame.
         """
-        self.ds = ds
+        self.df = df
 
     def preprocess(
             self,
@@ -204,333 +205,464 @@ class GeniusAccessor:
         Returns:
 
         """
-        if not self.ds.header_idx:
+        if self.df.columns[0] in ('Unnamed: 0', 0):
             hf_args = inspect.getfullargspec(header_func).args
-            if 'ds' in hf_args:
-                hf_args.remove('ds')
+            if 'df' in hf_args:
+                hf_args.remove('df')
             kwargs = {k: options.get(k) for k in hf_args}
-            self.ds = (
-                self.ds.pipe(header_func, **kwargs)
-                .pipe(pp.purge_pre_header)
+            self.df, header_idx = header_func(self.df, **kwargs)
+            self.df = pp.purge_pre_header(self.df, header_idx)
+        self.df = pp.normalize_whitespace(self.df)
+        return self.df.reset_index(drop=True)
+
+    @staticmethod
+    def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Takes a Dataset object and drops rows that are entirely nan.
+
+        Args:
+            df: A Dataset object.
+
+        Returns: A Dataset without entirely nan rows.
+
+        """
+        return df.dropna(how='all').reset_index(drop=True)
+
+    @classmethod
+    def from_file(cls, file_path: str, **kwargs):
+        """
+        Uses read_file to read in the passed file path.
+
+        Args:
+            file_path: The file path to the desired data file.
+
+        Returns: For excel workbooks with multiple sheets, it will
+            return a dictionary of sheet names as keys and raw
+            sheet contents as values. For excel workbooks with
+            one sheet and other file formats with a single set of
+            data, it will return a Dataset object.
+
+        """
+        read_funcs = {
+            '.xls': pd.read_excel,
+            '.xlsx': pd.read_excel,
+            '.csv': pd.read_csv,
+            '.json': pd.read_json,
+            # file_paths with no extension are presumed to be dir_paths
+            '': cls.from_sqlite
+        }
+        _, ext = os.path.splitext(file_path)
+        # Expectation is that no column for these exts will have data
+        # types that are safe for pandas to interpret.
+        if ext in ('.xls', '.xlsx', '.csv'):
+            kwargs['dtype'] = 'object'
+        if ext not in read_funcs.keys():
+            raise ValueError(f'read_file error: file extension must be '
+                             f'one of {read_funcs.keys()}')
+        else:
+            df = cls.purge_gap_rows(
+                pd.DataFrame(read_funcs[ext](file_path, **kwargs))
             )
-        self.ds = pp.normalize_whitespace(self.ds)
-        return self.ds.reset_index(drop=True)
+            return df
+
+    @classmethod
+    def from_sqlite(cls, dir_path: str, table: str,
+                    **options) -> pd.DataFrame:
+        """
+        Creates a pandas DataFrame from a sqlite database table.
+
+        Args:
+            dir_path: The directory path where the db file is located.
+            table: A string, the name of the table to pull data from.
+            **options: Key-value options to alter to_sqlite's behavior.
+                Currently in use options:
+                    db_conn: An io.odbc.ODBConnector object if you have
+                        one, otherwise from_sqlite will create it.
+                    db_name: A string, the name of the db file to pull
+                        from. Default is 'datasets'.
+
+        Returns: A pandas DataFrame containing the contents of the
+            passed table.
+
+        """
+        conn = cls._quick_conn_setup(
+            dir_path,
+            options.get('db_name'),
+            options.get('db_conn')
+        )
+        return pd.DataFrame(conn.select(table))
+
+    def to_sqlite(self, dir_path: str, table: str, **options):
+        """
+        Writes the DataFrame to a sqlite db.
+
+        Args:
+            dir_path: The directory path where the db file is/should
+                be located.
+            table: A string, the name of the table to enter data in.
+            **options: Key-value options to alter to_sqlite's behavior.
+                Currently in use options:
+                    db_conn: An io.odbc.ODBConnector object if you have
+                        one, otherwise to_sqlite will create it.
+                    db_name: A string to specifically name the db to
+                        output to. Default is 'datasets'
+
+        Returns: None
+
+        """
+        conn = self._quick_conn_setup(
+            dir_path,
+            options.get('db_name'),
+            options.get('db_conn')
+        )
+        type_map = {
+            'object': str,
+            'string': str,
+            'float64': float,
+            'int64': int,
+        }
+        schema = {
+            k: type_map[str(self.df.dtypes[k])] for k in list(self.df.columns)
+        }
+        data = self.df.to_dict('records', into=col.OrderedDict)
+        odbc.write_sqlite(conn, table, data, schema)
+
+    @staticmethod
+    def _quick_conn_setup(dir_path, db_name=None, db_conn=None):
+        """
+        Convenience method for creating a sqlite databse or connecting
+        to an existing one.
+
+        Args:
+            dir_path: The directory path where the db file is/should
+                be located.
+            db_name: An io.odbc.ODBConnector object if you have
+                one, otherwise to_sqlite will create it.
+            db_conn:
+
+        Returns:
+
+        """
+        db_name = 'datasets' if not db_name else db_name
+        db_conn = odbc.ODBConnector() if not db_conn else db_conn
+        db_conn.setup(os.path.join(dir_path, db_name + '.db'))
+        return db_conn
 
 
 # TODO: Add handling for things like duplicate variants
 
-
-
-class Genius:
-    """
-    The base class for pre-built and custom genius objects.
-    Provides methods and attributes to assist in creating
-    transforms that are as smart and flexible as possible.
-    """
-    def __init__(self, *steps):
-        """
-
-        Args:
-            *steps: Any number of parser functions, or
-                lists/tuples of parser functions that should
-                be executed as a group.
-        """
-        self.steps = self.validate_steps(steps)
-
-    @staticmethod
-    def validate_steps(steps: tuple):
-        """
-        Ensures that the passed tuple of steps are all
-        parser functions, and that any sets of steps all expect
-        the same data_format for the Dataset they will process.
-
-        Args:
-            steps: A tuple of parser functions.
-
-        Returns: steps if they are all valid.
-
-        """
-        results = []
-        for s in steps:
-            if hasattr(s, 'priority'):
-                results.append(s)
-            elif isinstance(s, (list, tuple)):
-                raise ValueError(
-                    f'If you are trying to use a subset of parsers pass '
-                    f'a ParserSubset object instead of a list/tuple. '
-                    f'Invalid step={s}.'
-                )
-            else:
-                raise ValueError(
-                    f'Genius objects only take parser functions or '
-                    f'ParserSubsets as steps. Invalid step={s}')
-        return results
-
-    @staticmethod
-    def order_parsers(parsers: (list, tuple)):
-        """
-        Places a list/tuple of parsers in priority order.
-        Primarily used by objects that inherit from Genius and
-        which need to mix built in parsers with user-defined
-        parsers.
-
-        Args:
-            parsers: A list/tuple of parser functions.
-
-        Returns: The list of parsers in increasing priority
-            order.
-
-        """
-        if len(parsers) > 0:
-            result = [parsers[0]]
-            if len(parsers) > 1:
-                for p in parsers[1:]:
-                    idx = -1
-                    for j, r in enumerate(result):
-                        if p.priority > r.priority:
-                            idx = j
-                            break
-                    if idx >= 0:
-                        result.insert(idx, p)
-                    else:
-                        result.append(p)
-            return result
-        else:
-            return parsers
-
-    def go(self, dset: e.Dataset, **options) -> e.Dataset:
-        """
-        Runs the parser functions found on the Genius object
-        in order on the passed Dataset.
-
-        Args:
-            dset: A Dataset object.
-            **options: Keywords for customizing the functionality
-                of go. Currently in use options:
-                    overwrite: A boolean, tells go whether to
-                        overwrite the contents of dset with the
-                        results of the loops.
-                    parser_args: A dictionary containing parser_args
-                        for loop_dataset's use (see loop_dataset
-                        for more info).
-
-        Returns: The Dataset or a copy of it.
-
-        """
-        if options.get('overwrite', True):
-            wdset = dset
-        else:
-            wdset = dset.copy()
-
-        for step in self.steps:
-            wdset.transpose(step.parses)
-            s = [step] if u.validate_parser(step) else step
-            if step.parses == 'set':
-                self.loop_dataset(wdset, *s, **options)
-            else:
-                wdset._data = self.loop_dataset(wdset, *s, **options)
-        return wdset
-
-    @staticmethod
-    def apply_parsers(x: (list, col.OrderedDict), *parsers, **parser_args):
-        """
-        Applies an arbitrary number of parsers to an object and returns the
-        results.
-
-        Args:
-           x: A list or OrderedDict.
-            *parsers: Any number of parser functions.
-            **parser_args: Any number of kwargs. Keys that match the
-                keyword arguments used by the parsers will be passed to
-                them.
-
-        Returns: A tuple containing the following:
-            A boolean indicating whether to break any loop that
-                apply parsers is in:
-            A boolean indicating whether x passed through all the
-                parsers successfully.
-            A boolean indicating whether, if x did not pass through all
-                the parsers successfully, it should be collected in
-                its parent Dataset's rejects set.
-            And finally, x.
-
-        """
-        _break = False
-        passes_all = True
-        collect_reject = False
-        for p in parsers:
-            if Genius.eval_condition(x, p.condition):
-                if p.collect_rejects:
-                    collect_reject = True
-                _break = p.breaks_loop
-                p_args = {k: v for k, v in parser_args.items() if k in p.args}
-                parse_result = p(x, **p_args)
-                if parse_result != p.null_val:
-                    x = parse_result
-                    if _break:
-                        break
-                else:
-                    passes_all = False
-        return _break, passes_all, collect_reject, x
-
-    @staticmethod
-    def align_dset_format(dset: e.Dataset, _format: str = 'dicts'):
-        if dset.data_format != _format:
-            dset.to_format(_format)
-
-    @staticmethod
-    def loop_dataset(dset: e.Dataset, *parsers, **parser_args) -> (list or None):
-        """
-        Loops over all the rows in the passed Dataset and passes
-        each to the passed parsers.
-
-        Args:
-            dset: A Dataset object.
-            parsers: One or more parser functions.
-            parser_args: A dictionary containing keys matching the
-                args of any of the parser functions.
-
-        Returns: A list containing the results of the parsers'
-            evaluation of each row in dset.
-
-        """
-        results = []
-        # loop_dataset can change the Datasets data_format using the
-        # data_format of the first parser in parsers if required:
-        Genius.align_dset_format(dset, parsers[0].requires_format)
-
-        parser_args['cache'] = None
-        parser_args['meta_data'] = dset.meta_data
-
-        for i, r in enumerate(dset):
-            if dset.data_orientation == 'column':
-                parser_args['col_name'] = dset.meta_data.header[i]
-            parser_args['index'] = i
-            row = r.copy()
-            outer_break, passes_all, collect, row = Genius.apply_parsers(
-                row, *parsers, **parser_args
-            )
-            if collect and not passes_all:
-                Genius.collect_rejects(row, dset)
-            if passes_all:
-                results.append(row)
-                if outer_break:
-                    break
-                parser_args['cache'] = row
-        return results
-
-    @staticmethod
-    def collect_rejects(reject: (list, col.OrderedDict),
-                        dset: e.Dataset) -> None:
-        """
-        Ensures rejects are collected as a list and not an OrderedDict.
-
-        Args:
-            reject: A list or OrderedDict.
-            dset: The Dataset object the reject was from.
-
-        Returns: None
-
-        """
-        if isinstance(reject, col.OrderedDict):
-            reject = list(reject.values())
-        dset.rejects.append(reject)
-
-    @staticmethod
-    def eval_condition(data: (list, col.OrderedDict),
-                       c: (str, None)) -> bool:
-        """
-        Takes a string formatted as a python conditional, with the
-        antecedent being an index/key found in row, and evaluates
-        if the value found at that location meets the condition
-        or not.
-
-        *** USE INNER QUOTES ON STRINGS WITHIN c! ***
-
-        Args:
-            data: A list or OrderedDict.
-            c: A string or None, which must be a python
-                conditional statement like "'key' == 'value'".
-
-        Returns: A boolean.
-
-        """
-        if c is None:
-            return True
-        else:
-            # First, handle strings contained within the c string:
-            quotes = ["'", '"']
-            q_comp = None
-            for q in quotes:
-                quote_str = re.search(f'{q}.+{q}', c)
-                if quote_str is not None:
-                    q_comp = quote_str.group()
-                    c = re.sub(q_comp, '', c).strip()
-                    break
-            # Now it's safe to split it:
-            components = c.split(' ')
-            # Get antecedent/consequent indices:
-            i, j = (2, 0) if components[0] == 'in' else (0, 2)
-            if q_comp is not None:
-                components.insert(j, q_comp)
-            if len(components) > 3:
-                raise ValueError(
-                    f'"{c}" is not a valid conditional')
-            else:
-                # Get key/index:
-                kdx = components[i]
-                # Make sure i is the proper data type for row's
-                # data type:
-                if isinstance(data, list):
-                    kdx = int(kdx)
-                antecedent = data[kdx]
-                # Make antecedent a string that will pass eval:
-                if isinstance(antecedent, str):
-                    antecedent = '"' + antecedent + '"'
-                else:
-                    antecedent = str(antecedent)
-                components[i] = antecedent
-                condition = ' '.join(components)
-            return eval(condition)
-
-    def display_execute_plan(self) -> None:
-        """
-        Prints the step names in the Genius' steps attribute so the
-        end-user can QA prioritization.
-
-        Returns: None
-
-        """
-        print('priority\tstep name')
-        for s in self.steps:
-            print(f'{s.priority}\t\t\t{s.__name__}')
-
-# TODO: Add a Genius object that can deal with excel workbooks
-#       that have multiple sheets.
-
-
-class Preprocess(Genius):
-    """
-    A Genius designed to clean up data that isn't ideally formatted,
-    such as spreadsheets with gaps or other formatting that was
-    designed for humans and not computers.
-    """
-    def __init__(self, *custom_steps, header_func=None):
-        """
-
-        Args:
-            *custom_steps: Any number of parser functions, which will
-                be executed along with Preprocess' pre-built parsers.
-            header_func: A parser function, overrides pre-built
-                detect_header parser.
-        """
-        if u.validate_parser(header_func) and header_func.priority >= 100:
-            warnings.warn(
-                f'It is *highly* recommended that you let Preprocess '
-                f'execute cleanse_gaps and nullify_empty_vals before '
-                f'executing a header-finding function. Current '
-                f'header_func priority = {header_func.priority}. '
-                f'Consider reducing it below 100')
+#
+#
+# class Genius:
+#     """
+#     The base class for pre-built and custom genius objects.
+#     Provides methods and attributes to assist in creating
+#     transforms that are as smart and flexible as possible.
+#     """
+#     def __init__(self, *steps):
+#         """
+#
+#         Args:
+#             *steps: Any number of parser functions, or
+#                 lists/tuples of parser functions that should
+#                 be executed as a group.
+#         """
+#         self.steps = self.validate_steps(steps)
+#
+#     @staticmethod
+#     def validate_steps(steps: tuple):
+#         """
+#         Ensures that the passed tuple of steps are all
+#         parser functions, and that any sets of steps all expect
+#         the same data_format for the Dataset they will process.
+#
+#         Args:
+#             steps: A tuple of parser functions.
+#
+#         Returns: steps if they are all valid.
+#
+#         """
+#         results = []
+#         for s in steps:
+#             if hasattr(s, 'priority'):
+#                 results.append(s)
+#             elif isinstance(s, (list, tuple)):
+#                 raise ValueError(
+#                     f'If you are trying to use a subset of parsers pass '
+#                     f'a ParserSubset object instead of a list/tuple. '
+#                     f'Invalid step={s}.'
+#                 )
+#             else:
+#                 raise ValueError(
+#                     f'Genius objects only take parser functions or '
+#                     f'ParserSubsets as steps. Invalid step={s}')
+#         return results
+#
+#     @staticmethod
+#     def order_parsers(parsers: (list, tuple)):
+#         """
+#         Places a list/tuple of parsers in priority order.
+#         Primarily used by objects that inherit from Genius and
+#         which need to mix built in parsers with user-defined
+#         parsers.
+#
+#         Args:
+#             parsers: A list/tuple of parser functions.
+#
+#         Returns: The list of parsers in increasing priority
+#             order.
+#
+#         """
+#         if len(parsers) > 0:
+#             result = [parsers[0]]
+#             if len(parsers) > 1:
+#                 for p in parsers[1:]:
+#                     idx = -1
+#                     for j, r in enumerate(result):
+#                         if p.priority > r.priority:
+#                             idx = j
+#                             break
+#                     if idx >= 0:
+#                         result.insert(idx, p)
+#                     else:
+#                         result.append(p)
+#             return result
+#         else:
+#             return parsers
+#
+#     def go(self, dset: e.Dataset, **options) -> e.Dataset:
+#         """
+#         Runs the parser functions found on the Genius object
+#         in order on the passed Dataset.
+#
+#         Args:
+#             dset: A Dataset object.
+#             **options: Keywords for customizing the functionality
+#                 of go. Currently in use options:
+#                     overwrite: A boolean, tells go whether to
+#                         overwrite the contents of dset with the
+#                         results of the loops.
+#                     parser_args: A dictionary containing parser_args
+#                         for loop_dataset's use (see loop_dataset
+#                         for more info).
+#
+#         Returns: The Dataset or a copy of it.
+#
+#         """
+#         if options.get('overwrite', True):
+#             wdset = dset
+#         else:
+#             wdset = dset.copy()
+#
+#         for step in self.steps:
+#             wdset.transpose(step.parses)
+#             s = [step] if u.validate_parser(step) else step
+#             if step.parses == 'set':
+#                 self.loop_dataset(wdset, *s, **options)
+#             else:
+#                 wdset._data = self.loop_dataset(wdset, *s, **options)
+#         return wdset
+#
+#     @staticmethod
+#     def apply_parsers(x: (list, col.OrderedDict), *parsers, **parser_args):
+#         """
+#         Applies an arbitrary number of parsers to an object and returns the
+#         results.
+#
+#         Args:
+#            x: A list or OrderedDict.
+#             *parsers: Any number of parser functions.
+#             **parser_args: Any number of kwargs. Keys that match the
+#                 keyword arguments used by the parsers will be passed to
+#                 them.
+#
+#         Returns: A tuple containing the following:
+#             A boolean indicating whether to break any loop that
+#                 apply parsers is in:
+#             A boolean indicating whether x passed through all the
+#                 parsers successfully.
+#             A boolean indicating whether, if x did not pass through all
+#                 the parsers successfully, it should be collected in
+#                 its parent Dataset's rejects set.
+#             And finally, x.
+#
+#         """
+#         _break = False
+#         passes_all = True
+#         collect_reject = False
+#         for p in parsers:
+#             if Genius.eval_condition(x, p.condition):
+#                 if p.collect_rejects:
+#                     collect_reject = True
+#                 _break = p.breaks_loop
+#                 p_args = {k: v for k, v in parser_args.items() if k in p.args}
+#                 parse_result = p(x, **p_args)
+#                 if parse_result != p.null_val:
+#                     x = parse_result
+#                     if _break:
+#                         break
+#                 else:
+#                     passes_all = False
+#         return _break, passes_all, collect_reject, x
+#
+#     @staticmethod
+#     def align_dset_format(dset: e.Dataset, _format: str = 'dicts'):
+#         if dset.data_format != _format:
+#             dset.to_format(_format)
+#
+#     @staticmethod
+#     def loop_dataset(dset: e.Dataset, *parsers, **parser_args) -> (list or None):
+#         """
+#         Loops over all the rows in the passed Dataset and passes
+#         each to the passed parsers.
+#
+#         Args:
+#             dset: A Dataset object.
+#             parsers: One or more parser functions.
+#             parser_args: A dictionary containing keys matching the
+#                 args of any of the parser functions.
+#
+#         Returns: A list containing the results of the parsers'
+#             evaluation of each row in dset.
+#
+#         """
+#         results = []
+#         # loop_dataset can change the Datasets data_format using the
+#         # data_format of the first parser in parsers if required:
+#         Genius.align_dset_format(dset, parsers[0].requires_format)
+#
+#         parser_args['cache'] = None
+#         parser_args['meta_data'] = dset.meta_data
+#
+#         for i, r in enumerate(dset):
+#             if dset.data_orientation == 'column':
+#                 parser_args['col_name'] = dset.meta_data.header[i]
+#             parser_args['index'] = i
+#             row = r.copy()
+#             outer_break, passes_all, collect, row = Genius.apply_parsers(
+#                 row, *parsers, **parser_args
+#             )
+#             if collect and not passes_all:
+#                 Genius.collect_rejects(row, dset)
+#             if passes_all:
+#                 results.append(row)
+#                 if outer_break:
+#                     break
+#                 parser_args['cache'] = row
+#         return results
+#
+#     @staticmethod
+#     def collect_rejects(reject: (list, col.OrderedDict),
+#                         dset: e.Dataset) -> None:
+#         """
+#         Ensures rejects are collected as a list and not an OrderedDict.
+#
+#         Args:
+#             reject: A list or OrderedDict.
+#             dset: The Dataset object the reject was from.
+#
+#         Returns: None
+#
+#         """
+#         if isinstance(reject, col.OrderedDict):
+#             reject = list(reject.values())
+#         dset.rejects.append(reject)
+#
+#     @staticmethod
+#     def eval_condition(data: (list, col.OrderedDict),
+#                        c: (str, None)) -> bool:
+#         """
+#         Takes a string formatted as a python conditional, with the
+#         antecedent being an index/key found in row, and evaluates
+#         if the value found at that location meets the condition
+#         or not.
+#
+#         *** USE INNER QUOTES ON STRINGS WITHIN c! ***
+#
+#         Args:
+#             data: A list or OrderedDict.
+#             c: A string or None, which must be a python
+#                 conditional statement like "'key' == 'value'".
+#
+#         Returns: A boolean.
+#
+#         """
+#         if c is None:
+#             return True
+#         else:
+#             # First, handle strings contained within the c string:
+#             quotes = ["'", '"']
+#             q_comp = None
+#             for q in quotes:
+#                 quote_str = re.search(f'{q}.+{q}', c)
+#                 if quote_str is not None:
+#                     q_comp = quote_str.group()
+#                     c = re.sub(q_comp, '', c).strip()
+#                     break
+#             # Now it's safe to split it:
+#             components = c.split(' ')
+#             # Get antecedent/consequent indices:
+#             i, j = (2, 0) if components[0] == 'in' else (0, 2)
+#             if q_comp is not None:
+#                 components.insert(j, q_comp)
+#             if len(components) > 3:
+#                 raise ValueError(
+#                     f'"{c}" is not a valid conditional')
+#             else:
+#                 # Get key/index:
+#                 kdx = components[i]
+#                 # Make sure i is the proper data type for row's
+#                 # data type:
+#                 if isinstance(data, list):
+#                     kdx = int(kdx)
+#                 antecedent = data[kdx]
+#                 # Make antecedent a string that will pass eval:
+#                 if isinstance(antecedent, str):
+#                     antecedent = '"' + antecedent + '"'
+#                 else:
+#                     antecedent = str(antecedent)
+#                 components[i] = antecedent
+#                 condition = ' '.join(components)
+#             return eval(condition)
+#
+#     def display_execute_plan(self) -> None:
+#         """
+#         Prints the step names in the Genius' steps attribute so the
+#         end-user can QA prioritization.
+#
+#         Returns: None
+#
+#         """
+#         print('priority\tstep name')
+#         for s in self.steps:
+#             print(f'{s.priority}\t\t\t{s.__name__}')
+#
+# # TODO: Add a Genius object that can deal with excel workbooks
+# #       that have multiple sheets.
+#
+#
+# class Preprocess(Genius):
+#     """
+#     A Genius designed to clean up data that isn't ideally formatted,
+#     such as spreadsheets with gaps or other formatting that was
+#     designed for humans and not computers.
+#     """
+#     def __init__(self, *custom_steps, header_func=None):
+#         """
+#
+#         Args:
+#             *custom_steps: Any number of parser functions, which will
+#                 be executed along with Preprocess' pre-built parsers.
+#             header_func: A parser function, overrides pre-built
+#                 detect_header parser.
+#         """
+#         if u.validate_parser(header_func) and header_func.priority >= 100:
+#             warnings.warn(
+#                 f'It is *highly* recommended that you let Preprocess '
+#                 f'execute cleanse_gaps and nullify_empty_vals before '
+#                 f'executing a header-finding function. Current '
+#                 f'header_func priority = {header_func.priority}. '
+#                 f'Consider reducing it below 100')
         # preprocess_steps = [
         #     self.cleanse_gaps,
         #     self.nullify_empty_vals,

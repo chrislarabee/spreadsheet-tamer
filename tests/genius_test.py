@@ -80,26 +80,71 @@ import datagenius.genius as ge
 #                 ge.parser(lambda w: w / 100, parses='set'),
 #                 *parsers
 #             ))
+from datagenius.io import odbc
 
 
 class TestGeniusAccessor:
     def test_preprocess(self, gaps, customers, gaps_totals):
-        expected = e.Dataset(**customers())
-        d = e.Dataset(gaps)
-        assert not d.header_idx
-        d = d.purge_gap_rows(d)
-        d = d.genius.preprocess()
-        pd.testing.assert_frame_equal(d, expected)
+        expected = pd.DataFrame(**customers())
+        df = pd.DataFrame(gaps)
+        df = df.genius.purge_gap_rows(df)
+        df = df.genius.preprocess()
+        pd.testing.assert_frame_equal(df, expected)
 
         g = gaps_totals(False, False)
-        expected = e.Dataset(g[1:], columns=g[0])
-        d = e.Dataset(gaps_totals())
-        d = d.purge_gap_rows(d)
-        assert not d.header_idx
-        d = d.genius.preprocess()
-        assert d.header_idx == 2
-        assert d.rejects == gaps_totals()[:2]
-        pd.testing.assert_frame_equal(d, expected)
+        expected = pd.DataFrame(g[1:], columns=g[0])
+        df = pd.DataFrame(gaps_totals())
+        df = df.genius.purge_gap_rows(df)
+        df = df.genius.preprocess()
+        pd.testing.assert_frame_equal(df, expected)
+        
+    def test_to_from_sqlite(self, sales):
+        d = pd.DataFrame(**sales)
+        o = odbc.ODBConnector()
+        d.genius.to_sqlite(
+            'tests/samples', 'sales', db_conn=o, db_name='element_test')
+        d2 = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='sales', db_conn=o, db_name='element_test')
+        pd.testing.assert_frame_equal(d, d2)
+        
+    def test_from_file(self, customers):
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/csv/simple.csv')
+        pd.testing.assert_frame_equal(
+            df, pd.DataFrame(**customers(), dtype='object')
+        )
+
+        # Ensure null rows are being dropped from csv:
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/csv/gaps.csv')
+        assert df.shape == (5, 4)
+
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/excel/simple.xlsx')
+        pd.testing.assert_frame_equal(
+            df, pd.DataFrame(**customers(int), dtype='object')
+        )
+
+        # Ensure null rows are being dropped from excel:
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/excel/gaps_totals.xlsx')
+        assert df.shape == (8, 3)
+
+        # Test pulling from sqlite db:
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/sqlite', table='customers', db_name='read_testing')
+        pd.testing.assert_frame_equal(
+            df, pd.DataFrame(**customers())
+        )
+        assert isinstance(df, pd.DataFrame)
+        
+    def test_purge_gap_rows(self, gaps, gaps_totals):
+        d = pd.DataFrame(gaps)
+        d = pd.DataFrame.genius.purge_gap_rows(d)
+        assert d.shape == (5, 4)
+        d = pd.DataFrame(gaps_totals())
+        d = pd.DataFrame.genius.purge_gap_rows(d)
+        assert d.shape == (9, 3)
 
 
 # class TestGenius:

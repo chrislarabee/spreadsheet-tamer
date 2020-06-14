@@ -1,7 +1,9 @@
 import os
 
+import pandas as pd
+
 from datagenius.io.odbc import ODBConnector
-import datagenius.element as e
+
 
 # These tests all share a single ODBConnector.
 p = 'tests/samples/odbc_test.db'
@@ -26,13 +28,13 @@ class TestODBConnector:
         assert o._parse_sa_schema(o._tables['sales'].c) == sales_schema
 
     def test_insert_and_select(self, sales):
-        d = e.Dataset(sales[1], sales[0])
+        d = pd.DataFrame(sales[1], sales[0])
         o.insert('sales', d.to_dicts())
         assert o.select('sales') == d
 
     def test_drop_tbl(self):
         assert o.drop_tbl('sales')
-        assert o._tables.get('sales') is None
-        assert o._schemas.get('sales') is None
+        assert o.tables.get('sales') is None
+        assert o.schemas.get('sales') is None
 
 
