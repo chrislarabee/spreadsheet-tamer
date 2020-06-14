@@ -6,7 +6,7 @@ from collections import OrderedDict
 import pandas as pd
 
 
-def clean_whitespace(x):
+def clean_whitespace(x) -> list:
     """
     When passed a string, removes leading and trailing whitespace from
     it and also replaces any chains of more than one space with a
@@ -15,14 +15,16 @@ def clean_whitespace(x):
     Args:
         x: An object.
 
-    Returns: x, cleaned of whitespace if applicable.
+    Returns: A tuple containing a boolean that indicates whether x was
+        cleaned, and x, cleaned of whitespace if applicable.
 
     """
-    if isinstance(x, str):
-        clean_x = x.strip()
-        return re.sub(r' +', ' ', clean_x)
-    else:
-        return x
+    cleaned = False
+    clean_x = x
+    if isinstance(clean_x, str):
+        clean_x = re.sub(r' +', ' ', x.strip())
+        cleaned = True if clean_x != x else False
+    return [cleaned, clean_x]
 
 
 def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
