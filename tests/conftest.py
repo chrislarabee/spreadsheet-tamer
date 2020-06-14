@@ -21,8 +21,7 @@ def customers():
                 [f(2), 'Muhammad', 'El-Kanan', '00076'],
                 [f(3), 'Luisa', 'Romero', '00123'],
                 [f(4), 'Semaj', 'Soto', '01234']
-            ],
-            dtype=object
+            ]
         )
         return d
 
