@@ -8,6 +8,14 @@ class ODBConnector:
     """
     Serves as an input/output connector for a local SQLite database.
     """
+    @property
+    def schemas(self):
+        return self._schemas
+
+    @property
+    def tables(self):
+        return self._tables
+
     def __init__(self):
         self.engine = None
         self._db_path = None
