@@ -8,6 +8,18 @@ import datagenius.util as u
 from datagenius.genius import parser
 
 
+def test_transmutation():
+    @u.transmutation(stage='preprocess')
+    def func(x):
+        return x
+    assert func.stage == 'preprocess'
+
+    @u.transmutation(stage='a custom stage')
+    def func(x):
+        return x
+    assert func.stage == 'a_custom_stage'
+
+
 def test_clean_whitespace():
     assert u.clean_whitespace(1) == [False, 1]
     assert u.clean_whitespace(' a bad  string ') == [True, 'a bad string']

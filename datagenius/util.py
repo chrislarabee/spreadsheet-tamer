@@ -2,8 +2,42 @@ import functools
 import re
 import string
 from collections import OrderedDict
+from typing import Callable
 
 import pandas as pd
+
+
+def transmutation(func=None, *, stage=None):
+    """
+    Custom functions written for use by genius pipeline stages can be
+    decorated as transmutations in order to better organize information
+    about their activity.
+
+    Args:
+        func: A callable object.
+        stage: A string indicating the name of the stage this
+            transmutation takes place in. Results of its activity will
+            be placed in the same attribute on a GeniusMetadata object.
+
+    Returns: The passed function once decorated.
+
+    """
+    # Allows transmutation functions to have special attributes:
+    def decorator_transmutation(_func):
+
+        # Allows transmutation to be used as a decorator:
+        @functools.wraps(_func)
+        def wrapper_transmutation(*args, **kwargs):
+            return _func(*args, **kwargs)
+        # Attributes of transmutation functions expected by other
+        # objects:
+        wrapper_transmutation.stage = re.sub(r' +', '_', stage).lower()
+        return wrapper_transmutation
+
+    if not isinstance(func, Callable):
+        return decorator_transmutation
+    else:
+        return decorator_transmutation(func)
 
 
 def clean_whitespace(x) -> list:
