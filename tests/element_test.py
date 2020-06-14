@@ -103,57 +103,20 @@ class TestDataset:
     def test_basics(self):
         d = e.Dataset([dict(a=1, b=2, c=3), dict(a=4, b=5, c=6)])
         assert isinstance(d, pd.DataFrame)
-        # Test meta data retention:
-        md = d.meta_data
-        d2 = d[['a', 'b']]
-        assert isinstance(d2, e.Dataset)
-        assert d2.meta_data is md
-        d3 = d.drop(columns='c')
-        assert d3.meta_data is md
+        assert d.header_idx == 0
+        d = d[['a', 'b']]
+        assert d.header_idx == 0
 
-        d4 = e.Dataset([dict(a=7, b=8, c=9)])
-        assert d4.meta_data is not md
+        d = e.Dataset([[1, 2, 3], [4, 5, 6]])
+        assert d.header_idx is None
 
-        d.rejects.append('test')
-        assert d.rejects == ['test']
-
-    def test_from_file(self, customers):
-        d = e.Dataset.from_file(
-            'tests/samples/csv/simple.csv')
-        pd.testing.assert_frame_equal(
-            d, pd.DataFrame(**customers())
-        )
-        assert isinstance(d, e.Dataset)
-
-        # Ensure null rows are being dropped from csv:
-        d = e.Dataset.from_file(
-            'tests/samples/csv/gaps.csv')
-        assert d.shape == (5, 4)
-        assert isinstance(d, e.Dataset)
-
-        d = e.Dataset.from_file(
-            'tests/samples/excel/simple.xlsx')
-        pd.testing.assert_frame_equal(
-            d, e.Dataset(**customers(int))
-        )
-        assert isinstance(d, e.Dataset)
-
-        # Ensure null rows are being dropped from excel:
-        d = e.Dataset.from_file(
-            'tests/samples/excel/gaps_totals.xlsx')
-        assert d.shape == (8, 3)
-        assert isinstance(d, e.Dataset)
-
-        d = e.Dataset.from_file(
-            'tests/samples/sqlite', table='customers', db_name='read_testing')
-        pd.testing.assert_frame_equal(
-            d, e.Dataset(**customers())
-        )
-        assert isinstance(d, e.Dataset)
+        d = d[[0, 1]]
+        assert d.header_idx is None
 
     def test_to_from_sqlite(self, sales):
         d = e.Dataset(**sales)
         o = odbc.ODBConnector()
+        print(d.dtypes)
         d.to_sqlite(
             'tests/samples', 'sales', db_conn=o, db_name='element_test')
         d2 = e.Dataset.from_file(
@@ -191,6 +154,49 @@ class TestDataset:
     #         od(location=None, region=None, sales='800'),
     #         od(location=None, region=None, sales='1200'),
     #     ]
+
+    def test_from_file(self, customers):
+        d = e.Dataset.from_file(
+            'tests/samples/csv/simple.csv')
+        pd.testing.assert_frame_equal(
+            d, e.Dataset(**customers(), dtype='object')
+        )
+        assert isinstance(d, e.Dataset)
+        assert d.header_idx == 0
+
+        # Ensure null rows are being dropped from csv:
+        d = e.Dataset.from_file(
+            'tests/samples/csv/gaps.csv')
+        assert d.shape == (5, 4)
+        assert isinstance(d, e.Dataset)
+
+        d = e.Dataset.from_file(
+            'tests/samples/excel/simple.xlsx')
+        pd.testing.assert_frame_equal(
+            d, e.Dataset(**customers(int), dtype='object')
+        )
+        assert isinstance(d, e.Dataset)
+
+        # Ensure null rows are being dropped from excel:
+        d = e.Dataset.from_file(
+            'tests/samples/excel/gaps_totals.xlsx')
+        assert d.shape == (8, 3)
+        assert isinstance(d, e.Dataset)
+
+        d = e.Dataset.from_file(
+            'tests/samples/sqlite', table='customers', db_name='read_testing')
+        pd.testing.assert_frame_equal(
+            d, e.Dataset(**customers())
+        )
+        assert isinstance(d, e.Dataset)
+
+    def test_purge_gap_rows(self, gaps, gaps_totals):
+        d = e.Dataset(gaps)
+        d = e.Dataset.purge_gap_rows(d)
+        assert d.shape == (5, 4)
+        d = e.Dataset(gaps_totals())
+        d = e.Dataset.purge_gap_rows(d)
+        assert d.shape == (9, 3)
     #
     # def test_package_rejects(self):
     #     d = e.Dataset([

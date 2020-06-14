@@ -3,7 +3,7 @@ import inspect
 import os
 import re
 from abc import ABC
-from typing import Callable
+from typing import Callable, Collection
 
 import pandas as pd
 
@@ -281,29 +281,27 @@ class MetaData(Element, col.abc.MutableMapping):
 
 
 class Dataset(pd.DataFrame, ABC):
-    _metadata = ['meta_data', 'rejects']
-    _md = None
-    _rejects = None
+    _metadata = ['_rejects', '_header_idx']
 
     @property
-    def meta_data(self):
-        if getattr(self, '_md') is None:
-            self._md = MetaData(self)
-        return self._md
+    def header_idx(self):
+        return self._header_idx
 
-    @meta_data.setter
-    def meta_data(self, value):
-        self._md = value
+    @header_idx.setter
+    def header_idx(self, value):
+        self._header_idx = value
 
     @property
     def rejects(self):
-        if getattr(self, '_rejects') is None:
-            self._rejects = []
         return self._rejects
 
     @rejects.setter
     def rejects(self, value):
         self._rejects = value
+
+    @property
+    def reject_ct(self):
+        return len(self.rejects)
 
     @property
     def _constructor(self):
@@ -317,15 +315,29 @@ class Dataset(pd.DataFrame, ABC):
         """
         return Dataset
 
+    def __init__(
+            self,
+            data=None,
+            index=None,
+            columns=None,
+            dtype=None,
+            copy: bool = False):
+        super(Dataset, self).__init__(
+            data, index, columns, dtype, copy)
+        self._rejects: list = []
+        self._header_idx: int = (
+            None if self.columns[0] in ('Unnamed: 0', 0) else 0
+        )
+
     @staticmethod
     def purge_gap_rows(ds):
         """
-        Drops rows that contain only nans from Dataset objects.
+        Takes a Dataset object and drops rows that are entirely nan.
 
         Args:
             ds: A Dataset object.
 
-        Returns: The Dataset object without entirely nan rows.
+        Returns: A Dataset without entirely nan rows.
 
         """
         return ds.dropna(how='all').reset_index(drop=True)
@@ -357,13 +369,15 @@ class Dataset(pd.DataFrame, ABC):
         # Expectation is that no column for these exts will have data
         # types that are safe for pandas to interpret.
         if ext in ('.xls', '.xlsx', '.csv'):
-            kwargs['dtype'] = object
+            kwargs['dtype'] = 'object'
         if ext not in read_funcs.keys():
             raise ValueError(f'read_file error: file extension must be '
                              f'one of {read_funcs.keys()}')
         else:
-            raw = Dataset(read_funcs[ext](file_path, **kwargs))
-            return cls.purge_gap_rows(raw)
+            ds = cls.purge_gap_rows(
+                cls(read_funcs[ext](file_path, **kwargs))
+            )
+            return ds
 
     @classmethod
     def from_sqlite(cls, dir_path: str, table: str,
