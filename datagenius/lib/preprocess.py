@@ -1,5 +1,7 @@
 from typing import Optional, Sequence
 
+import pandas as pd
+
 import datagenius.element as e
 import datagenius.util as u
 
@@ -17,11 +19,11 @@ def purge_pre_header(ds: e.Dataset) -> e.Dataset:
         header, if any.
 
     """
-    h = ds.meta_data.header_idx
+    h = ds.header_idx
     if h:
         if h > 0:
             ds.rejects += [*ds.iloc[:h].values.tolist()]
-        return ds.drop(index=[i for i in range(h)])
+        return ds.drop(index=[i for i in range(h)]).reset_index(drop=True)
     else:
         return ds
 
@@ -51,9 +53,9 @@ def detect_header(
         )
         first_idx = next(
             (i for i, v in true_str_series.items() if v), None)
-        if first_idx:
+        if first_idx is not None:
             ds.columns = list(ds.iloc[first_idx])
-            ds.meta_data.header_idx = first_idx
+            ds.header_idx = first_idx
             return ds.drop(index=first_idx).reset_index(drop=True)
     return ds
 
@@ -70,4 +72,8 @@ def normalize_whitespace(ds: e.Dataset) -> e.Dataset:
         whitespace.
 
     """
-    return ds.applymap(u.clean_whitespace)
+    for c in ds.columns:
+        result = ds[c].apply(u.clean_whitespace)
+        result = pd.DataFrame(result.to_list())
+        ds[c] = result[1]
+    return ds
