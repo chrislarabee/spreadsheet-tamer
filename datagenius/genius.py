@@ -217,6 +217,7 @@ class GeniusAccessor:
 
     @staticmethod
     def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
+        # TODO: Move this to util.
         """
         Takes a Dataset object and drops rows that are entirely nan.
 
@@ -230,6 +231,7 @@ class GeniusAccessor:
 
     @classmethod
     def from_file(cls, file_path: str, **kwargs):
+        # TODO: Move this to io
         """
         Uses read_file to read in the passed file path.
 
@@ -268,6 +270,7 @@ class GeniusAccessor:
     @classmethod
     def from_sqlite(cls, dir_path: str, table: str,
                     **options) -> pd.DataFrame:
+        # TODO: Move this to io
         """
         Creates a pandas DataFrame from a sqlite database table.
 
@@ -329,8 +332,9 @@ class GeniusAccessor:
 
     @staticmethod
     def _quick_conn_setup(dir_path, db_name=None, db_conn=None):
+        # TODO: Move this to ODBC.
         """
-        Convenience method for creating a sqlite databse or connecting
+        Convenience method for creating a sqlite database or connecting
         to an existing one.
 
         Args:

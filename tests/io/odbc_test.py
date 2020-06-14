@@ -25,7 +25,7 @@ class TestODBConnector:
             sales=int
         )
         o.new_tbl('sales', sales_schema)
-        assert o._parse_sa_schema(o._tables['sales'].c) == sales_schema
+        assert o._parse_sa_schema(o.tables['sales'].c) == sales_schema
 
     def test_insert_and_select(self, sales):
         d = pd.DataFrame(sales[1], sales[0])
