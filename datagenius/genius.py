@@ -206,10 +206,9 @@ class GeniusAccessor:
 
         """
         if self.df.columns[0] in ('Unnamed: 0', 0):
-            hf_args = inspect.getfullargspec(header_func).args
-            if 'df' in hf_args:
-                hf_args.remove('df')
-            kwargs = {k: options.get(k) for k in hf_args}
+            kwargs = u.align_args(
+                header_func, options, ['df']
+            )
             self.df, header_idx = header_func(self.df, **kwargs)
             self.df = pp.purge_pre_header(self.df, header_idx)
         self.df = pp.normalize_whitespace(self.df)

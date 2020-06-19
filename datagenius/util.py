@@ -1,4 +1,5 @@
 import functools
+import inspect
 import re
 import string
 from collections import OrderedDict
@@ -38,6 +39,31 @@ def transmutation(func=None, *, stage=None):
         return decorator_transmutation
     else:
         return decorator_transmutation(func)
+
+
+def align_args(func: Callable, kwargs: dict,
+               suppress: list = None) -> dict:
+    """
+    Plucks only kwargs used by the passed function from the passed
+    kwargs dict. Can also suppress any number of kwargs that do match,
+    but which shouldn't be used.
+
+    Args:
+        func: A callable object.
+        kwargs: A dictionary of kwargs, any number of which could be
+            used by func.
+        suppress: A list of kwargs to not pass to func, even if their
+            names match.
+
+    Returns: A dictionary containing only the kwargs key-value pairs
+        that func can accept.
+
+    """
+    func_args = inspect.getfullargspec(func).args
+    if suppress:
+        for s in suppress:
+            func_args.remove(s)
+    return {k: kwargs.get(k) for k in func_args}
 
 
 def clean_whitespace(x) -> list:
