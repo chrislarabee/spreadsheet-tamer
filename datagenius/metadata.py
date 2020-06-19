@@ -8,10 +8,6 @@ import datagenius.util as u
 
 class GeniusMetadata(Callable):
     @property
-    def transmutations(self):
-        return self._transmutations
-
-    @property
     def rejects(self):
         return self._rejects
 
@@ -24,9 +20,9 @@ class GeniusMetadata(Callable):
     provides methods for reporting out on it.
     """
     def __init__(self):
-        self._transmutations: dict = dict()
         self._rejects: pd.DataFrame = pd.DataFrame()
-        self._no_stage: pd.DataFrame = pd.DataFrame()
+        self._no_stage: pd.DataFrame = pd.DataFrame(
+            columns=['transmutation'])
         self._stages = ['_no_stage']
 
     def track(
@@ -59,7 +55,7 @@ class GeniusMetadata(Callable):
             metadata = meta_result.get('metadata')
             rejects = meta_result.get('rejects')
             if metadata is not None:
-                self._transmutations[transmutation.__name__] = metadata
+                metadata['transmutation'] = transmutation.__name__
                 self._intake(
                     metadata, getattr(transmutation, 'stage', '_no_stage'))
                 meta_result.pop('metadata')
@@ -83,7 +79,7 @@ class GeniusMetadata(Callable):
         """
         # New attributes are assumed to be stages:
         if getattr(self, attr, None) is None:
-            setattr(self, attr, pd.DataFrame())
+            setattr(self, attr, pd.DataFrame(columns=['transmutation']))
             self._stages.append(attr)
         if isinstance(incoming, pd.DataFrame):
             setattr(self, attr, pd.concat(

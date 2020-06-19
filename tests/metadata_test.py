@@ -15,16 +15,14 @@ class TestGeniusMetadata:
             dict(a=1, b=2, c=3),
             dict(a=4, b=5, c=6)
         ])
-        expected = pd.DataFrame([dict(a=1, b=0, c=1)])
+        expected = pd.DataFrame([dict(
+            transmutation='tracked_func', a=1, b=0, c=1)])
 
         gmd = md.GeniusMetadata()
         x = gmd.track(tracked_func, df)
         pd.testing.assert_frame_equal(x, df)
-        assert list(gmd.transmutations.keys()) == ['tracked_func']
         pd.testing.assert_frame_equal(
-            gmd.transmutations['tracked_func'], expected)
-        pd.testing.assert_frame_equal(
-            gmd.stages['preprocess'], expected
+            gmd.stages['preprocess'], expected, check_dtype=False
         )
 
         @u.transmutation(stage='preprocess')
@@ -33,21 +31,27 @@ class TestGeniusMetadata:
             return df, {'metadata': pd.DataFrame([dict(d=1)]),
                         'rejects': pd.DataFrame([dict(a=4, b=5, c=6)])}
 
-        expected = pd.DataFrame([
-            dict(a=1, b=0, c=1, d=nan),
-            dict(a=nan, b=nan, c=nan, d=1)
-        ])
+        expected = pd.concat((expected, pd.DataFrame([
+            dict(transmutation='tracked_func2', d=1)]))
+        ).reset_index(drop=True)
         expected_rejects = pd.DataFrame([dict(a=4, b=5, c=6)])
 
         x = gmd.track(tracked_func2, df)
         pd.testing.assert_frame_equal(
             x, pd.DataFrame([dict(a=1, b=2, c=3)]))
-        assert list(gmd.transmutations.keys()) == [
-            'tracked_func', 'tracked_func2']
         pd.testing.assert_frame_equal(
-            gmd.transmutations['tracked_func2'], pd.DataFrame([dict(d=1)])
-        )
-        pd.testing.assert_frame_equal(
-            gmd.stages['preprocess'], expected
-        )
+            gmd.stages['preprocess'], expected)
         pd.testing.assert_frame_equal(gmd.rejects, expected_rejects)
+
+        @u.transmutation
+        def tracked_func3(df):
+            return df, {'metadata': pd.DataFrame([dict(e=4)])}
+
+        expected_no_stage = pd.DataFrame([
+            dict(transmutation='tracked_func3', e=4)])
+
+        gmd.track(tracked_func3, df)
+        pd.testing.assert_frame_equal(
+            gmd.stages['preprocess'], expected)
+        pd.testing.assert_frame_equal(
+            gmd.stages['_no_stage'], expected_no_stage, check_dtype=False)
