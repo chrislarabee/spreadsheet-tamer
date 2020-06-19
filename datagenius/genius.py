@@ -13,6 +13,7 @@ import recordlinkage as link
 import datagenius.lib.preprocess as pp
 import datagenius.element as e
 import datagenius.util as u
+import datagenius.metadata as md
 from datagenius.io import odbc
 
 
@@ -190,6 +191,7 @@ class GeniusAccessor:
     def preprocess(
             self,
             header_func: Callable = pp.detect_header,
+            metadata: md.GeniusMetadata = None,
             **options):
         """
         A convenient way to run functions from lib.preprocess on
@@ -205,13 +207,14 @@ class GeniusAccessor:
         Returns:
 
         """
+        metadata = metadata if metadata else md.GeniusMetadata()
         if self.df.columns[0] in ('Unnamed: 0', 0):
             kwargs = u.align_args(
                 header_func, options, 'df'
             )
             self.df, header_idx = header_func(self.df, **kwargs)
             self.df = pp.purge_pre_header(self.df, header_idx)
-        self.df = pp.normalize_whitespace(self.df)
+        self.df = metadata(self.df, pp.normalize_whitespace)
         return self.df.reset_index(drop=True)
 
     @classmethod

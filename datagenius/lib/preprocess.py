@@ -65,7 +65,7 @@ def detect_header(
     return df, header_idx
 
 
-def normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+def normalize_whitespace(df: pd.DataFrame) -> tuple:
     """
     Simple function that applies util.clean_whitespace to every cell
     in a DataFrame.
@@ -77,10 +77,12 @@ def normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
         whitespace.
 
     """
+    md_df = pd.DataFrame([[0 for _ in df.columns]], columns=df.columns)
     for c in df.columns:
         result = df[c].apply(u.clean_whitespace)
         result = pd.DataFrame(result.to_list())
         df[c] = result[1]
+        md_df[c] = result[0].sum()
         # TODO: Add whitespace_cleaned counts to planned
         #       OperationsMetadata object.
-    return df
+    return df, md_df
