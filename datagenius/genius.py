@@ -278,11 +278,7 @@ class GeniusAccessor:
             options.get('db_name'),
             options.get('db_conn')
         )
-        schema = {
-            k: odbc.convert_pandas_type(
-                self.df.dtypes[k]) for k in list(self.df.columns)
-        }
-        odbc.write_sqlite(conn, table, self.df, schema)
+        odbc.write_sqlite(conn, table, self.df)
 
 
 # TODO: Add handling for things like duplicate variants
