@@ -67,7 +67,8 @@ def align_args(func: Callable, kwargs: dict,
         suppress = (
             [suppress] if not isinstance(suppress, list) else suppress)
         for s in suppress:
-            func_args.remove(s)
+            if s in func_args:
+                func_args.remove(s)
     return {k: kwargs.get(k) for k in func_args}
 
 
