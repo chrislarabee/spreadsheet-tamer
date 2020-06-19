@@ -89,14 +89,14 @@ class TestGeniusAccessor:
         expected = pd.DataFrame(**customers())
         df = pd.DataFrame(gaps)
         df = u.purge_gap_rows(df)
-        df = df.genius.preprocess()
+        df, metadata = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
         g = gaps_totals(False, False)
         expected = pd.DataFrame(g[1:], columns=g[0])
         df = pd.DataFrame(gaps_totals())
         df = u.purge_gap_rows(df)
-        df = df.genius.preprocess()
+        df, metadata = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
     def test_from_file(self, customers):

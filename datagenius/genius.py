@@ -200,6 +200,9 @@ class GeniusAccessor:
         Args:
             header_func: A callable object that takes a Dataset object
                 and kwargs.
+            metadata: An optional GeniusMetadata object. If none is
+                passed, one will be created and passed out in the
+                results.
             options: Keyword args. Currently in use:
                 manual_header: Used to override detect_header with a
                     list of labels if the Dataset has no derivable
@@ -213,7 +216,7 @@ class GeniusAccessor:
             self.df, header_idx = header_func(self.df, **kwargs)
             self.df = pp.purge_pre_header(self.df, header_idx)
         self.df = metadata(self.df, pp.normalize_whitespace)
-        return self.df.reset_index(drop=True)
+        return self.df.reset_index(drop=True), metadata
 
     @classmethod
     def from_file(cls, file_path: str, **kwargs):
