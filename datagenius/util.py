@@ -42,7 +42,7 @@ def transmutation(func=None, *, stage=None):
 
 
 def align_args(func: Callable, kwargs: dict,
-               suppress: list = None) -> dict:
+               suppress: (list, str) = None) -> dict:
     """
     Plucks only kwargs used by the passed function from the passed
     kwargs dict. Can also suppress any number of kwargs that do match,
@@ -61,6 +61,8 @@ def align_args(func: Callable, kwargs: dict,
     """
     func_args = inspect.getfullargspec(func).args
     if suppress:
+        suppress = (
+            [suppress] if not isinstance(suppress, list) else suppress)
         for s in suppress:
             func_args.remove(s)
     return {k: kwargs.get(k) for k in func_args}

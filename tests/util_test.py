@@ -24,7 +24,7 @@ def test_align_args():
     assert u.align_args(
         lambda x, y: x + y, kwargs=dict(x=1, y=3)) == dict(x=1, y=3)
     assert u.align_args(
-        lambda x, y: x + y, dict(x=1, y=3, z=2), ['y']
+        lambda x, y: x + y, dict(x=1, y=3, z=2), 'y'
     ) == dict(x=1)
 
 
