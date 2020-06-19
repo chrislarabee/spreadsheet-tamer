@@ -83,6 +83,4 @@ def normalize_whitespace(df: pd.DataFrame) -> tuple:
         result = pd.DataFrame(result.to_list())
         df[c] = result[1]
         md_df[c] = result[0].sum()
-        # TODO: Add whitespace_cleaned counts to planned
-        #       OperationsMetadata object.
-    return df, md_df
+    return df, {'metadata': md_df}
