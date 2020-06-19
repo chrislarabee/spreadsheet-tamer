@@ -258,27 +258,23 @@ def tuplify(value, do_none: bool = False) -> tuple:
     return value
 
 
-def validate_parser(f, attr: str = 'is_parser', match=True) -> bool:
+def validate_attr(obj, attr: str, match) -> bool:
     """
-    Takes an object and checks its attributes. Designed to see
-    if a given function has been decorated as a parser and what '
-    its parser attributes are. The additional arguments are really
-    only necessary in situations where you need to check an
-    parser's parser attributes without first checking if it's
-    actually a parser or not.
+    Takes an object and checks its attributes. Useful in situations 
+    where you want to check an object's attributes without first 
+    checking if it has those attributes.
 
     Args:
-        f: Any object.
-        attr: A string, the attribute to check against. Defaults
-            to the is_parser attribute.
-        match: The value to check attr against. Defaults to true.
+        obj: Any object.
+        attr: A string, the attribute to check against.
+        match: The value to check attr against.
 
     Returns: A boolean indicating whether the object has the passed
         attribute and if it matches the passed match.
 
     """
     result = False
-    if hasattr(f, attr):
-        if getattr(f, attr) == match:
+    if hasattr(obj, attr):
+        if getattr(obj, attr) == match:
             result = True
     return result
