@@ -35,7 +35,7 @@ def transmutation(func=None, *, stage: str = None):
         # objects:
         wrapper_transmutation.stage = (
             re.sub(r' +', '_', stage).lower()
-            if stage is not None else None)
+            if stage is not None else '_no_stage')
         return wrapper_transmutation
 
     if not isinstance(func, Callable):

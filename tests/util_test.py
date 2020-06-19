@@ -12,7 +12,7 @@ def test_transmutation():
     @u.transmutation
     def func(x):
         return x
-    assert func.stage is None
+    assert func.stage == '_no_stage'
 
     @u.transmutation('rejects', stage='preprocess')
     def func(x):
