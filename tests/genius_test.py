@@ -6,6 +6,7 @@ import numpy as np
 
 import datagenius.element as e
 import datagenius.genius as ge
+import datagenius.util as u
 
 
 # def test_parser():
@@ -87,26 +88,17 @@ class TestGeniusAccessor:
     def test_preprocess(self, gaps, customers, gaps_totals):
         expected = pd.DataFrame(**customers())
         df = pd.DataFrame(gaps)
-        df = df.genius.purge_gap_rows(df)
+        df = u.purge_gap_rows(df)
         df = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
         g = gaps_totals(False, False)
         expected = pd.DataFrame(g[1:], columns=g[0])
         df = pd.DataFrame(gaps_totals())
-        df = df.genius.purge_gap_rows(df)
+        df = u.purge_gap_rows(df)
         df = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
-        
-    def test_to_from_sqlite(self, sales):
-        d = pd.DataFrame(**sales)
-        o = odbc.ODBConnector()
-        d.genius.to_sqlite(
-            'tests/samples', 'sales', db_conn=o, db_name='element_test')
-        d2 = pd.DataFrame.genius.from_file(
-            'tests/samples/', table='sales', db_conn=o, db_name='element_test')
-        pd.testing.assert_frame_equal(d, d2)
-        
+
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
             'tests/samples/csv/simple.csv')
@@ -138,13 +130,14 @@ class TestGeniusAccessor:
         )
         assert isinstance(df, pd.DataFrame)
         
-    def test_purge_gap_rows(self, gaps, gaps_totals):
-        d = pd.DataFrame(gaps)
-        d = pd.DataFrame.genius.purge_gap_rows(d)
-        assert d.shape == (5, 4)
-        d = pd.DataFrame(gaps_totals())
-        d = pd.DataFrame.genius.purge_gap_rows(d)
-        assert d.shape == (9, 3)
+    def test_to_sqlite(self, sales):
+        d = pd.DataFrame(**sales)
+        o = odbc.ODBConnector()
+        d.genius.to_sqlite(
+            'tests/samples', 'sales', db_conn=o, db_name='element_test')
+        d2 = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='sales', db_conn=o, db_name='element_test')
+        pd.testing.assert_frame_equal(d, d2)
 
 
 # class TestGenius:

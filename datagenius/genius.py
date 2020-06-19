@@ -215,23 +215,8 @@ class GeniusAccessor:
         self.df = pp.normalize_whitespace(self.df)
         return self.df.reset_index(drop=True)
 
-    @staticmethod
-    def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
-        # TODO: Move this to util.
-        """
-        Takes a Dataset object and drops rows that are entirely nan.
-
-        Args:
-            df: A Dataset object.
-
-        Returns: A Dataset without entirely nan rows.
-
-        """
-        return df.dropna(how='all').reset_index(drop=True)
-
     @classmethod
     def from_file(cls, file_path: str, **kwargs):
-        # TODO: Move this to io
         """
         Uses read_file to read in the passed file path.
 
@@ -251,7 +236,7 @@ class GeniusAccessor:
             '.csv': pd.read_csv,
             '.json': pd.read_json,
             # file_paths with no extension are presumed to be dir_paths
-            '': cls.from_sqlite
+            '': odbc.from_sqlite
         }
         _, ext = os.path.splitext(file_path)
         # Expectation is that no column for these exts will have data
@@ -262,38 +247,10 @@ class GeniusAccessor:
             raise ValueError(f'read_file error: file extension must be '
                              f'one of {read_funcs.keys()}')
         else:
-            df = cls.purge_gap_rows(
+            df = u.purge_gap_rows(
                 pd.DataFrame(read_funcs[ext](file_path, **kwargs))
             )
             return df
-
-    @classmethod
-    def from_sqlite(cls, dir_path: str, table: str,
-                    **options) -> pd.DataFrame:
-        # TODO: Move this to io
-        """
-        Creates a pandas DataFrame from a sqlite database table.
-
-        Args:
-            dir_path: The directory path where the db file is located.
-            table: A string, the name of the table to pull data from.
-            **options: Key-value options to alter to_sqlite's behavior.
-                Currently in use options:
-                    db_conn: An io.odbc.ODBConnector object if you have
-                        one, otherwise from_sqlite will create it.
-                    db_name: A string, the name of the db file to pull
-                        from. Default is 'datasets'.
-
-        Returns: A pandas DataFrame containing the contents of the
-            passed table.
-
-        """
-        conn = cls._quick_conn_setup(
-            dir_path,
-            options.get('db_name'),
-            options.get('db_conn')
-        )
-        return pd.DataFrame(conn.select(table))
 
     def to_sqlite(self, dir_path: str, table: str, **options):
         """
@@ -313,44 +270,16 @@ class GeniusAccessor:
         Returns: None
 
         """
-        conn = self._quick_conn_setup(
+        conn = odbc.quick_conn_setup(
             dir_path,
             options.get('db_name'),
             options.get('db_conn')
         )
-        type_map = {
-            'object': str,
-            'string': str,
-            'float64': float,
-            'int64': int,
-        }
         schema = {
-            k: type_map[str(self.df.dtypes[k])] for k in list(self.df.columns)
+            k: odbc.convert_pandas_type(
+                self.df.dtypes[k]) for k in list(self.df.columns)
         }
-        data = self.df.to_dict('records', into=col.OrderedDict)
-        odbc.write_sqlite(conn, table, data, schema)
-
-    @staticmethod
-    def _quick_conn_setup(dir_path, db_name=None, db_conn=None):
-        # TODO: Move this to ODBC.
-        """
-        Convenience method for creating a sqlite database or connecting
-        to an existing one.
-
-        Args:
-            dir_path: The directory path where the db file is/should
-                be located.
-            db_name: An io.odbc.ODBConnector object if you have
-                one, otherwise to_sqlite will create it.
-            db_conn:
-
-        Returns:
-
-        """
-        db_name = 'datasets' if not db_name else db_name
-        db_conn = odbc.ODBConnector() if not db_conn else db_conn
-        db_conn.setup(os.path.join(dir_path, db_name + '.db'))
-        return db_conn
+        odbc.write_sqlite(conn, table, self.df, schema)
 
 
 # TODO: Add handling for things like duplicate variants

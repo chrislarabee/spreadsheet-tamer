@@ -179,6 +179,19 @@ def isnumericplus(x, *options) -> (bool, tuple):
     return tuple(result) if len(result) > 1 else numeric
 
 
+def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Takes a Dataset object and drops rows that are entirely nan.
+
+    Args:
+        df: A Dataset object.
+
+    Returns: A Dataset without entirely nan rows.
+
+    """
+    return df.dropna(how='all').reset_index(drop=True)
+
+
 def translate_nans(data: list) -> list:
     """
     Loops a passed list and ensures numpy nans are replaced with None.

@@ -3,12 +3,13 @@ import pandas as pd
 
 from datagenius.genius import GeniusAccessor
 import datagenius.lib.preprocess as pp
+import datagenius.util as u
 
 
 def test_purge_pre_header(gaps_totals, customers):
     df = pd.DataFrame(gaps_totals())
     assert df.shape == (11, 3)
-    df = df.genius.purge_gap_rows(df)
+    df = u.purge_gap_rows(df)
     df, h = pp.detect_header(df)
     df = pp.purge_pre_header(df, h)
     assert list(df.columns) == ['location', 'region', 'sales']

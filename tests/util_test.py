@@ -81,6 +81,15 @@ def test_isnumericplus():
         True, float, 1234.56)
 
 
+def test_purge_gap_rows(gaps, gaps_totals):
+    d = pd.DataFrame(gaps)
+    d = u.purge_gap_rows(d)
+    assert d.shape == (5, 4)
+    d = pd.DataFrame(gaps_totals())
+    d = u.purge_gap_rows(d)
+    assert d.shape == (9, 3)
+
+
 def test_translate_nans():
     d = [
         [np.nan, 1, 2],
