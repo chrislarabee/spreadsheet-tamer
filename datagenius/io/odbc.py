@@ -94,10 +94,7 @@ class ODBConnector:
         Returns: None
         """
         if table not in self._tables.keys():
-            if schema is None:
-                schema = {
-                    k: self.type_map[k] for k in list(df.dtypes)
-                }
+            schema = gen_schema(df) if schema is None else schema
             self.new_tbl(table, schema)
         with self.engine.connect() as conn:
             conn.execute(
@@ -230,6 +227,23 @@ def convert_pandas_type(pd_dtype) -> object:
     return ODBConnector.type_map[str(pd_dtype)]
 
 
+def gen_schema(df: pd.DataFrame) -> dict:
+    """
+    Generates a schema dictionary usable by ODBConnector off a pandas
+    DataFrame.
+
+    Args:
+        df: A DataFrame
+
+    Returns: A schema dictionary based off the columns and dtypes of
+        the passed DataFrame.
+
+    """
+    return {
+        k: convert_pandas_type(v) for k, v in df.dtypes.to_dict().items()
+    }
+
+
 def quick_conn_setup(dir_path, db_name=None, db_conn=None):
     """
     Convenience method for creating a sqlite database or connecting
@@ -252,7 +266,7 @@ def quick_conn_setup(dir_path, db_name=None, db_conn=None):
 
 
 def write_sqlite(odbc: ODBConnector, table_name: str, df: pd.DataFrame,
-                 schema: dict) -> None:
+                 schema: dict = None) -> None:
     """
     Simple function to write data to a sqlite db connected via an
     ODBConnector. Overwrites whatever data is in the existing table, if
@@ -268,4 +282,5 @@ def write_sqlite(odbc: ODBConnector, table_name: str, df: pd.DataFrame,
 
     """
     odbc.drop_tbl(table_name)
+    schema = gen_schema(df) if schema is None else schema
     odbc.insert(table_name, df, schema)

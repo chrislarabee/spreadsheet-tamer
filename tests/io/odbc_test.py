@@ -37,3 +37,12 @@ class TestODBConnector:
         assert o.drop_tbl('sales')
         assert o.tables.get('sales') is None
         assert o.schemas.get('sales') is None
+
+
+def test_gen_schema():
+    df = pd.DataFrame([
+        dict(a=1, b='two', c=3.0),
+        dict(a=4, b='five', c=6.0),
+    ])
+    expected = dict(a=int, b=str, c=float)
+    assert odbc.gen_schema(df) == expected
