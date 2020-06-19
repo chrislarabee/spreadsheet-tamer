@@ -7,46 +7,87 @@ import datagenius.util as u
 
 
 class GeniusMetadata(Callable):
+    @property
+    def transmutations(self):
+        return self._transmutations
+
+    @property
+    def rejects(self):
+        return self._rejects
+
+    @property
+    def stages(self):
+        return {s: getattr(self, s) for s in self._stages}
+
     """
     When coupled with Genius transmutations, tracks their activity and
     provides methods for reporting out on it.
     """
     def __init__(self):
-        self._transformations: dict = dict()
         self._transmutations: dict = dict()
+        self._rejects: pd.DataFrame = pd.DataFrame()
+        self._no_stage: pd.DataFrame = pd.DataFrame()
+        self._stages = ['_no_stage']
 
-    def track(self, transmutation: Callable, df: pd.DataFrame, **kwargs):
+    def track(
+            self,
+            transmutation: Callable,
+            df: pd.DataFrame,
+            **kwargs) -> pd.DataFrame:
         """
         Runs the passed transmutation on the passed DataFrame with the
         passed kwargs. Collects any metadata spit out by the function
         and returns the DataFrame once changed by the transmutation.
 
         Args:
-            transmutation:
-            df:
-            **kwargs:
+            transmutation: A function. If decorated as a transmutation
+                function, the organization of the results can be better
+                controlled.
+            df: The DataFrame to execute the transformation on.
+            **kwargs: The keyword args, some or none of which will be
+                passed to transmutation, depending on what kwargs it
+                takes.
 
-        Returns:
+        Returns: The passed DataFrame, as modified by the transmutation.
 
         """
         t_kwargs = u.align_args(transmutation, kwargs, 'df')
         result = transmutation(df, **t_kwargs)
         if isinstance(result, tuple):
-            self._transmutations[transmutation.__name__] = result[1]
-            return result[0]
-        else:
-            return result
+            meta_result = result[1]
+            result = result[0]
+            metadata = meta_result.get('metadata')
+            rejects = meta_result.get('rejects')
+            if metadata is not None:
+                self._transmutations[transmutation.__name__] = metadata
+                self._intake(
+                    metadata, getattr(transmutation, 'stage', '_no_stage'))
+                meta_result.pop('metadata')
+            if rejects is not None:
+                self._intake(rejects, '_rejects')
+                meta_result.pop('rejects')
+        return result
 
-    @staticmethod
-    def _parse_tm_output(tm_output: tuple, func: Callable) -> dict:
-        result = col.OrderedDict(
-            df=tm_output[0], col_md=None, rejects=None)
-        start = 1 + func.no_metadata
-        start += not func.collects_rejects
-        for i, o in enumerate(tm_output, 1):
-            pass
+    def _intake(self, incoming: pd.DataFrame, attr: str) -> None:
+        """
+        Adds an incoming DataFrame to an attribute on GeniusMetadata
+        that is also a DataFrame object.
 
+        Args:
+            incoming: The incoming DataFrame.
+            attr: A string, the name of an existing attribute on the
+                GeniusMetadata object, or a new one.
 
+        Returns: None
+
+        """
+        # New attributes are assumed to be stages:
+        if getattr(self, attr, None) is None:
+            setattr(self, attr, pd.DataFrame())
+            self._stages.append(attr)
+        if isinstance(incoming, pd.DataFrame):
+            setattr(self, attr, pd.concat(
+                (getattr(self, attr), incoming)).reset_index(drop=True))
 
     def __call__(self, df, *transmutations, **options):
         for tm in transmutations:
