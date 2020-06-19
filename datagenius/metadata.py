@@ -1,4 +1,5 @@
 from typing import Callable
+import collections as col
 
 import pandas as pd
 
@@ -14,7 +15,7 @@ class GeniusMetadata(Callable):
         self._transformations: dict = dict()
         self._transmutations: dict = dict()
 
-    def track(self, transmutation, df: pd.DataFrame, **kwargs):
+    def track(self, transmutation: Callable, df: pd.DataFrame, **kwargs):
         """
         Runs the passed transmutation on the passed DataFrame with the
         passed kwargs. Collects any metadata spit out by the function
@@ -31,11 +32,21 @@ class GeniusMetadata(Callable):
         t_kwargs = u.align_args(transmutation, kwargs, 'df')
         result = transmutation(df, **t_kwargs)
         if isinstance(result, tuple):
-            self._transmutations[
-                transmutation.__name__] = result[1]
+            self._transmutations[transmutation.__name__] = result[1]
             return result[0]
         else:
             return result
+
+    @staticmethod
+    def _parse_tm_output(tm_output: tuple, func: Callable) -> dict:
+        result = col.OrderedDict(
+            df=tm_output[0], col_md=None, rejects=None)
+        start = 1 + func.no_metadata
+        start += not func.collects_rejects
+        for i, o in enumerate(tm_output, 1):
+            pass
+
+
 
     def __call__(self, df, *transmutations, **options):
         for tm in transmutations:

@@ -14,22 +14,15 @@ def test_transmutation():
         return x
     assert func.stage is None
 
-    @u.transmutation('collects_rejects', stage='preprocess')
+    @u.transmutation('rejects', stage='preprocess')
     def func(x):
         return x
     assert func.stage == 'preprocess'
-    assert func.collects_rejects
 
     @u.transmutation(stage='a custom stage')
     def func(x):
         return x
     assert func.stage == 'a_custom_stage'
-    assert not func.collects_rejects
-
-    with pytest.raises(ValueError, match='is not a valid tag'):
-        @u.transmutation('bad_tag')
-        def func(x):
-            return x
 
 
 def test_align_args():

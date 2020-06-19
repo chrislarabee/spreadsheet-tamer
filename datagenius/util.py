@@ -8,7 +8,7 @@ from typing import Callable
 import pandas as pd
 
 
-def transmutation(func=None, *tags, stage: str = None):
+def transmutation(func=None, *, stage: str = None):
     """
     Custom functions written for use by genius pipeline stages can be
     decorated as transmutations in order to better organize information
@@ -36,25 +36,9 @@ def transmutation(func=None, *tags, stage: str = None):
         wrapper_transmutation.stage = (
             re.sub(r' +', '_', stage).lower()
             if stage is not None else None)
-        # Allocate tags:
-        valid_tags = tuple([
-            'collects_rejects',
-        ])
-        wrapper_transmutation.collects_rejects = False
-        for t in tags:
-            if t is None:
-                pass
-            elif t in valid_tags:
-                wrapper_transmutation.__dict__[t] = True
-            else:
-                raise ValueError(
-                    f'{t} is not a valid tag. Valid tags include '
-                    f'{valid_tags}'
-                )
         return wrapper_transmutation
 
     if not isinstance(func, Callable):
-        tags = [func, *tags]
         return decorator_transmutation
     else:
         return decorator_transmutation(func)

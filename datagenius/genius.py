@@ -209,9 +209,7 @@ class GeniusAccessor:
         """
         metadata = metadata if metadata else md.GeniusMetadata()
         if self.df.columns[0] in ('Unnamed: 0', 0):
-            kwargs = u.align_args(
-                header_func, options, 'df'
-            )
+            kwargs = u.align_args(header_func, options, 'df')
             self.df, header_idx = header_func(self.df, **kwargs)
             self.df = pp.purge_pre_header(self.df, header_idx)
         self.df = metadata(self.df, pp.normalize_whitespace)
