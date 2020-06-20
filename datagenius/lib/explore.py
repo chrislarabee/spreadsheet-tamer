@@ -16,3 +16,17 @@ def count_uniques(df: pd.DataFrame):
 
     """
     return df, {'metadata': pd.DataFrame(df.nunique()).T}
+
+
+@u.transmutation(stage='explore')
+def count_nulls(df: pd.DataFrame):
+    """
+    Counts the null values in each column in the passed DataFrame.
+
+    Args:
+        df: A DataFrame.
+
+    Returns: The DataFrame, and a metadata dictionary.
+
+    """
+    return df, {'metadata': pd.DataFrame(df.isna().sum()).T}

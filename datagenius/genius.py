@@ -830,31 +830,6 @@ class GeniusAccessor:
 #         return super(Explore, self).go(dset, **options)
 #
 #     @staticmethod
-#     @parser(parses='column', requires_format='any')
-#     def nulls_report(column: list, col_name: str,
-#                      meta_data: e.MetaData) -> list:
-#         """
-#         Takes a list and creates a dictionary report on the null values
-#         found in the list and uses it to update meta_data.
-#
-#         Args:
-#             column: A list.
-#             col_name: A string indicating the name of the column this
-#                 data came from.
-#             meta_data: A MetaData object.
-#
-#         Returns: column
-#
-#         """
-#         null_ct = u.count_nulls(column)
-#         meta_data.update(
-#             col_name,
-#             null_ct=null_ct,
-#             nullable=True if null_ct > 0 else False
-#         )
-#         return column
-#
-#     @staticmethod
 #     @parser(parses='column', requires_format='lists')
 #     def types_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
 #         """
