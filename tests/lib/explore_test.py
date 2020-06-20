@@ -1,4 +1,5 @@
 import pandas as pd
+from numpy import nan
 
 import datagenius.lib.explore as ex
 
@@ -32,4 +33,15 @@ def test_count_nulls(products):
     df, md_dict = ex.count_nulls(pd.DataFrame(**products))
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
 
+
+def test_collect_data_types():
+    df = pd.DataFrame([
+        dict(a=1, b=2.4, c='string'),
+        dict(a=2, b='x', c=nan)
+    ])
+    expected = pd.DataFrame([
+        dict(a='int(1.0)', b='float(0.5),str(0.5)', c='nan(0.5),str(0.5)')
+    ])
+    df, md_dict = ex.collect_data_types(df)
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)
 

@@ -373,58 +373,6 @@ class TestGeniusAccessor:
 #         ) == p._data
 #
 #
-# class TestExplore:
-#     def test_types_report(self):
-#         md = e.MetaData()
-#         ge.Explore.types_report([1, 2, 3, '4'], 'prob_numeric', md)
-#         assert md['prob_numeric'] == {
-#             'string_pct': 0, 'numeric_pct': 1, 'probable_type': 'numeric'
-#         }
-#
-#         ge.Explore.types_report([1, 2, 'x'], 'less_prob_num', md)
-#         assert md['less_prob_num'] == {
-#             'string_pct': 0.33, 'numeric_pct': 0.67, 'probable_type': 'numeric'
-#         }
-#
-#         ge.Explore.types_report([1, 'x', 'y'], 'prob_str', md)
-#         assert md['prob_str'] == {
-#             'string_pct': 0.67, 'numeric_pct': 0.33, 'probable_type': 'string'
-#         }
-#
-#         ge.Explore.types_report([], 'uncertain', md)
-#         assert md['uncertain'] == {
-#             'string_pct': 0, 'numeric_pct': 0, 'probable_type': 'uncertain'
-#         }
-#
-#     def test_go(self):
-#         d = e.Dataset([
-#             [1, 2, 'a'],
-#             [4, 5, 'b'],
-#             [None, 7, 'c']
-#         ])
-#
-#         ge.Explore().go(d)
-#         assert d.data_orientation == 'column'
-#
-#         assert d.meta_data == {
-#             '0': {
-#                 'unique_ct': 3, 'primary_key': True, 'string_pct': 0.33,
-#                 'numeric_pct': 0.67, 'probable_type': 'numeric', 'null_ct': 1,
-#                 'nullable': True
-#             },
-#             '1': {
-#                 'unique_ct': 3, 'primary_key': True, 'string_pct': 0.0,
-#                 'numeric_pct': 1.0, 'probable_type': 'numeric', 'null_ct': 0,
-#                 'nullable': False
-#             },
-#             '2': {
-#                 'unique_ct': 3, 'primary_key': True, 'string_pct': 1.0,
-#                 'numeric_pct': 0.0, 'probable_type': 'string', 'null_ct': 0,
-#                 'nullable': False
-#             }
-#         }
-#
-#
 # class TestReformat:
 #     def test_go(self, products, formatted_products):
 #         m = e.Mapping(
