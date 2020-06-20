@@ -82,41 +82,32 @@ def products():
 
 
 @pytest.fixture
-def formatted_products():
-    return (
-        ['ProdId', 'Name', 'Price', 'Cost', 'Prod UPC', 'Material', 'Size',
-         'Barcode'],
-        [
-            [1, 'Widget', 8.5, 4.0, 1234567890, 'plastic', None, 1234567890],
-            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large', 2345678901],
-            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small', 3456789012]
+def employees():
+    return dict(
+        columns=['employee_id', 'department', 'name', 'wfh_stipend'],
+        data=[
+            [1, 'Sales', 'Aidan Kelly', nan],
+            [2, 'Sales', 'Natasha Doyle', 1000],
+            [3, 'Customer Service', 'Callum Mays', 1000],
+            [4, 'Customer Service', 'Jazlynn Monroe', nan]
         ]
     )
 
 
 @pytest.fixture
-def simple_data():
-    """
-    Generates a simple, ideal dataset for tests. The inner function
-    _gen is used so that simple_data() can return its data with
-    the id values interpreted as strings (for csv reading) or
-    integers (for excel reading).
-
-    Returns: A list of lists.
-
-    """
-    def _gen(f=str):
-        d = [
-            ['id', 'fname', 'lname', 'foreign_key'],
-            [f(1), 'Yancy', 'Cordwainer', '00025'],
-            [f(2), 'Muhammad', 'El-Kanan', '00076'],
-            [f(3), 'Luisa', 'Romero', '00123'],
-            [f(4), 'Semaj', 'Soto', '01234']
+def formatted_products():
+    return (
+        ['ProdId', 'Name', 'Price', 'Cost', 'Prod UPC', 'Material', 'Size',
+         'Barcode'],
+        [
+            [1, 'Widget', 8.5, 4.0, 1234567890, 'plastic', None,
+             1234567890],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large',
+             2345678901],
+            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small',
+             3456789012]
         ]
-
-        return d
-
-    return _gen
+    )
 
 
 @pytest.fixture
@@ -195,13 +186,13 @@ def needs_cleanse_totals():
 
 @pytest.fixture
 def needs_extrapolation():
-    return (
-        ['product_id', 'vendor_name', 'product_name'],
-        [
-            [1, 'StrexCorp', 'Teeth'],
-            [2, None, 'Radio Equipment'],
-            [3, 'KVX Bank', 'Bribe'],
-            [4, None, 'Not candy or pens']
+    return dict(
+        columns=['employee_id', 'department', 'name', 'wfh_stipend'],
+        data=[
+            [1, 'Sales', 'Aidan Kelly', nan],
+            [2, nan, 'Natasha Doyle', 1000],
+            [3, 'Customer Service', 'Callum Mays', 1000],
+            [4, nan, 'Jazlynn Monroe', nan]
         ]
     )
 
@@ -212,8 +203,11 @@ def needs_rules():
         ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
          'attr4', 'attr5'],
         [
-            [1, 'Widget', 8.5, 4.0, 1234567890, None, None, None, None, None],
-            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'cu', 'large', None, None, None],
-            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'sm', None, None, None]
+            [1, 'Widget', 8.5, 4.0, 1234567890,
+             None, None, None, None, None],
+            [2, 'Doohickey', 9.99, 5.0, 2345678901,
+             'cu', 'large', None, None, None],
+            [3, 'Flange', 1.0, 0.2, 3456789012,
+             'steel', 'sm', None, None, None]
         ]
     )
