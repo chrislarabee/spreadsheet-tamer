@@ -5,7 +5,8 @@ import pandas as pd
 import datagenius.util as u
 
 
-def purge_pre_header(df: pd.DataFrame, header_idx=None) -> pd.DataFrame:
+@u.transmutation(stage='preprocess')
+def purge_pre_header(df: pd.DataFrame, header_idx: int = None):
     """
     Removes any rows that appear before the header row in a DataFrame
     where the header row wasn't the first row in the source data.
@@ -13,22 +14,28 @@ def purge_pre_header(df: pd.DataFrame, header_idx=None) -> pd.DataFrame:
 
     Args:
         df: A pandas DataFrame object.
+        header_idx: An integer, the index of the row where the header
+            information was located.
 
     Returns: The DataFrame object, cleaned of rows that came before the
         header, if any.
 
     """
     if header_idx:
-        # TODO: Replace this with update to planned OperationsMetadata
-        #       object.
-        # if header_idx > 0:
-        #     df.rejects += [*df.iloc[:header_idx].values.tolist()]
-        return df.drop(
-            index=[i for i in range(header_idx)]).reset_index(drop=True)
+        rejects = pd.DataFrame()
+        if header_idx > 0:
+            rejects = df.iloc[:header_idx]
+        df.drop(
+            index=[i for i in range(header_idx)],
+            inplace=True
+        )
+        df.reset_index(drop=True, inplace=True)
+        return df, {'rejects': rejects}
     else:
         return df
 
 
+@u.transmutation(stage='preprocess')
 def detect_header(
         df: pd.DataFrame,
         manual_header: Optional[Sequence] = None) -> tuple:
@@ -61,10 +68,12 @@ def detect_header(
         if first_idx is not None:
             df.columns = list(df.iloc[first_idx])
             header_idx = first_idx
-            return df.drop(index=first_idx).reset_index(drop=True), header_idx
-    return df, header_idx
+            df = df.drop(index=first_idx).reset_index(drop=True)
+            return df, {'new_kwargs': dict(header_idx=header_idx)}
+    return df, {'new_kwargs': dict(header_idx=header_idx)}
 
 
+@u.transmutation(stage='preprocess')
 def normalize_whitespace(df: pd.DataFrame) -> tuple:
     """
     Simple function that applies util.clean_whitespace to every cell

@@ -11,43 +11,42 @@ def test_purge_pre_header(gaps_totals, customers):
     assert df.shape == (11, 3)
     df = u.purge_gap_rows(df)
     df, h = pp.detect_header(df)
-    df = pp.purge_pre_header(df, h)
+    df, metadata = pp.purge_pre_header(df, h['new_kwargs']['header_idx'])
     assert list(df.columns) == ['location', 'region', 'sales']
     assert df.shape == (6, 3)
-    # TODO: Uncomment this when OperationsMetaData is implemented:
-    # assert df.rejects == [
-    #     ['Sales by Location Report', nan, nan],
-    #     ['Grouping: Region', nan, nan],
-    # ]
+    expected = pd.DataFrame([
+        ['Sales by Location Report', nan, nan],
+        ['Grouping: Region', nan, nan],
+    ], columns=['location', 'region', 'sales'])
+    pd.testing.assert_frame_equal(metadata['rejects'], expected,
+                                  check_dtype=False)
 
     # Test a DataFrame that doesn't need a purge:
     df = pd.DataFrame(**customers())
     df = pp.purge_pre_header(df)
     assert df.shape == (4, 4)
-    # TODO: Uncomment this when OperationsMetaData is implemented:
-    # assert df.rejects == []
 
 
 def test_detect_header(gaps):
     df = pd.DataFrame(gaps)
-    df, header_idx = pp.detect_header(df)
+    df, metadata = pp.detect_header(df)
     assert list(df.columns) == [
         'id', 'fname', 'lname', 'foreign_key'
     ]
     assert df.shape == (9, 4)
-    assert header_idx == 4
+    assert metadata['new_kwargs'] == {'header_idx': 4}
 
     man_header = ['A', 'B', 'C', 'df']
     df = pd.DataFrame(gaps)
-    df, header_idx = pp.detect_header(df, manual_header=man_header)
+    df, metadata = pp.detect_header(df, manual_header=man_header)
     assert list(df.columns) == man_header
-    assert header_idx is None
+    assert metadata['new_kwargs'] == {'header_idx': None}
 
     # Test headerless Dataset:
     df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
     df, header_idx = pp.detect_header(df)
     assert list(df.columns) == [0, 1, 2]
-    assert header_idx is None
+    assert metadata['new_kwargs'] == {'header_idx': None}
 
 
 def test_normalize_whitespace(gaps_totals):

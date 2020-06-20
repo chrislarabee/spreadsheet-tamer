@@ -211,11 +211,13 @@ class GeniusAccessor:
 
         """
         metadata = metadata if metadata else md.GeniusMetadata()
+        preprocess_tms = [
+            pp.normalize_whitespace,
+        ]
         if self.df.columns[0] in ('Unnamed: 0', 0):
-            kwargs = u.align_args(header_func, options, 'df')
-            self.df, header_idx = header_func(self.df, **kwargs)
-            self.df = pp.purge_pre_header(self.df, header_idx)
-        self.df = metadata(self.df, pp.normalize_whitespace)
+            preprocess_tms.insert(0, pp.purge_pre_header)
+            preprocess_tms.insert(0, header_func)
+        self.df = metadata(self.df, *preprocess_tms, **options)
         return self.df.reset_index(drop=True), metadata
 
     @classmethod
@@ -269,6 +271,9 @@ class GeniusAccessor:
                         one, otherwise to_sqlite will create it.
                     db_name: A string to specifically name the db to
                         output to. Default is 'datasets'
+                    metadata: A GeniusMetadata object. If passed, its
+                        contents will be saved to a table appended with
+                        the names of its attributes.
 
         Returns: None
 
@@ -279,6 +284,11 @@ class GeniusAccessor:
             options.get('db_conn')
         )
         odbc.write_sqlite(conn, table, self.df)
+        m = options.get('metadata')
+        if m is not None:
+            odbc.write_sqlite(conn, f'{table}_metadata', m.collected)
+            if m.reject_ct > 0:
+                odbc.write_sqlite(conn, f'{table}_rejects', m.rejects)
 
 
 # TODO: Add handling for things like duplicate variants

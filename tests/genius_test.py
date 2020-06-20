@@ -129,14 +129,27 @@ class TestGeniusAccessor:
             df, pd.DataFrame(**customers())
         )
         assert isinstance(df, pd.DataFrame)
+
+    def test_to_sqlite_metadata(self, gaps_totals):
+        df = pd.DataFrame(gaps_totals())
+        df, metadata = df.genius.preprocess()
+        df.genius.to_sqlite('tests/samples', 'sales',
+                            db_name='genius_test', metadata=metadata)
+        md_df = pd.DataFrame.genius.from_file(
+            'tests/samples', table='sales_metadata', db_name='genius_test'
+        )
+        expected = pd.DataFrame([
+            dict(stage='preprocess', transmutation='normalize_whitespace',
+                 location=0.0, region=0.0, sales=0.0)
+        ])
+        pd.testing.assert_frame_equal(md_df, expected)
         
-    def test_to_sqlite(self, sales):
-        d = pd.DataFrame(**sales)
-        o = odbc.ODBConnector()
+    def test_to_sqlite(self, products):
+        d = pd.DataFrame(**products)
         d.genius.to_sqlite(
-            'tests/samples', 'sales', db_conn=o, db_name='element_test')
+            'tests/samples', 'products', db_name='genius_test')
         d2 = pd.DataFrame.genius.from_file(
-            'tests/samples/', table='sales', db_conn=o, db_name='element_test')
+            'tests/samples/', table='products', db_name='genius_test')
         pd.testing.assert_frame_equal(d, d2)
 
 
@@ -484,16 +497,16 @@ class TestGeniusAccessor:
 
 class TestSupplement:
     def test_call(self, sales, regions, stores):
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         s = ge.Supplement(({'region': 'Northern'}, 'region'))
         result = s(df1, df2)
         assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
         assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
 
         # Test split results:
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         s = ge.Supplement(({'region': 'Northern'}, 'region'))
         result = s(df1, df2, split_results=True)
         assert len(result) == 2
@@ -503,8 +516,8 @@ class TestSupplement:
             {'location', 'region', 'sales'}) == set()
 
         # Test select columns functionality on exact match:
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         s = ge.Supplement('region', select_cols='stores')
         result = s(df1, df2)
         assert list(result.stores) == [50, 50, 42, 42]
@@ -514,8 +527,8 @@ class TestSupplement:
             'region', 'stores', 'location', 'sales', 'merged_on'}
         ) == set()
 
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        df1 = pd.DataFrame(**sales)
+        df3 = pd.DataFrame(**stores)
         s = ge.Supplement(
             e.MatchRule('location', thresholds=.7, inexact=True),
             select_cols=('budget', 'location', 'other'))
@@ -528,8 +541,8 @@ class TestSupplement:
             'location_A', 'merged_on'}) == set()
 
     def test_do_exact(self, sales, regions):
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         result = ge.Supplement.do_exact(df1, df2, ('region',))
         assert list(result.stores) == [50, 50, 42, 42]
         assert list(result.employees) == [500, 500, 450, 450]
@@ -537,15 +550,15 @@ class TestSupplement:
     def test_do_inexact(self, sales, regions, stores):
         # Make sure inexact can replicate exact, just as a sanity
         # check:
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         result = ge.Supplement.do_inexact(
             df1, df2, ('region',), thresholds=(1,))
         assert list(result.stores) == [50, 50, 42, 42]
         assert list(result.employees) == [500, 500, 450, 450]
 
         # Now for a real inexact match:
-        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        df3 = pd.DataFrame(**stores)
         result = ge.Supplement.do_inexact(
             df1, df3, ('location',), thresholds=(.7,))
         assert list(result.budget) == [100000, 90000, 110000, 90000]
@@ -555,7 +568,7 @@ class TestSupplement:
             'budget', 'inventory'}) == set()
 
         # Same match, but with block:
-        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        df3 = pd.DataFrame(**stores)
         result = ge.Supplement.do_inexact(
             df1, df3, ('location',), thresholds=(.7,), block=('region',))
         assert list(result.budget) == [100000, 90000, 110000, 90000]
@@ -565,7 +578,7 @@ class TestSupplement:
             'budget', 'inventory'}) == set()
 
         # Same match, but with multiple ons:
-        df3 = pd.DataFrame(stores[1], columns=stores[0])
+        df3 = pd.DataFrame(**stores)
         result = ge.Supplement.do_inexact(
             df1, df3, ('location', 'region'), thresholds=(.7, 1))
         assert list(result.budget) == [100000, 90000, 110000, 90000]
@@ -575,7 +588,7 @@ class TestSupplement:
             'budget', 'inventory'}) == set()
 
     def test_chunk_dframes(self, stores, sales, regions):
-        df = pd.DataFrame(stores[1], columns=stores[0])
+        df = pd.DataFrame(**stores)
         plan = ge.Supplement.build_plan((
             ({'budget': (90000,)}, 'location'),
             ({'inventory': (4500,)}, 'budget')
@@ -596,8 +609,8 @@ class TestSupplement:
                  inventory=5000)
         ]
         # Test multiple dframes:
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         # Test with no conditions:
         plan = ge.Supplement.build_plan((
             ({None: (None,)}, 'region'),
@@ -615,8 +628,8 @@ class TestSupplement:
         ]
         assert p_df.to_dict('records') == []
         # Test with conditions
-        df1 = pd.DataFrame(sales[1], columns=sales[0])
-        df2 = pd.DataFrame(regions[1], columns=regions[0])
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
         plan = ge.Supplement.build_plan((
             ({'region': ('Northern',)}, 'region'),
         ))
@@ -634,7 +647,7 @@ class TestSupplement:
         ]
 
     def test_slice_dframe(self, stores):
-        df = pd.DataFrame(stores[1], columns=stores[0])
+        df = pd.DataFrame(**stores)
         expected = [
             dict(location='W Valley', region='Northern', budget=90000,
                  inventory=4500),
