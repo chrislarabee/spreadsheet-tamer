@@ -60,14 +60,6 @@ def test_collect_by_keys():
     assert type(x) == od and type(x) != dict
 
 
-def test_count_nulls():
-    assert u.count_nulls(['', '', ''], strict=False) == 3
-    assert u.count_nulls([1, '', '']) == 0
-    assert u.count_nulls([1, 2, 3]) == 0
-    assert u.count_nulls(od(x=1, y=None, z=''), strict=False) == 2
-    assert u.count_nulls(dict(a='t', b='u', c='')) == 0
-
-
 def test_count_true_str():
     assert u.count_true_str(['', '', '']) == 0
     assert u.count_true_str(['a', 'test', 1]) == 2
@@ -83,6 +75,14 @@ def test_gen_alpha_keys():
     assert u.gen_alpha_keys(53) == {
         *string.ascii_uppercase, *['A' + a for a in string.ascii_uppercase],
         'BA'}
+
+
+def test_gen_empty_md_df():
+    expected = pd.DataFrame([dict(a=0, b=0, c=0)])
+    pd.testing.assert_frame_equal(
+        u.gen_empty_md_df(['a', 'b', 'c']),
+        expected
+    )
 
 
 def test_isnumericplus():

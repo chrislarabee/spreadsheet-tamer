@@ -21,7 +21,7 @@ def de_cluster(df: pd.DataFrame, columns: Sequence) -> tuple:
         valid values instead of nans. Also a metadata dictionary.
 
     """
-    md_df = pd.DataFrame([[0 for _ in columns]], columns=columns)
+    md_df = u.gen_empty_md_df(columns)
     for c in columns:
         before_ct = df[c].count()
         df[c] = df[c].fillna(method='ffill')

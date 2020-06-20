@@ -3,7 +3,7 @@ import inspect
 import re
 import string
 from collections import OrderedDict
-from typing import Callable
+from typing import Callable, Sequence
 
 import pandas as pd
 from numpy import nan
@@ -120,25 +120,6 @@ def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
     return result
 
 
-def count_nulls(x: (list, OrderedDict, dict),
-                strict: bool = True) -> int:
-    """
-    Takes a list or dictionary and returns the number of values in it
-    that are None or '' if strict is False.
-
-    Args:
-        x: A list or dictionary.
-        strict: A boolean indicating whether to treat empty strings
-            ('') as None.
-
-    Returns: An integer, the count of nulls in the list.
-
-    """
-    x = list(x.values()) if isinstance(x, (OrderedDict, dict)) else x
-    nulls = (None, ) if strict else (None, '')
-    return sum([1 if y in nulls else 0 for y in x])
-
-
 def count_true_str(x: (list, pd.Series)) -> int:
     """
     Takes a list or pandas Series and returns the number of values in
@@ -176,6 +157,22 @@ def gen_alpha_keys(num: int) -> set:
         for k in keys:
             result.add(k) if len(result) < num else None
     return result
+
+
+def gen_empty_md_df(columns: Sequence) -> pd.DataFrame:
+    """
+    Generates an empty DataFrame with the passed columns and a one row
+    placeholder. Used in functions that will accumulate metadata into
+    an empty DataFrame.
+
+    Args:
+        columns: A Sequence of column names to use in the empty df.
+
+    Returns: A DataFrame with the passed columns and a single row
+        containing a zero in each of those columns.
+
+    """
+    return pd.DataFrame([[0 for _ in columns]], columns=columns)
 
 
 def isnumericplus(x, *options) -> (bool, tuple):

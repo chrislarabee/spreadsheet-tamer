@@ -88,7 +88,7 @@ def normalize_whitespace(df: pd.DataFrame) -> tuple:
         whitespace.
 
     """
-    md_df = pd.DataFrame([[0 for _ in df.columns]], columns=df.columns)
+    md_df = u.gen_empty_md_df(df.columns)
     for c in df.columns:
         result = df[c].apply(u.clean_whitespace)
         result = pd.DataFrame(result.to_list())
