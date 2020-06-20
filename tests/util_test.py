@@ -89,8 +89,7 @@ def test_get_class_name():
     assert u.get_class_name('string') == 'str'
     assert u.get_class_name(123) == 'int'
     assert u.get_class_name(1.245) == 'float'
-    assert u.get_class_name(nan) == 'float'
-    assert u.get_class_name(None) == 'NoneType'
+    assert u.get_class_name(nan) == 'nan'
 
 
 def test_isnumericplus():

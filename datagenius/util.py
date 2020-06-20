@@ -186,8 +186,11 @@ def get_class_name(obj) -> str:
     Returns: A string representing the name of the object's class.
 
     """
-    t = type(obj)
-    return re.findall(r"<class '(.+)'>", str(t))[0]
+    if pd.isna(obj):
+        return 'nan'
+    else:
+        t = type(obj)
+        return re.findall(r"<class '(.+)'>", str(t))[0]
 
 
 def isnumericplus(x, *options) -> (bool, tuple):
