@@ -32,6 +32,10 @@ def transmutation(func=None, *, stage: str = None):
         def wrapper_transmutation(*args, **kwargs):
             return _func(*args, **kwargs)
 
+        # Decorated functions cannot be inspected to get args, so must
+        # inspect now:
+        wrapper_transmutation.args = inspect.getfullargspec(_func).args
+
         # Attributes of transmutation functions expected by other
         # objects:
         wrapper_transmutation.stage = (
@@ -63,7 +67,9 @@ def align_args(func: Callable, kwargs: dict,
         that func can accept.
 
     """
-    func_args = inspect.getfullargspec(func).args
+    func_args = getattr(func, 'args', None)
+    if func_args is None:
+        func_args = inspect.getfullargspec(func).args
     if suppress:
         suppress = (
             [suppress] if not isinstance(suppress, list) else suppress)
@@ -264,7 +270,7 @@ def tuplify(value, do_none: bool = False) -> tuple:
     return value
 
 
-def validate_attr(obj, attr: str, match) -> bool:
+def validate_attr(obj, attr: str, match = None) -> bool:
     """
     Takes an object and checks its attributes. Useful in situations 
     where you want to check an object's attributes without first 
@@ -273,7 +279,8 @@ def validate_attr(obj, attr: str, match) -> bool:
     Args:
         obj: Any object.
         attr: A string, the attribute to check against.
-        match: The value to check attr against.
+        match: The value to check attr against. If none, simply checks
+            if the attr is present.
 
     Returns: A boolean indicating whether the object has the passed
         attribute and if it matches the passed match.
@@ -281,6 +288,8 @@ def validate_attr(obj, attr: str, match) -> bool:
     """
     result = False
     if hasattr(obj, attr):
-        if getattr(obj, attr) == match:
+        if match is None:
+            result = True
+        elif getattr(obj, attr) == match:
             result = True
     return result

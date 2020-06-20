@@ -1,3 +1,4 @@
+import inspect
 from collections import OrderedDict as od
 import string
 
@@ -14,6 +15,7 @@ def test_transmutation():
     def func(x):
         return x
     assert func.stage == '_no_stage'
+    assert func.args == ['x']
 
     @u.transmutation('rejects', stage='preprocess')
     def func(x):
@@ -33,6 +35,12 @@ def test_align_args():
         lambda x, y: x + y, dict(x=1, y=3, z=2), 'y') == dict(x=1)
     assert u.align_args(
         lambda x, y: x + y, dict(x=1), ['y', 'z']) == dict(x=1)
+
+    @u.transmutation
+    def func(x, y, z):
+        return x, y, z
+
+    assert u.align_args(func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
 def test_clean_whitespace():
@@ -126,4 +134,5 @@ def test_tuplify():
 def test_validate_attr():
     df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
     assert u.validate_attr(df, 'shape', (2, 3))
+    assert u.validate_attr(df, 'shape')
     assert not u.validate_attr(df, 'gibberish', 'nonsense')
