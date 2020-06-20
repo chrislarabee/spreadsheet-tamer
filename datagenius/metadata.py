@@ -89,7 +89,20 @@ class GeniusMetadata(Callable):
             setattr(self, attr, pd.concat(
                 (getattr(self, attr), incoming)).reset_index(drop=True))
 
-    def __call__(self, df, *transmutations, **options):
+    def __call__(self, df, *transmutations, **options) -> pd.DataFrame:
+        """
+        Tracks the results of any number of passed transmutations.
+
+        Args:
+            df: The DataFrame to execute each transmutation function
+                on.
+            *transmutations: Any number of transmutation functions.
+            **options: Keyword args that might be used by any of the
+                transmutations.
+
+        Returns: The DataFrame, altered by the passed transmutations.
+
+        """
         for tm in transmutations:
             df, options = self.track(tm, df, **options)
         return df
