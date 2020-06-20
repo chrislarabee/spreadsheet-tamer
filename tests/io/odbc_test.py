@@ -27,10 +27,10 @@ class TestODBConnector:
         o.new_tbl('sales', sales_schema)
         assert o._parse_sa_schema(o.tables['sales'].c) == sales_schema
 
-    def test_insert_and_select(self, sales):
-        d = pd.DataFrame(**sales)
-        o.insert('sales', d)
-        d2 = pd.DataFrame(o.select('sales'))
+    def test_insert_and_select(self, products):
+        d = pd.DataFrame(**products)
+        o.insert('products', d)
+        d2 = pd.DataFrame(o.select('products'))
         pd.testing.assert_frame_equal(d2, d)
 
     def test_drop_tbl(self):

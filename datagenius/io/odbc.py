@@ -4,6 +4,8 @@ import collections as col
 import sqlalchemy as sa
 import pandas as pd
 
+import datagenius.util as u
+
 
 class ODBConnector:
     """
@@ -137,7 +139,7 @@ class ODBConnector:
                     [self._tables[table]])).fetchall():
                 d = col.OrderedDict()
                 for i, k in enumerate(self._schemas[table].keys()):
-                    d[k] = r[i]
+                    d[k] = u.translate_null(r[i])
                 results.append(d)
         return results
 

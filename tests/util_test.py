@@ -4,6 +4,7 @@ import string
 import pytest
 import pandas as pd
 import numpy as np
+from numpy import nan
 
 import datagenius.util as u
 
@@ -104,26 +105,15 @@ def test_purge_gap_rows(gaps, gaps_totals):
     assert d.shape == (9, 3)
 
 
-def test_translate_nans():
-    d = [
-        [np.nan, 1, 2],
-        [3, 4, np.nan]
-    ]
-    expected = [
-        [None, 1, 2],
-        [3, 4, None]
-    ]
-    assert u.translate_nans(d) == expected
+def test_translate_null():
+    assert pd.isna(u.translate_null(None))
+    assert pd.isna(u.translate_null(nan))
+    assert u.translate_null(nan, None) is None
+    assert u.translate_null(None, None) is None
+    assert u.translate_null('string') == 'string'
 
-    d = [
-        od(a=np.nan, b=1, c=2),
-        od(a=3, b=4, c=np.nan)
-    ]
-    expected = [
-        od(a=None, b=1, c=2),
-        od(a=3, b=4, c=None)
-    ]
-    assert u.translate_nans(d) == expected
+    with pytest.raises(ValueError, match='must be numpy nan or None'):
+        u.translate_null(1, int)
 
 
 def test_tuplify():
