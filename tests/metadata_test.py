@@ -16,13 +16,15 @@ class TestGeniusMetadata:
             dict(a=4, b=5, c=6)
         ])
         expected = pd.DataFrame([dict(
-            transmutation='tracked_func', a=1, b=0, c=1)])
+            stage='preprocess', transmutation='tracked_func',
+            a=1, b=0, c=1)]
+        )
 
         gmd = md.GeniusMetadata()
         x = gmd.track(tracked_func, df)
         pd.testing.assert_frame_equal(x, df)
         pd.testing.assert_frame_equal(
-            gmd.stages['preprocess'], expected, check_dtype=False
+            gmd.collected, expected, check_dtype=False
         )
 
         @u.transmutation(stage='preprocess')
@@ -32,7 +34,7 @@ class TestGeniusMetadata:
                         'rejects': pd.DataFrame([dict(a=4, b=5, c=6)])}
 
         expected = pd.concat((expected, pd.DataFrame([
-            dict(transmutation='tracked_func2', d=1)]))
+            dict(stage='preprocess', transmutation='tracked_func2', d=1)]))
         ).reset_index(drop=True)
         expected_rejects = pd.DataFrame([dict(a=4, b=5, c=6)])
 
@@ -40,18 +42,17 @@ class TestGeniusMetadata:
         pd.testing.assert_frame_equal(
             x, pd.DataFrame([dict(a=1, b=2, c=3)]))
         pd.testing.assert_frame_equal(
-            gmd.stages['preprocess'], expected)
+            gmd.collected, expected)
         pd.testing.assert_frame_equal(gmd.rejects, expected_rejects)
 
         @u.transmutation
         def tracked_func3(df):
             return df, {'metadata': pd.DataFrame([dict(e=4)])}
 
-        expected_no_stage = pd.DataFrame([
-            dict(transmutation='tracked_func3', e=4)])
+        expected = pd.concat((expected, pd.DataFrame([
+            dict(stage='_no_stage', transmutation='tracked_func3', e=4)]))
+        ).reset_index(drop=True)
 
         gmd.track(tracked_func3, df)
         pd.testing.assert_frame_equal(
-            gmd.stages['preprocess'], expected)
-        pd.testing.assert_frame_equal(
-            gmd.stages['_no_stage'], expected_no_stage, check_dtype=False)
+            gmd.collected, expected, check_dtype=False)

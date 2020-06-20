@@ -12,8 +12,12 @@ class GeniusMetadata(Callable):
         return self._rejects
 
     @property
-    def stages(self):
-        return {s: getattr(self, s) for s in self._stages}
+    def reject_ct(self):
+        return self._rejects.shape[0]
+
+    @property
+    def collected(self):
+        return self._collected
 
     """
     When coupled with Genius transmutations, tracks their activity and
@@ -21,9 +25,9 @@ class GeniusMetadata(Callable):
     """
     def __init__(self):
         self._rejects: pd.DataFrame = pd.DataFrame()
-        self._no_stage: pd.DataFrame = pd.DataFrame(
-            columns=['transmutation'])
-        self._stages = ['_no_stage']
+        self._collected: pd.DataFrame = pd.DataFrame(
+            columns=['stage', 'transmutation']
+        )
 
     def track(
             self,
@@ -56,8 +60,9 @@ class GeniusMetadata(Callable):
             rejects = meta_result.get('rejects')
             if metadata is not None:
                 metadata['transmutation'] = transmutation.__name__
-                self._intake(
-                    metadata, getattr(transmutation, 'stage', '_no_stage'))
+                stage = getattr(transmutation, 'stage', '_no_stage')
+                metadata['stage'] = stage
+                self._intake(metadata, '_collected')
                 meta_result.pop('metadata')
             if rejects is not None:
                 self._intake(rejects, '_rejects')
@@ -77,10 +82,6 @@ class GeniusMetadata(Callable):
         Returns: None
 
         """
-        # New attributes are assumed to be stages:
-        if getattr(self, attr, None) is None:
-            setattr(self, attr, pd.DataFrame(columns=['transmutation']))
-            self._stages.append(attr)
         if isinstance(incoming, pd.DataFrame):
             setattr(self, attr, pd.concat(
                 (getattr(self, attr), incoming)).reset_index(drop=True))
