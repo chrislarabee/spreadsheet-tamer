@@ -396,20 +396,6 @@ class TestGeniusAccessor:
 #             'string_pct': 0, 'numeric_pct': 0, 'probable_type': 'uncertain'
 #         }
 #
-#     def test_uniques_report(self):
-#         md = e.MetaData()
-#         ge.Explore.uniques_report([1, 2, 3, 4], 'id', md)
-#         assert md['id'] == dict(
-#             unique_ct=4,
-#             primary_key=True
-#         )
-#
-#         ge.Explore.uniques_report(['x', 'x', 'y', 'y'], 'vars', md)
-#         assert md['vars'] == dict(
-#             unique_ct=2,
-#             primary_key=False
-#         )
-#
 #     def test_go(self):
 #         d = e.Dataset([
 #             [1, 2, 'a'],

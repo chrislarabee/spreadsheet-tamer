@@ -900,32 +900,6 @@ class GeniusAccessor:
 #         )
 #         return column
 #
-#     @staticmethod
-#     @parser(parses='column', requires_format='lists')
-#     def uniques_report(column: list, col_name: str, meta_data: e.MetaData) -> list:
-#         """
-#         Takes a list and creates a dictionary report on the unique
-#         values of data found in the list and uses it to update
-#         meta_data.
-#
-#         # TODO: Add functionality to not count nulls as uniques?
-#
-#         Args:
-#             column: A list.
-#             col_name: A string indicating the name of the column this
-#                 data came from.
-#             meta_data: A MetaData object.
-#
-#         Returns: column
-#
-#         """
-#         uniques = set(column)
-#         unique_ct = len(uniques)
-#         pk = len(uniques) == len(column)
-#         meta_data.update(
-#             col_name, unique_ct=unique_ct, primary_key=pk)
-#         return column
-#
 #
 # class Reformat(Genius):
 #     """
