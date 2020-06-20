@@ -33,7 +33,7 @@ class GeniusMetadata(Callable):
             self,
             transmutation: Callable,
             df: pd.DataFrame,
-            **kwargs) -> pd.DataFrame:
+            **kwargs) -> tuple:
         """
         Runs the passed transmutation on the passed DataFrame with the
         passed kwargs. Collects any metadata spit out by the function
@@ -58,6 +58,7 @@ class GeniusMetadata(Callable):
             result = result[0]
             metadata = meta_result.get('metadata')
             rejects = meta_result.get('rejects')
+            new_kwargs = meta_result.get('new_kwargs')
             if metadata is not None:
                 metadata['transmutation'] = transmutation.__name__
                 stage = getattr(transmutation, 'stage', '_no_stage')
@@ -67,7 +68,9 @@ class GeniusMetadata(Callable):
             if rejects is not None:
                 self._intake(rejects, '_rejects')
                 meta_result.pop('rejects')
-        return result
+            if new_kwargs is not None:
+                kwargs = {**kwargs, **new_kwargs}
+        return result, kwargs
 
     def _intake(self, incoming: pd.DataFrame, attr: str) -> None:
         """
@@ -88,6 +91,6 @@ class GeniusMetadata(Callable):
 
     def __call__(self, df, *transmutations, **options):
         for tm in transmutations:
-            self.track(tm, df, **options)
+            df, options = self.track(tm, df, **options)
         return df
 

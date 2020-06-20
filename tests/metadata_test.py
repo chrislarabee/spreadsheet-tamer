@@ -21,12 +21,14 @@ class TestGeniusMetadata:
         )
 
         gmd = md.GeniusMetadata()
-        x = gmd.track(tracked_func, df)
+        x, kwargs = gmd.track(tracked_func, df)
+        assert kwargs == {}
         pd.testing.assert_frame_equal(x, df)
         pd.testing.assert_frame_equal(
             gmd.collected, expected, check_dtype=False
         )
 
+        # Test rejects:
         @u.transmutation(stage='preprocess')
         def tracked_func2(df):
             df.drop(1, inplace=True)
@@ -38,21 +40,25 @@ class TestGeniusMetadata:
         ).reset_index(drop=True)
         expected_rejects = pd.DataFrame([dict(a=4, b=5, c=6)])
 
-        x = gmd.track(tracked_func2, df)
+        x, kwargs = gmd.track(tracked_func2, df)
+        assert kwargs == {}
         pd.testing.assert_frame_equal(
             x, pd.DataFrame([dict(a=1, b=2, c=3)]))
         pd.testing.assert_frame_equal(
             gmd.collected, expected)
         pd.testing.assert_frame_equal(gmd.rejects, expected_rejects)
 
+        # Test no stage and new_kwargs:
         @u.transmutation
         def tracked_func3(df):
-            return df, {'metadata': pd.DataFrame([dict(e=4)])}
+            return df, {'metadata': pd.DataFrame([dict(e=4)]),
+                        'new_kwargs': dict(x=1, y=2)}
 
         expected = pd.concat((expected, pd.DataFrame([
             dict(stage='_no_stage', transmutation='tracked_func3', e=4)]))
         ).reset_index(drop=True)
 
-        gmd.track(tracked_func3, df)
+        x, kwargs = gmd.track(tracked_func3, df)
+        assert kwargs == {'x': 1, 'y': 2}
         pd.testing.assert_frame_equal(
             gmd.collected, expected, check_dtype=False)
