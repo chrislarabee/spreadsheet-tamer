@@ -5,8 +5,10 @@ import pandas as pd
 import datagenius.util as u
 
 
-@u.transmutation(stage='clean_basic')
-def complete_clusters(df: pd.DataFrame, columns: Sequence) -> tuple:
+@u.transmutation(stage='clean')
+def complete_clusters(
+        df: pd.DataFrame,
+        clustered_columns: Sequence) -> tuple:
     """
     Forward propagates values in the given columns into nan values that
     follow non-nan values. Useful when you have a report-like dataset
@@ -15,15 +17,15 @@ def complete_clusters(df: pd.DataFrame, columns: Sequence) -> tuple:
 
     Args:
         df: A DataFrame.
-        columns: The columns in the DataFrame to fill nan values with
-            the last valid value.
+        clustered_columns: The columns in the DataFrame to fill nan
+            values with the last valid value.
 
     Returns: The DataFrame, with the passed columns forward filled with
         valid values instead of nans. Also a metadata dictionary.
 
     """
-    md_df = u.gen_empty_md_df(columns)
-    for c in columns:
+    md_df = u.gen_empty_md_df(clustered_columns)
+    for c in clustered_columns:
         before_ct = df[c].count()
         df[c] = df[c].fillna(method='ffill')
         after_ct = df[c].count()
@@ -31,7 +33,7 @@ def complete_clusters(df: pd.DataFrame, columns: Sequence) -> tuple:
     return df, {'metadata': md_df}
 
 
-@u.transmutation(stage='clean_basic')
+@u.transmutation(stage='clean')
 def reject_incomplete_rows(
         df: pd.DataFrame,
         required_cols: list) -> tuple:
