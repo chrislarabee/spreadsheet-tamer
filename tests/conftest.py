@@ -43,9 +43,9 @@ def sales():
 
 @pytest.fixture
 def regions():
-    return (
-        ['region', 'stores', 'employees'],
-        [
+    return dict(
+        columns=['region', 'stores', 'employees'],
+        data=[
             ['Northern', 50, 500],
             ['Southern', 42, 450]
         ]
@@ -54,9 +54,9 @@ def regions():
 
 @pytest.fixture
 def stores():
-    return (
-        ['location', 'region', 'budget', 'inventory'],
-        [
+    return dict(
+        columns=['location', 'region', 'budget', 'inventory'],
+        data=[
             ['Bayside', 'Northern', 100000, 5000],
             ['W Valley', 'Northern', 90000, 4500],
             ['Precioso', 'Southern', 110000, 4500],
