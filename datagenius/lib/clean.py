@@ -5,7 +5,8 @@ import pandas as pd
 import datagenius.util as u
 
 
-def de_cluster(df: pd.DataFrame, columns: Sequence) -> tuple:
+@u.transmutation(stage='clean_basic')
+def complete_clusters(df: pd.DataFrame, columns: Sequence) -> tuple:
     """
     Forward propagates values in the given columns into nan values that
     follow non-nan values. Useful when you have a report-like dataset
@@ -30,6 +31,7 @@ def de_cluster(df: pd.DataFrame, columns: Sequence) -> tuple:
     return df, {'metadata': md_df}
 
 
+@u.transmutation(stage='clean_basic')
 def reject_incomplete_rows(
         df: pd.DataFrame,
         required_cols: list) -> tuple:
@@ -49,7 +51,7 @@ def reject_incomplete_rows(
     metadata = dict()
     nulls = df.isna()
     nulls['count'] = nulls.apply(
-        lambda x: x[required_cols].sum(), axis=1)
+        lambda row: row[required_cols].sum(), axis=1)
     incomplete_rows = nulls[nulls['count'] > 0].index
     rejects = df.iloc[incomplete_rows]
     metadata['rejects'] = rejects
