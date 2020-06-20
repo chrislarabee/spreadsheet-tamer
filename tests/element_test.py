@@ -7,25 +7,6 @@ from numpy import nan
 import datagenius.element as e
 
 
-
-# def test_package_rejects(self):
-#     d = e.Dataset([
-#         [1, 2, 3],
-#         [4, 5, 6]
-#     ])
-#     d.rejects = [
-#         ['Integers', None, None],
-#         [None, None, 9]
-#     ]
-#     assert d.package_rejects() == (
-#         [
-#             od({'0': 'Integers', '1': None, '2': None}),
-#             od({'0': None, '1': None, '2': 9})
-#         ],
-#         {'0': str, '1': str, '2': str}
-#     )
-
-
 class TestRule:
     def test_init(self):
         r = e.Rule(lambda x: x + 1, 'test')
