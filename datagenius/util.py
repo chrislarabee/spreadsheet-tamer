@@ -6,6 +6,7 @@ from collections import OrderedDict
 from typing import Callable
 
 import pandas as pd
+from numpy import nan
 
 
 def transmutation(func=None, *, stage: str = None):
@@ -224,24 +225,25 @@ def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna(how='all').reset_index(drop=True)
 
 
-def translate_nans(data: list) -> list:
+def translate_null(obj, to: (nan, None) = nan):
     """
-    Loops a passed list and ensures numpy nans are replaced with None.
+    Checks if a passed object is a NoneType object or a numpy nan and
+    then converts it to the passed
 
     Args:
-        data: A list of lists or a list of OrderedDicts.
+        obj: Any object.
+        to: None or numpy nan. If nan will convert Nones to nan, if
+            None, it will convert nan to None.
 
-    Returns: The list with inner values that are nan replaced with None.
+    Returns: The object, converted to None or nan as appropriate.
 
     """
-    for x in data:
-        if isinstance(x, OrderedDict):
-            iterator = x.items()
-        else:
-            iterator = enumerate(x)
-        for i, v in iterator:
-            x[i] = None if pd.isna(v) else v
-    return data
+    if not pd.isna(to) and to is not None:
+        raise ValueError(f'to must be numpy nan or None. to={to}')
+    if pd.isna(obj) or obj is None:
+        return to
+    else:
+        return obj
 
 
 def tuplify(value, do_none: bool = False) -> tuple:
