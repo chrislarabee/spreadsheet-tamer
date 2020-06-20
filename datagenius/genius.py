@@ -709,30 +709,6 @@ class GeniusAccessor:
 #         self.steps = self.order_parsers(self.steps)
 #         return super(Clean, self).go(dset, **options)
 #
-#     @staticmethod
-#     @parser('collect_rejects', priority=20)
-#     def cleanse_incomplete_rows(
-#             row: col.OrderedDict,
-#             required_columns: (list, tuple)) -> (None, col.OrderedDict):
-#         """
-#         Returns the row if it has a value at each of the keys found
-#         in required_columns, otherwise None.
-#
-#         Args:
-#             row: An OrderedDict that may contain the keys found in
-#                 required_columns.
-#             required_columns: A list or tuple of strings corresponding
-#                 to keys in row.
-#
-#         Returns: Returns the row if it has a value at each of the keys
-#             found in required_columns, otherwise None.
-#
-#         """
-#         for rc in required_columns:
-#             if row.get(rc) is None:
-#                 return None
-#         return row
-#
 #     @parser('collect_rejects')
 #     def cleanse_rejects(self, row: col.OrderedDict,
 #                         reject_conditions: tuple) -> (None, col.OrderedDict):

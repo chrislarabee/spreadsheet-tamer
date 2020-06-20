@@ -353,25 +353,13 @@ class TestGeniusAccessor:
 #         )
 #         assert ge.Clean.apply_rules(od(a=1, b=2), rules) == expected
 #
-#     def test_cleanse_incomplete_rows(self):
-#         row = od(a=1, b=2, c=3, d=None, e=None)
-#         assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'b']) == row
-#         assert ge.Clean.cleanse_incomplete_rows(row, ['a', 'd']) is None
-#         assert ge.Clean.cleanse_incomplete_rows(row, ['d']) is None
-#
 #     def test_clean_numeric_typos(self):
 #         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
 #         assert ge.Clean.clean_numeric_typos('10.1q') == 10.1
 #         assert ge.Clean.clean_numeric_typos('101q') == 101
 #         assert ge.Clean.clean_numeric_typos('1q0.1q') == 10.1
 #         assert ge.Clean.clean_numeric_typos('abc') == 'abc'
-#
-#     def test_go_w_incomplete_rows(self, needs_cleanse_totals, sales):
-#         d = e.Dataset(needs_cleanse_totals[1], needs_cleanse_totals[0]).to_dicts()
-#         expected = e.Dataset(sales[1], sales[0]).to_dicts()
-#
-#         assert ge.Clean().go(d, required_columns=['location']) == expected._data
-#
+##
 #     def test_go_w_rules(self, needs_rules, products):
 #         d = e.Dataset(needs_rules[1], needs_rules[0])
 #         p = e.Dataset(products[1], products[0]).to_dicts()
