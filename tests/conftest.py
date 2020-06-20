@@ -171,15 +171,15 @@ def gaps_totals():
 
 @pytest.fixture
 def needs_cleanse_totals():
-    return (
-        ['location', 'region', 'sales'],
-        [
+    return dict(
+        columns=['location', 'region', 'sales'],
+        data=[
             ['Bayside Store', 'Northern', 500],
             ['West Valley Store', 'Northern', 300],
-            [None, None, 800],
+            [nan, nan, 800],
             ['Precioso Store', 'Southern', 1000],
             ['Kalliope Store', 'Southern', 200],
-            [None, None, 1200]
+            [nan, nan, 1200]
         ]
     )
 

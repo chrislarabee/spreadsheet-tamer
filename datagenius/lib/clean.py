@@ -29,3 +29,32 @@ def de_cluster(df: pd.DataFrame, columns: Sequence) -> tuple:
         md_df[c] = after_ct - before_ct
     return df, {'metadata': md_df}
 
+
+def reject_incomplete_rows(
+        df: pd.DataFrame,
+        required_cols: list) -> tuple:
+    """
+    Rejects any rows in a DataFrame that have nan values in the passed
+    list of required columns.
+
+    Args:
+        df: A DataFrame.
+        required_cols: A list (must be a list) of strings corresponding
+            to the columns in df that must have values to be acceptable.
+
+    Returns: The DataFrame, with only rows that have values in the
+        required_cols list. Also a metadata dictionary.
+
+    """
+    metadata = dict()
+    nulls = df.isna()
+    nulls['count'] = nulls.apply(
+        lambda x: x[required_cols].sum(), axis=1)
+    incomplete_rows = nulls[nulls['count'] > 0].index
+    rejects = df.iloc[incomplete_rows]
+    metadata['rejects'] = rejects
+    metadata['metadata'] = pd.DataFrame(rejects.count()).T
+    df = df.drop(index=incomplete_rows)
+    df = df.reset_index(drop=True)
+    return df, metadata
+
