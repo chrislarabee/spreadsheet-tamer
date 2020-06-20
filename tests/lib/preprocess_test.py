@@ -20,6 +20,8 @@ def test_purge_pre_header(gaps_totals, customers):
     ], columns=['location', 'region', 'sales'])
     pd.testing.assert_frame_equal(metadata['rejects'], expected,
                                   check_dtype=False)
+    expected = pd.DataFrame([dict(location=2, region=0, sales=0)])
+    pd.testing.assert_frame_equal(metadata['metadata'], expected)
 
     # Test a DataFrame that doesn't need a purge:
     df = pd.DataFrame(**customers())

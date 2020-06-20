@@ -22,15 +22,17 @@ def purge_pre_header(df: pd.DataFrame, header_idx: int = None):
 
     """
     if header_idx:
-        rejects = pd.DataFrame()
+        metadata = dict()
         if header_idx > 0:
             rejects = df.iloc[:header_idx]
+            metadata['rejects'] = rejects
+            metadata['metadata'] = pd.DataFrame(rejects.count()).T
         df.drop(
             index=[i for i in range(header_idx)],
             inplace=True
         )
         df.reset_index(drop=True, inplace=True)
-        return df, {'rejects': rejects}
+        return df, metadata
     else:
         return df
 
