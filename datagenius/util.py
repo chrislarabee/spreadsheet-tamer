@@ -175,6 +175,21 @@ def gen_empty_md_df(columns: Sequence) -> pd.DataFrame:
     return pd.DataFrame([[0 for _ in columns]], columns=columns)
 
 
+def get_class_name(obj) -> str:
+    """
+    Gets the name of the passed object's class, even if it doesn't
+    have a __name__ attribute.
+
+    Args:
+        obj: An object.
+
+    Returns: A string representing the name of the object's class.
+
+    """
+    t = type(obj)
+    return re.findall(r"<class '(.+)'>", str(t))[0]
+
+
 def isnumericplus(x, *options) -> (bool, tuple):
     """
     A better version of the str.isnumeric test that correctly
