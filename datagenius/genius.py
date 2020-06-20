@@ -710,32 +710,6 @@ class GeniusAccessor:
 #         return super(Clean, self).go(dset, **options)
 #
 #     @staticmethod
-#     @parser
-#     def extrapolate(row: col.OrderedDict, cols: (list, tuple),
-#                     cache: col.OrderedDict = None):
-#         """
-#         Uses the values in a cached row to fill in values in the current
-#         row by index. Useful when your dataset has grouped rows.
-#
-#         Args:
-#             row: An OrderedDict.
-#             cols: A list of keys, which must be found in row.
-#             cache: An OrderedDict, which contains values to be
-#                 pulled by key in cols into row. If cache is None,
-#                 extrapolate will just return a copy of row.
-#
-#         Returns: row with null values overwritten with populated
-#             values from the cached OrderedDict.
-#
-#         """
-#         result = row.copy()
-#         if cache is not None:
-#             for c in cols:
-#                 if result[c] is None:
-#                     result[c] = cache[c]
-#         return result
-#
-#     @staticmethod
 #     @parser('collect_rejects', priority=20)
 #     def cleanse_incomplete_rows(
 #             row: col.OrderedDict,

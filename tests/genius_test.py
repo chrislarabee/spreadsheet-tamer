@@ -345,13 +345,6 @@ class TestGeniusAccessor:
 #
 #
 # class TestClean:
-#     def test_extrapolate(self):
-#         assert ge.Clean.extrapolate(
-#             od(a=2, b=None, c=None),
-#             ['b', 'c'],
-#             od(a=1, b='Foo', c='Bar')
-#         ) == od(a=2, b='Foo', c='Bar')
-#
 #     def test_apply_rules(self):
 #         expected = od(a=1, b=3, x=100)
 #         rules = (
@@ -372,27 +365,6 @@ class TestGeniusAccessor:
 #         assert ge.Clean.clean_numeric_typos('101q') == 101
 #         assert ge.Clean.clean_numeric_typos('1q0.1q') == 10.1
 #         assert ge.Clean.clean_numeric_typos('abc') == 'abc'
-#
-#     def test_go_w_extrapolate(self, needs_extrapolation):
-#         d = e.Dataset(needs_extrapolation[1])
-#         d.meta_data.header = needs_extrapolation[0]
-#         expected = [
-#             od(
-#                 product_id=1, vendor_name='StrexCorp', product_name='Teeth'),
-#             od(
-#                 product_id=2, vendor_name='StrexCorp',
-#                 product_name='Radio Equipment'),
-#             od(
-#                 product_id=3, vendor_name='KVX Bank', product_name='Bribe'),
-#             od(
-#                 product_id=4, vendor_name='KVX Bank',
-#                 product_name='Not candy or pens')
-#         ]
-#
-#         assert ge.Clean().go(
-#             d,
-#             extrapolate=['vendor_name']
-#         ) == expected
 #
 #     def test_go_w_incomplete_rows(self, needs_cleanse_totals, sales):
 #         d = e.Dataset(needs_cleanse_totals[1], needs_cleanse_totals[0]).to_dicts()
