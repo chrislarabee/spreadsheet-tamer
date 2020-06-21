@@ -7,6 +7,47 @@ from numpy import nan
 import datagenius.element as e
 
 
+class TestCleaningGuide:
+    def test_basics(self):
+        cg = e.CleaningGuide(
+            ('a', 'x'),
+            (('b', 'c'), 'y'),
+            d='z'
+        )
+        assert cg('a') == 'x'
+        assert cg('b') == 'y'
+        assert cg('c') == 'y'
+        assert cg('d') == 'z'
+        assert cg('e') == 'e'
+
+    def test_convert(self):
+        cg = e.CleaningGuide.convert(
+            e.CleaningGuide(
+                ('a', 'x'),
+                (('b', 'c'), 'y'),
+                d='z'
+            )
+        )
+        assert cg('a') == 'x'
+        assert cg('b') == 'y'
+        assert cg('c') == 'y'
+        assert cg('d') == 'z'
+        assert cg('e') == 'e'
+
+        cg = e.CleaningGuide.convert(
+            dict(a='x', b='y', c='z')
+        )
+        assert cg('a') == 'x'
+        assert cg('b') == 'y'
+        assert cg('c') == 'z'
+        assert cg('e') == 'e'
+
+        with pytest.raises(
+                ValueError,
+                match="Invalid object=test, type=<class 'str'>"):
+            cg = e.CleaningGuide.convert('test')
+
+
 class TestRule:
     def test_init(self):
         r = e.Rule(lambda x: x + 1, 'test')

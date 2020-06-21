@@ -2,6 +2,7 @@ import pandas as pd
 from numpy import nan
 
 import datagenius.lib.clean as cl
+import datagenius.element as e
 
 
 def test_complete_clusters(needs_extrapolation, employees):
@@ -47,3 +48,18 @@ def test_reject_incomplete_rows(needs_cleanse_totals, sales):
     ], index=[2, 5])
     pd.testing.assert_frame_equal(md_dict['rejects'], expected_rejects,
                                   check_dtype=False)
+
+
+def test_cleanse_typos(needs_cleanse_typos):
+    df = pd.DataFrame(**needs_cleanse_typos)
+    df2, md_dict = cl.cleanse_typos(
+        df,
+        attr1=dict(cu='copper'),
+        attr2=e.CleaningGuide((('sm', 's'), 'small'))
+    )
+    pd.testing.assert_frame_equal(df, df2)
+    expected_metadata = pd.DataFrame([
+        dict(id=0, name=0, price=0, cost=0, upc=0, attr1=1, attr2=2,
+             attr3=0, attr4=0, attr5=0)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)

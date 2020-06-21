@@ -76,7 +76,9 @@ def products():
             [2, 'Doohickey', 9.99, 5.0, 2345678901,
              'copper', 'large', nan, nan, nan],
             [3, 'Flange', 1.0, 0.2, 3456789012,
-             'steel', 'small', nan, nan, nan]
+             'steel', 'small', nan, nan, nan],
+            [4, 'Whatsit', 5.0, 2.0, 4567890123,
+             'aluminum', 'small', nan, nan, nan]
         ]
     )
 
@@ -100,7 +102,7 @@ def formatted_products():
         ['ProdId', 'Name', 'Price', 'Cost', 'Prod UPC', 'Material', 'Size',
          'Barcode'],
         [
-            [1, 'Widget', 8.5, 4.0, 1234567890, 'plastic', None,
+            [1, 'Widget', 8.5, 4.0, 1234567890, 'plastic', nan,
              1234567890],
             [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large',
              2345678901],
@@ -198,16 +200,18 @@ def needs_extrapolation():
 
 
 @pytest.fixture
-def needs_rules():
-    return (
-        ['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2', 'attr3',
-         'attr4', 'attr5'],
-        [
+def needs_cleanse_typos():
+    return dict(
+        columns=['id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2',
+                 'attr3', 'attr4', 'attr5'],
+        data=[
             [1, 'Widget', 8.5, 4.0, 1234567890,
-             None, None, None, None, None],
+             nan, nan, nan, nan, nan],
             [2, 'Doohickey', 9.99, 5.0, 2345678901,
-             'cu', 'large', None, None, None],
+             'cu', 'large', nan, nan, nan],
             [3, 'Flange', 1.0, 0.2, 3456789012,
-             'steel', 'sm', None, None, None]
+             'steel', 'sm', nan, nan, nan],
+            [4, 'Whatsit', 5.0, 2.0, 4567890123,
+             'aluminum', 's', nan, nan, nan]
         ]
     )

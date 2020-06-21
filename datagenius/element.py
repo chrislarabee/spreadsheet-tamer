@@ -21,7 +21,7 @@ class Element(ABC):
             data: A list, dict, or OrderedDict (depends on the
                 exact specifications of the Element child class).
         """
-        self._data: (list, dict, col.OrderedDict, pd.DataFrame) = data
+        self._data: (list, dict, col.OrderedDict) = data
 
     def element_comparison(self, other,
                            eq_result: bool = True) -> bool:
@@ -89,6 +89,73 @@ class Element(ABC):
 
     def __str__(self):
         return f'{self.__repr__()}({self._data})'
+
+
+class CleaningGuide(Element, col.abc.Mapping, col.abc.Callable):
+    """
+    Convenience class for use with datagenius.clean.cleanse_typos.
+    Designed to make it easier to write complex mappings between typos
+    and corrected values. Any value passed to the CleaningGuide will
+    be checked against the key values in the passed mapping arguments,
+    and, if found in the key values, the alternative mapped value will
+    be returned.
+    """
+    def __init__(self, *complex_maps, **simple_maps):
+        """
+
+        Args:
+            *complex_maps: Arbitrary list of tuples, the first index of
+                which can be a value or a tuple of values.
+            **simple_maps: Arbitrary list of keyword arguments.
+        """
+        data = dict()
+
+        for x in complex_maps:
+            data[u.tuplify(x[0])] = x[1]
+        for k, v in simple_maps.items():
+            data[u.tuplify(k)] = v
+        super(CleaningGuide, self).__init__(data)
+
+    @classmethod
+    def convert(cls, incoming):
+        """
+        Ensures incoming is a CleaningGuide object, or a dict that can
+        be converted to a CleaningGuide object.
+
+        Args:
+            incoming: Any object.
+
+        Returns: A CleaningGuide object using incoming's data.
+
+        """
+        if isinstance(incoming, CleaningGuide):
+            return incoming
+        elif isinstance(incoming, dict):
+            return CleaningGuide(**incoming)
+        else:
+            raise ValueError(f'Must pass a dict or CleaningGuide object. '
+                             f'Invalid object={incoming}, '
+                             f'type={type(incoming)}')
+
+    def __call__(self, check):
+        """
+        Compares check with the keys in self._data and returns the
+        corresponding stored value if check is found in a key.
+
+        Args:
+            check: Any value.
+
+        Returns: The passed check object, or its replacement if a match
+            is found.
+
+        """
+        for k, v in self.items():
+            if check in k:
+                return v
+        return check
+
+    def __iter__(self):
+        return self._data.__iter__()
 
 
 class Rule:

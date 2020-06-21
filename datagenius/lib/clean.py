@@ -3,6 +3,7 @@ from typing import Sequence
 import pandas as pd
 
 import datagenius.util as u
+import datagenius.element as e
 
 
 @u.transmutation(stage='clean')
@@ -62,3 +63,34 @@ def reject_incomplete_rows(
     df = df.reset_index(drop=True)
     return df, metadata
 
+
+def cleanse_typos(df: pd.DataFrame, **guides):
+    """
+    Corrects typos in the passed DataFrame based on keyword args where
+    the key is the column and the arg is a dictionary of simple
+    mappings or a CleaningGuide object.
+
+    Args:
+        df: A DataFrame.
+        **guides: Keyword args where each key is a column name and each
+            value is a dict or CleaningGuide object.
+
+    Returns: The df, with the specified columns cleaned of typos, and a
+        metadata dictionary.
+
+    """
+    results = u.gen_empty_md_df(df.columns)
+    for k, v in guides.items():
+        guides[k] = e.CleaningGuide.convert(v)
+
+    for k, cl_guide in guides.items():
+        new = df[k].apply(cl_guide)
+        # nan != nan always evaluates to True, so need to subtract the
+        # number of nans from the differing values:
+        results[k] = (df[k] != new).sum() - df[k].isna().sum()
+        df[k] = new
+
+    return df, {'metadata': results}
+
+
+# TODO: Rewrite cleanse_numeric_typos here.

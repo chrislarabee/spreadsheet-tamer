@@ -18,8 +18,8 @@ def test_count_uniques(customers, sales, products):
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
 
     expected = pd.DataFrame([
-        dict(id=3, name=3, price=3, cost=3, upc=3,
-             attr1=2, attr2=2, attr3=0, attr4=0, attr5=0)
+        dict(id=4, name=4, price=4, cost=4, upc=4,
+             attr1=3, attr2=2, attr3=0, attr4=0, attr5=0)
     ])
     df, md_dict = ex.count_uniques(pd.DataFrame(**products))
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
@@ -28,7 +28,7 @@ def test_count_uniques(customers, sales, products):
 def test_count_nulls(products):
     expected = pd.DataFrame([
         dict(id=0, name=0, price=0, cost=0, upc=0,
-             attr1=1, attr2=1, attr3=3, attr4=3, attr5=3)
+             attr1=1, attr2=1, attr3=4, attr4=4, attr5=4)
     ])
     df, md_dict = ex.count_nulls(pd.DataFrame(**products))
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
