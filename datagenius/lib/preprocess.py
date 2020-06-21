@@ -58,9 +58,10 @@ def detect_header(
 
     """
     header_idx = None
+    o_header = []
     if manual_header:
         header_idx = None
-        df.columns = manual_header
+        df.columns, o_header = u.standardize_header(manual_header)
     else:
         true_str_series = df.apply(
             lambda x: u.count_true_str(x) == len(x), axis=1
@@ -68,11 +69,13 @@ def detect_header(
         first_idx = next(
             (i for i, v in true_str_series.items() if v), None)
         if first_idx is not None:
-            df.columns = list(df.iloc[first_idx])
+            df.columns, o_header = u.standardize_header(
+                df.iloc[first_idx])
             header_idx = first_idx
             df = df.drop(index=first_idx).reset_index(drop=True)
             return df, {'new_kwargs': dict(header_idx=header_idx)}
-    return df, {'new_kwargs': dict(header_idx=header_idx)}
+    return df, {'new_kwargs': dict(header_idx=header_idx),
+                'orig_header': o_header}
 
 
 @u.transmutation(stage='preprocess')

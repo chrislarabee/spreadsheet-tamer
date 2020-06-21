@@ -264,6 +264,13 @@ def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna(how='all').reset_index(drop=True)
 
 
+def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
+    result = []
+    for h in header:
+        result.append(re.sub(' +', '_', h.strip()).lower())
+    return result, list(header)
+
+
 def translate_null(obj, to: (nan, None) = nan):
     """
     Checks if a passed object is a NoneType object or a numpy nan and

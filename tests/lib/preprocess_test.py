@@ -41,14 +41,16 @@ def test_detect_header(gaps):
     man_header = ['A', 'B', 'C', 'df']
     df = pd.DataFrame(gaps)
     df, metadata = pp.detect_header(df, manual_header=man_header)
-    assert list(df.columns) == man_header
+    assert list(df.columns) == ['a', 'b', 'c', 'df']
     assert metadata['new_kwargs'] == {'header_idx': None}
+    assert metadata['orig_header'] == man_header
 
     # Test headerless Dataset:
     df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
-    df, header_idx = pp.detect_header(df)
+    df, metadata = pp.detect_header(df)
     assert list(df.columns) == [0, 1, 2]
     assert metadata['new_kwargs'] == {'header_idx': None}
+    assert metadata['orig_header'] == []
 
 
 def test_normalize_whitespace(gaps_totals):

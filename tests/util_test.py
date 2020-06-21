@@ -120,6 +120,16 @@ def test_purge_gap_rows(gaps, gaps_totals):
     assert d.shape == (9, 3)
 
 
+def test_standardize_header():
+    header = pd.Index(
+        ['Variant SKU', ' Barcode  2 ', 'Barcode  3']
+    )
+    assert u.standardize_header(header) == (
+        ['variant_sku', 'barcode_2', 'barcode_3'],
+        list(header)
+    )
+
+
 def test_translate_null():
     assert pd.isna(u.translate_null(None))
     assert pd.isna(u.translate_null(nan))

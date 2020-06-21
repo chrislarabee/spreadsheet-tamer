@@ -17,7 +17,14 @@ class GeniusMetadata(Callable):
 
     @property
     def collected(self):
+        # Used to store collected metadata on transmutation results.
         return self._collected
+
+    @property
+    def output_header(self):
+        # Used to store the header that will be used for the final
+        # output file, with caps and spaces and such.
+        return self._output_header
 
     """
     When coupled with Genius transmutations, tracks their activity and
@@ -28,6 +35,7 @@ class GeniusMetadata(Callable):
         self._collected: pd.DataFrame = pd.DataFrame(
             columns=['stage', 'transmutation']
         )
+        self._output_header = []
 
     def track(
             self,
@@ -59,6 +67,7 @@ class GeniusMetadata(Callable):
             metadata = meta_result.get('metadata')
             rejects = meta_result.get('rejects')
             new_kwargs = meta_result.get('new_kwargs')
+            o_header = meta_result.get('orig_header')
             if metadata is not None:
                 metadata['transmutation'] = transmutation.__name__
                 stage = getattr(transmutation, 'stage', '_no_stage')
@@ -70,6 +79,8 @@ class GeniusMetadata(Callable):
                 meta_result.pop('rejects')
             if new_kwargs is not None:
                 kwargs = {**kwargs, **new_kwargs}
+            if o_header is not None:
+                self._output_header = o_header
         return result, kwargs
 
     def _intake(self, incoming: pd.DataFrame, attr: str) -> None:
