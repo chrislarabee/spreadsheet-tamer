@@ -344,35 +344,6 @@ class TestGeniusAccessor:
 #         assert d.meta_data.header == ['a', 'b', 'c']
 #
 #
-# class TestClean:
-#     def test_apply_rules(self):
-#         expected = od(a=1, b=3, x=100)
-#         rules = (
-#             e.Rule({(1, ): 100}, 'a', to='x'),
-#             e.Rule({(2, ): 3}, 'b')
-#         )
-#         assert ge.Clean.apply_rules(od(a=1, b=2), rules) == expected
-#
-#     def test_clean_numeric_typos(self):
-#         assert ge.Clean.clean_numeric_typos('1,9') == 1.9
-#         assert ge.Clean.clean_numeric_typos('10.1q') == 10.1
-#         assert ge.Clean.clean_numeric_typos('101q') == 101
-#         assert ge.Clean.clean_numeric_typos('1q0.1q') == 10.1
-#         assert ge.Clean.clean_numeric_typos('abc') == 'abc'
-##
-#     def test_go_w_rules(self, needs_rules, products):
-#         d = e.Dataset(needs_rules[1], needs_rules[0])
-#         p = e.Dataset(products[1], products[0]).to_dicts()
-#
-#         assert ge.Clean().go(
-#             d,
-#             data_rules=(
-#                 e.Rule({'cu': 'copper'}, 'attr1'),
-#                 e.Rule({'sm': 'small'}, 'attr2')
-#             )
-#         ) == p._data
-#
-#
 # class TestReformat:
 #     def test_go(self, products, formatted_products):
 #         m = e.Mapping(

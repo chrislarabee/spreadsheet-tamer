@@ -732,66 +732,6 @@ class GeniusAccessor:
 #                 return None
 #         return row
 #
-#     @staticmethod
-#     @parser
-#     def apply_rules(row: col.OrderedDict,
-#                     data_rules: tuple = None) -> col.OrderedDict:
-#         """
-#         Takes a tuple of Rule objects and applies each one to
-#         the passed OrderedDict.
-#
-#         Args:
-#             row: An OrderedDict containing data expected by the passed
-#                 rules.
-#             data_rules: A tuple of Rule objects.
-#
-#         Returns: The row with all Rules applied.
-#
-#         """
-#         if data_rules is not None:
-#             for r in data_rules:
-#                 row = r(row)
-#         return row
-#
-#     @staticmethod
-#     @parser
-#     def clean_typos(row: dict, meta_data: dict):
-#         typo_funcs = {
-#             'numeric': Clean.clean_numeric_typos
-#         }
-#         result = dict()
-#         for k, v in row.items():
-#             f = typo_funcs.get(
-#                 meta_data[k]['probable_type'],
-#                 lambda y: y
-#             )
-#             result[k] = f(v)
-#         return result
-#
-#     @staticmethod
-#     def clean_numeric_typos(value: str) -> (float, str):
-#         """
-#         Attempts to turn a string which might be a number with typos in
-#         it into a number. Should only be used on columns that you are
-#         confident *should* be entirely numbers, as it will remove
-#         any non-numerals or periods from the passed string
-#
-#         Args:
-#             value: A string.
-#
-#         Returns: A float or the string.
-#
-#         """
-#         result = value
-#         if not result.isnumeric():
-#             result = result.replace(',', '.')
-#             result = ''.join(re.findall(r'[0-9]+|\.', result))
-#             try:
-#                 result = float(result)
-#             except ValueError:
-#                 result = value
-#         return result
-#
 #
 # class Reformat(Genius):
 #     """
