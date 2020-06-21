@@ -50,6 +50,34 @@ def test_reject_incomplete_rows(needs_cleanse_totals, sales):
                                   check_dtype=False)
 
 
+def test_reject_on_conditions(employees):
+    df = pd.DataFrame(**employees)
+    df2, md_dict = cl.reject_on_conditions(df, "department == 'Sales'")
+    pd.testing.assert_frame_equal(df[2:].reset_index(drop=True), df2)
+    expected_metadata = pd.DataFrame([
+        dict(employee_id=2, department=2, name=2, wfh_stipend=1)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+    df2, md_dict = cl.reject_on_conditions(
+        df, ("department == 'Customer Service'", "employee_id == 4"))
+    pd.testing.assert_frame_equal(df.iloc[:3].reset_index(drop=True), df2)
+    expected_metadata = pd.DataFrame([
+        dict(employee_id=1, department=1, name=1, wfh_stipend=0)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+
+def test_reject_on_str_content(customers):
+    df = pd.DataFrame(**customers())
+    df2, md_dict = cl.reject_on_str_content(df, dict(foreign_key='25'))
+    pd.testing.assert_frame_equal(df[1:].reset_index(drop=True), df2)
+    expected_metadata = pd.DataFrame([
+        dict(id=1, fname=1, lname=1, foreign_key=1)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+
 def test_cleanse_typos(needs_cleanse_typos):
     df = pd.DataFrame(**needs_cleanse_typos)
     df2, md_dict = cl.cleanse_typos(

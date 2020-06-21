@@ -233,6 +233,24 @@ def isnumericplus(x, *options) -> (bool, tuple):
     return tuple(result) if len(result) > 1 else numeric
 
 
+def package_rejects_metadata(df: pd.DataFrame):
+    """
+    Convenience function for creating a metadata dictionary containing
+    rejects and counts of values in those rejects.
+
+    Args:
+        df: A DataFrame of rejected rows.
+
+    Returns: A dictionary containing df and a single-row df containing
+        counts of values in df.
+
+    """
+    return dict(
+        rejects=df,
+        metadata=pd.DataFrame(df.count()).T
+    )
+
+
 def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     """
     Takes a Dataset object and drops rows that are entirely nan.

@@ -51,19 +51,75 @@ def reject_incomplete_rows(
         required_cols list. Also a metadata dictionary.
 
     """
-    metadata = dict()
     nulls = df.isna()
     nulls['count'] = nulls.apply(
         lambda row: row[required_cols].sum(), axis=1)
     incomplete_rows = nulls[nulls['count'] > 0].index
     rejects = df.iloc[incomplete_rows]
-    metadata['rejects'] = rejects
-    metadata['metadata'] = pd.DataFrame(rejects.count()).T
     df = df.drop(index=incomplete_rows)
     df = df.reset_index(drop=True)
-    return df, metadata
+    return df, u.package_rejects_metadata(rejects)
 
 
+@u.transmutation(stage='clean')
+def reject_on_conditions(
+        df: pd.DataFrame,
+        reject_conditions: (str, list, tuple)) -> tuple:
+    """
+    Takes a string or list/tuple of strings and uses them as a query to
+    find matching rows in the passed DataFrame. The matching rows are
+    then rejected.
+
+    Args:
+        df: A DataFrame.
+        reject_conditions: A string or a list/tuple of strings, which
+            must be valid conditions accepted by pandas.eval.
+
+    Returns: The DataFrame, cleaned of rejected rows, as well as a
+        metadata dictionary.
+
+    """
+    if not isinstance(reject_conditions, str):
+        reject_conditions = ' & '.join(reject_conditions)
+    rejects = df.query(reject_conditions)
+    df = df.drop(index=rejects.index)
+    df = df.reset_index(drop=True)
+    return df, u.package_rejects_metadata(rejects)
+
+
+@u.transmutation(stage='clean')
+def reject_on_str_content(
+        df: pd.DataFrame,
+        reject_str_content: dict) -> tuple:
+    """
+    Takes a dictionary of column keys and search values and rejects
+    any row in the passed DataFrame that has that search value in the
+    string contained in that column. This is a stand alone function
+    because pandas.query can't take in operators, so this kind of
+    string parsing is not possible currently using that methodology.
+
+    Args:
+        df: A DataFrame
+        reject_str_content: A dictionary of column names as keys and
+            strings as a value to search within strings held in that
+            column.
+
+    Returns: The passed df, cleansed of rows that meet the rejection
+        criteria in reject_str_content, as well as a metadata
+        dictionary.
+
+    """
+    cond_results = pd.DataFrame()
+    for k, v in reject_str_content.items():
+        cond_results[k] = df[k].str.contains(v)
+    matches = cond_results.any(axis=1)
+    rejects = df.iloc[matches[matches].index]
+    df = df.drop(index=rejects.index)
+    df = df.reset_index(drop=True)
+    return df, u.package_rejects_metadata(rejects)
+
+
+@u.transmutation(stage='clean')
 def cleanse_typos(df: pd.DataFrame, **guides):
     """
     Corrects typos in the passed DataFrame based on keyword args where
