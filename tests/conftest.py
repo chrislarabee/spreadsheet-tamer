@@ -98,16 +98,18 @@ def employees():
 
 @pytest.fixture
 def formatted_products():
-    return (
-        ['ProdId', 'Name', 'Price', 'Cost', 'Prod UPC', 'Material', 'Size',
-         'Barcode'],
-        [
-            [1, 'Widget', 8.5, 4.0, 1234567890, 'plastic', nan,
+    return dict(
+        columns=['prod_id', 'name', 'price', 'cost', 'prod_upc',
+                 'material', 'barcode'],
+        data=[
+            [1, 'Widget', 8.5, 4.0, 1234567890, nan,
              1234567890],
-            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper', 'large',
+            [2, 'Doohickey', 9.99, 5.0, 2345678901, 'copper',
              2345678901],
-            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel', 'small',
-             3456789012]
+            [3, 'Flange', 1.0, 0.2, 3456789012, 'steel',
+             3456789012],
+            [4, 'Whatsit', 5.0, 2.0, 4567890123, 'aluminum',
+             4567890123]
         ]
     )
 
