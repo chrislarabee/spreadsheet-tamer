@@ -1,4 +1,4 @@
-from .element import Mapping, Rule, MatchRule
+from .element import Rule, MatchRule
 # from .genius import (
 #     parser, Genius, Preprocess, Clean, Explore, Reformat, Supplement)
 from .io import odbc, text
