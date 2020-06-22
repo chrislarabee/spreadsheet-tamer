@@ -84,6 +84,12 @@ def test_gen_empty_md_df():
         expected
     )
 
+    expected = pd.DataFrame([dict(a='x', b='x', c='x')])
+    pd.testing.assert_frame_equal(
+        u.gen_empty_md_df(['a', 'b', 'c'], 'x'),
+        expected
+    )
+
 
 def test_get_class_name():
     assert u.get_class_name('string') == 'str'

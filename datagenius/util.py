@@ -159,7 +159,7 @@ def gen_alpha_keys(num: int) -> set:
     return result
 
 
-def gen_empty_md_df(columns: Sequence) -> pd.DataFrame:
+def gen_empty_md_df(columns: Sequence, default_val=0) -> pd.DataFrame:
     """
     Generates an empty DataFrame with the passed columns and a one row
     placeholder. Used in functions that will accumulate metadata into
@@ -167,12 +167,14 @@ def gen_empty_md_df(columns: Sequence) -> pd.DataFrame:
 
     Args:
         columns: A Sequence of column names to use in the empty df.
+        default_val: The default value to put in each column in the
+            empty df.
 
     Returns: A DataFrame with the passed columns and a single row
         containing a zero in each of those columns.
 
     """
-    return pd.DataFrame([[0 for _ in columns]], columns=columns)
+    return pd.DataFrame([[default_val for _ in columns]], columns=columns)
 
 
 def get_class_name(obj) -> str:
