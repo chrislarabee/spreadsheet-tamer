@@ -45,3 +45,15 @@ def test_collect_data_types():
     df, md_dict = ex.collect_data_types(df)
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
 
+
+def test_check_type_violations():
+    df = pd.DataFrame([
+        dict(a=1, b=2.4, c='string'),
+        dict(a=2, b='x', c=nan)
+    ])
+    expected = pd.DataFrame([
+        dict(a=False, b=True, c=False)
+    ])
+    df, md_dict = ex.check_type_violations(
+        df, dict(a=int, b=float, c=str))
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)

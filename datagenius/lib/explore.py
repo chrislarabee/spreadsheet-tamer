@@ -56,3 +56,30 @@ def collect_data_types(df: pd.DataFrame):
             c_pcts.apply(
                 lambda s: f'{s[c]}({s.ctr})', axis=1).tolist())
     return df, {'metadata': result}
+
+
+@u.transmutation(stage='explore')
+def check_type_violations(
+        df: pd.DataFrame,
+        required_types: dict) -> tuple:
+    """
+    Checks if each value in the columns specified in the passed dict
+    is an object of the passed type. Note that nan values will always
+    count as matching the passed type, see check_nullable_violations
+    to find erroneous nulls.
+
+    Args:
+        df: A DataFrame.
+        required_types: A dictionary containing keys corresponding to
+            columns in df, and values corresponding to the python type
+            you want each value in that column to be.
+
+    Returns: The DataFrame, and a metadata dictionary.
+
+    """
+    result = u.gen_empty_md_df(df.columns, False)
+    types = df.applymap(u.gtype)
+    for col, type_ in required_types.items():
+        types[col] = types[col].fillna(type_)
+        result[col] = (types[col] != type_).sum() > 0
+    return df, {'metadata': result}
