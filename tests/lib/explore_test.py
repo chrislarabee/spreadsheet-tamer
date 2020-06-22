@@ -57,3 +57,15 @@ def test_check_type_violations():
     df, md_dict = ex.check_type_violations(
         df, dict(a=int, b=float, c=str))
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
+
+
+def test_check_nullable_violations():
+    df = pd.DataFrame([
+        dict(a=1, b=nan, c='x'),
+        dict(a=nan, b=2, c='y')
+    ])
+    expected = pd.DataFrame([
+        dict(a=False, b=True, c=False)
+    ])
+    df, md_dict = ex.check_nullable_violations(df, ('b', 'c'))
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)

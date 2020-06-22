@@ -58,7 +58,7 @@ def collect_data_types(df: pd.DataFrame):
     return df, {'metadata': result}
 
 
-@u.transmutation(stage='explore')
+@u.transmutation(stage='violations')
 def check_type_violations(
         df: pd.DataFrame,
         required_types: dict) -> tuple:
@@ -82,4 +82,26 @@ def check_type_violations(
     for col, type_ in required_types.items():
         types[col] = types[col].fillna(type_)
         result[col] = (types[col] != type_).sum() > 0
+    return df, {'metadata': result}
+
+
+@u.transmutation(stage='violations')
+def check_nullable_violations(
+        df: pd.DataFrame,
+        not_nullable: (list, tuple)) -> tuple:
+    """
+    Checks if each column in not_nullable contains no nulls.
+
+    Args:
+        df: A DataFrame.
+        not_nullable: A list of columns in df that shouldn't contain
+            nan values.
+
+    Returns: The DataFrame, and a metadata dictionary.
+
+    """
+    result = u.gen_empty_md_df(df.columns, False)
+    nulls = pd.DataFrame(df.isna().sum()).T
+    for col in not_nullable:
+        result[col] = nulls[col] > 0
     return df, {'metadata': result}
