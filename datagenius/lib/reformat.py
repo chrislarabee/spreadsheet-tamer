@@ -44,6 +44,7 @@ def reformat_df(
     return result, {'metadata': md, 'orig_header': reformat_template}
 
 
+@u.transmutation(stage='reformat')
 def fill_defaults(df: pd.DataFrame, defaults_mapping: dict) -> tuple:
     """
     Fills each column specified in defaults_mapping with the values
