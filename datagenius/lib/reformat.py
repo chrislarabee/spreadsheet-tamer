@@ -6,8 +6,8 @@ import datagenius.util as u
 @u.transmutation(stage='reformat')
 def reformat_df(
         df: pd.DataFrame,
-        template: (list, pd.Index),
-        mapping: dict) -> tuple:
+        reformat_template: (list, pd.Index),
+        reformat_mapping: dict) -> tuple:
     """
     Maps the passed DataFrame into a DataFrame matching the passed
     template based on the passed mapping dictionary. Unlike with basic
@@ -17,19 +17,20 @@ def reformat_df(
 
     Args:
         df: A DataFrame.
-        template: A list or pandas Index representing the columns you
-            want the output DataFrame to have.
-        mapping: A dictionary with keys being columns in df and values
-            being columns or lists/tuples of columns from template.
+        reformat_template: A list or pandas Index representing the
+            columns you want the output DataFrame to have.
+        reformat_mapping: A dictionary with keys being columns in df
+            and values being columns or lists/tuples of columns from
+            template.
 
     Returns: A DataFrame with the columns in template and containing
         values mapped from the passed DataFrame. Also a metadata
         dictionary.
 
     """
-    result = pd.DataFrame(columns=template)
+    result = pd.DataFrame(columns=reformat_template)
     md = pd.DataFrame(df.count()).T
-    for from_, to in mapping.items():
+    for from_, to in reformat_mapping.items():
         if isinstance(to, str):
             result[to] = df[from_]
             md[from_] = to
@@ -40,7 +41,27 @@ def reformat_df(
                 sep = ',' if i > 0 else ''
                 md[from_] = md[from_] + sep + t
     result.columns, _ = u.standardize_header(result.columns)
-    return result, {'metadata': md, 'orig_header': template}
+    return result, {'metadata': md, 'orig_header': reformat_template}
 
 
+def fill_defaults(df: pd.DataFrame, defaults_mapping: dict) -> tuple:
+    """
+    Fills each column specified in defaults_mapping with the values
+    contained therein.
 
+    Args:
+        df: A DataFrame.
+        defaults_mapping: A dictionary containing columns from df as
+            keys and values being the value to fill nan cells in that
+            column with.
+
+    Returns: The passed DataFrame with null values filled in the
+        columns specified with the values specified. Also a metadata
+        dictionary.
+
+    """
+    md = u.gen_empty_md_df(df.columns)
+    for k, v in defaults_mapping.items():
+        md[k] = df[k].isna().sum()
+        df[k] = df[k].fillna(v)
+    return df, {'metadata': md}
