@@ -107,6 +107,13 @@ def test_gconvert():
         u.gconvert(123, dict)
 
 
+def test_gtype():
+    assert u.gtype(1) == int
+    assert u.gtype('test') == str
+    assert u.gtype(2.1) == float
+    assert pd.isna(u.gtype(nan))
+
+
 def test_isnumericplus():
     assert u.isnumericplus(1)
     assert u.isnumericplus(2.25)

@@ -224,6 +224,20 @@ def gconvert(obj, target_type):
     return conv_tuple[0](*args)
 
 
+def gtype(obj):
+    """
+    Wrapper for type that distinguishes nan values as nan and not
+    float.
+
+    Args:
+        obj: Any object.
+
+    Returns: The type of the object, or nan if it is a numpy nan.
+
+    """
+    return nan if pd.isna(obj) else type(obj)
+
+
 def isnumericplus(x, *options) -> (bool, tuple):
     """
     A better version of the str.isnumeric test that correctly
