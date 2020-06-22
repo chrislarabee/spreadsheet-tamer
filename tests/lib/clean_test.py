@@ -91,3 +91,15 @@ def test_cleanse_typos(needs_cleanse_typos):
              attr3=0, attr4=0, attr5=0)
     ])
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+
+def test_convert_types(customers):
+    df = pd.DataFrame(**customers())
+    df2, md_dict = cl.convert_types(
+        df, {'id': int, 'foreign_key': e.ZeroNumeric})
+    pd.testing.assert_frame_equal(df2, pd.DataFrame(**customers(int)))
+    assert list(df2.dtypes) == ['int64', 'O', 'O', 'O']
+    expected_metadata = pd.DataFrame([
+        dict(id=4, fname=0, lname=0, foreign_key=4)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)

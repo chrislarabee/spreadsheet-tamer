@@ -150,3 +150,31 @@ def cleanse_typos(df: pd.DataFrame, **guides):
 
 
 # TODO: Rewrite cleanse_numeric_typos here.
+
+
+@u.transmutation(stage='clean')
+def convert_types(df: pd.DataFrame, type_mapping: dict) -> tuple:
+    """
+    Uses the passed type_mapping dictionary to convert the indicated
+    columns into the paired type object. Errors in type conversion
+    will silently fail, so be sure to check types and maybe explore
+    again to see if there are any pieces of data that failed to convert
+    and give them additional attention.
+
+    Args:
+        df: A DataFrame.
+        type_mapping: A dictionary containing column names as keys and
+            python objects as values. Objects must be accepted by
+            util.gconvert.
+
+    Returns: The DataFrame, with the passed columns converted to the
+        desired types, as well as a metadata dictionary.
+
+    """
+    md = u.gen_empty_md_df(df.columns)
+    for col, type_ in type_mapping.items():
+        result = df[col].apply(u.gconvert, args=(type_,))
+        md[col] = (result.apply(type) != df[col].apply(type)).sum()
+        df[col] = result
+
+    return df, {'metadata': md}
