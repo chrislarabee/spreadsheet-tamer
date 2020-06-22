@@ -8,6 +8,8 @@ from typing import Callable, Sequence
 import pandas as pd
 from numpy import nan
 
+import datagenius.element as e
+
 
 def transmutation(func=None, *, stage: str = None):
     """
@@ -195,6 +197,33 @@ def get_class_name(obj) -> str:
         return re.findall(r"<class '(.+)'>", str(t))[0]
 
 
+def gconvert(obj, target_type):
+    """
+    Smart type conversion that avoids errors when converting to numeric
+    from non-standard strings. Also allows conversion to ZeroNumeric
+    type.
+
+    Args:
+        obj: Any object.
+        target_type: The target type to convert to.
+
+    Returns:
+
+    """
+    type_funcs = {
+        str: (str,),
+        int: (isnumericplus, '-convert', '-no_bool'),
+        float: (isnumericplus, '-convert', '-no_bool'),
+        e.ZeroNumeric: (isnumericplus, '-convert', '-no_bool')
+    }
+    if target_type not in type_funcs.keys():
+        raise ValueError(
+            f'target_type must be one of {list(type_funcs.keys())}')
+    conv_tuple = type_funcs[target_type]
+    args = (obj, *conv_tuple[1:])
+    return conv_tuple[0](*args)
+
+
 def isnumericplus(x, *options) -> (bool, tuple):
     """
     A better version of the str.isnumeric test that correctly
@@ -208,8 +237,9 @@ def isnumericplus(x, *options) -> (bool, tuple):
                 -v: Causes isnumericplus to return the type of x.
                 -convert: Causes isnumericplus to convert x to int or
                     float, if it is found to be numeric.
+                -no_bool: Causes isnumericplus to not return a boolean.
 
-    Returns: A boolean.
+    Returns: A boolean or tuple if options were passed.
 
     """
     numeric = False
@@ -219,8 +249,9 @@ def isnumericplus(x, *options) -> (bool, tuple):
     elif isinstance(x, str):
         v = int if re.search(r'^\d+$', x) else v
         v = float if re.search(r'^\d+\.+\d*$', x) else v
-        numeric = True if v in (int, float) else False
-    result = [numeric]
+        v = e.ZeroNumeric if x[0] == '0' else v
+        numeric = True if v in (int, float, e.ZeroNumeric) else False
+    result = [] if '-no_bool' in options else [numeric]
     if '-v' in options:
         result.append(v)
     if '-convert' in options:
@@ -232,7 +263,7 @@ def isnumericplus(x, *options) -> (bool, tuple):
             if point_ct > 1:
                 x = re.sub(r'\.+', '.', x)
         result.append(v(x))
-    return tuple(result) if len(result) > 1 else numeric
+    return tuple(result) if len(result) > 1 else result[0]
 
 
 def package_rejects_metadata(df: pd.DataFrame):

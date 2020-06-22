@@ -8,6 +8,7 @@ import numpy as np
 from numpy import nan
 
 import datagenius.util as u
+import datagenius.element as e
 
 
 def test_transmutation():
@@ -98,6 +99,14 @@ def test_get_class_name():
     assert u.get_class_name(nan) == 'nan'
 
 
+def test_gconvert():
+    assert u.gconvert(123, str) == '123'
+    assert u.gconvert('1..23', float) == 1.23
+    with pytest.raises(
+            ValueError, match='target_type must be one of'):
+        u.gconvert(123, dict)
+
+
 def test_isnumericplus():
     assert u.isnumericplus(1)
     assert u.isnumericplus(2.25)
@@ -115,6 +124,9 @@ def test_isnumericplus():
     assert u.isnumericplus('100 strings', '-convert') == (False, '100 strings')
     assert u.isnumericplus('1234.56', '-v', '-convert') == (
         True, float, 1234.56)
+    assert u.isnumericplus('00123')
+    assert u.isnumericplus('00123', '-v') == (True, e.ZeroNumeric)
+    assert u.isnumericplus('123', '-no_bool', '-convert') == 123
 
 
 def test_purge_gap_rows(gaps, gaps_totals):
