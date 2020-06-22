@@ -159,6 +159,10 @@ class CleaningGuide(Element, col.abc.Mapping, col.abc.Callable):
 
 
 class ZeroNumeric:
+    # TODO: Make this more powerful by storing the zeros separately
+    #       and the numeric portion as a numeric value, so that
+    #       mathematical operations can be carried out on it without
+    #       sacrificing the initial zeros.
     """
     Numeric strings that need to have one or more zeros on their left
     side.
