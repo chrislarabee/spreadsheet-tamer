@@ -81,6 +81,22 @@ def align_args(func: Callable, kwargs: dict,
     return {k: kwargs.get(k) for k in func_args}
 
 
+def broadcast_suffix(
+        x: (list, tuple, pd.Series, pd.Index),
+        suffix: str) -> list:
+    """
+    Appends the passed suffix to every value in the passed list.
+
+    Args:
+        x: A list of strings.
+        suffix: The string to append to each value in x.
+
+    Returns: x, with suffix appended to each value.
+
+    """
+    return [i + suffix for i in list(x)]
+
+
 def clean_whitespace(x) -> list:
     """
     When passed a string, removes leading and trailing whitespace from

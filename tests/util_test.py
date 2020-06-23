@@ -44,6 +44,15 @@ def test_align_args():
     assert u.align_args(func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
+def test_broadcast_suffix():
+    assert u.broadcast_suffix(
+        ['x', 'y', 'z'], '_1') == ['x_1', 'y_1', 'z_1']
+    assert u.broadcast_suffix(
+        pd.Index(['x', 'y', 'z']), '_1') == ['x_1', 'y_1', 'z_1']
+    assert u.broadcast_suffix(
+        pd.Series(['x', 'y', 'z']), '_1') == ['x_1', 'y_1', 'z_1']
+
+
 def test_clean_whitespace():
     assert u.clean_whitespace(1) == [False, 1]
     assert u.clean_whitespace(' a bad  string ') == [True, 'a bad string']
