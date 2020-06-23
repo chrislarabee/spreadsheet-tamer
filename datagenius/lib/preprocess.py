@@ -5,7 +5,7 @@ import pandas as pd
 import datagenius.util as u
 
 
-@u.transmutation(stage='preprocess')
+@u.transmutation(stage='preprocess', priority=99)
 def purge_pre_header(df: pd.DataFrame, header_idx: int = None):
     """
     Removes any rows that appear before the header row in a DataFrame
@@ -37,7 +37,7 @@ def purge_pre_header(df: pd.DataFrame, header_idx: int = None):
         return df
 
 
-@u.transmutation(stage='preprocess')
+@u.transmutation(stage='preprocess', priority=100)
 def detect_header(
         df: pd.DataFrame,
         manual_header: Optional[Sequence] = None) -> tuple:

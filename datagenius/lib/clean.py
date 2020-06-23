@@ -6,7 +6,7 @@ import datagenius.util as u
 import datagenius.element as e
 
 
-@u.transmutation(stage='clean')
+@u.transmutation(stage='clean', priority=15)
 def complete_clusters(
         df: pd.DataFrame,
         clustered_columns: Sequence) -> tuple:

@@ -3,7 +3,7 @@ import pandas as pd
 import datagenius.util as u
 
 
-@u.transmutation(stage='reformat')
+@u.transmutation(stage='reformat', priority=15)
 def reformat_df(
         df: pd.DataFrame,
         reformat_template: (list, pd.Index),

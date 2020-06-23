@@ -11,7 +11,7 @@ from numpy import nan
 import datagenius.element as e
 
 
-def transmutation(func=None, *, stage: str = None):
+def transmutation(func=None, *, stage: str = None, priority: int = 10):
     """
     Custom functions written for use by genius pipeline stages can be
     decorated as transmutations in order to better organize information
@@ -22,6 +22,10 @@ def transmutation(func=None, *, stage: str = None):
         stage: A string indicating the name of the stage this
             transmutation takes place in. Results of its activity will
             be placed in the same attribute on a GeniusMetadata object.
+        priority: An integer indicating how early this transmutation
+            should be run when grouped into a list of other
+            transmutations. Higher priority transmutations will be run
+            earlier.
 
     Returns: The passed function once decorated.
 
@@ -43,6 +47,7 @@ def transmutation(func=None, *, stage: str = None):
         wrapper_transmutation.stage = (
             re.sub(r' +', '_', stage).lower()
             if stage is not None else '_no_stage')
+        wrapper_transmutation.priority = priority
         return wrapper_transmutation
 
     if not isinstance(func, Callable):

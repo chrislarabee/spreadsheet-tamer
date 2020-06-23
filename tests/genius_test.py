@@ -148,14 +148,15 @@ class TestGeniusAccessor:
             'tests/samples/', table='products', db_name='genius_test')
         pd.testing.assert_frame_equal(d, d2)
 
-#     def test_order_parsers(self):
-#         x2 = ge.parser(lambda x: x)
-#         x3 = ge.parser(lambda x: x - 1)
-#         x1 = ge.parser(lambda x: x + 1, priority=11)
-#
-#         expected = [x1, x2, x3]
-#
-#         assert ge.Genius.order_parsers([x2, x3, x1]) == expected
+    def test_order_transmutations(self):
+        x2 = u.transmutation(lambda x: x)
+        x3 = u.transmutation(lambda x: x - 1)
+        x1 = u.transmutation(lambda x: x + 1, priority=11)
+
+        expected = [x1, x2, x3]
+
+        assert pd.DataFrame.genius.order_transmutations(
+            [x2, x3, x1]) == expected
 
 
 class TestSupplement:

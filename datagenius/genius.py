@@ -174,6 +174,7 @@ class GeniusAccessor:
 
         """
         metadata = md.GeniusMetadata() if metadata is None else metadata
+        transmutations = self.order_transmutations(transmutations)
         self.df = metadata(self.df, *transmutations, **options)
         return self.df, metadata
 
@@ -247,51 +248,37 @@ class GeniusAccessor:
             if m.reject_ct > 0:
                 odbc.write_sqlite(conn, f'{table}_rejects', m.rejects)
 
+    @staticmethod
+    def order_transmutations(tms: (list, tuple)):
+        """
+        Places a list/tuple of transmutations in priority order.
+        Primarily useful when mixing end-user custom transmutations
+        with pre-built transmutations and the order they are executed
+        in matters.
 
-#
-#     @staticmethod
-#     def order_parsers(parsers: (list, tuple)):
-#         """
-#         Places a list/tuple of parsers in priority order.
-#         Primarily used by objects that inherit from Genius and
-#         which need to mix built in parsers with user-defined
-#         parsers.
-#
-#         Args:
-#             parsers: A list/tuple of parser functions.
-#
-#         Returns: The list of parsers in increasing priority
-#             order.
-#
-#         """
-#         if len(parsers) > 0:
-#             result = [parsers[0]]
-#             if len(parsers) > 1:
-#                 for p in parsers[1:]:
-#                     idx = -1
-#                     for j, r in enumerate(result):
-#                         if p.priority > r.priority:
-#                             idx = j
-#                             break
-#                     if idx >= 0:
-#                         result.insert(idx, p)
-#                     else:
-#                         result.append(p)
-#             return result
-#         else:
-#             return parsers
-#
-#     def display_execute_plan(self) -> None:
-#         """
-#         Prints the step names in the Genius' steps attribute so the
-#         end-user can QA prioritization.
-#
-#         Returns: None
-#
-#         """
-#         print('priority\tstep name')
-#         for s in self.steps:
-#             print(f'{s.priority}\t\t\t{s.__name__}')
+        Args:
+            tms: A list/tuple of parser functions.
+
+        Returns: The list of transmutations in decreasing priority
+            order.
+
+        """
+        if len(tms) > 0:
+            result = [tms[0]]
+            if len(tms) > 1:
+                for t in tms[1:]:
+                    idx = -1
+                    for j, r in enumerate(result):
+                        if t.priority > r.priority:
+                            idx = j
+                            break
+                    if idx >= 0:
+                        result.insert(idx, t)
+                    else:
+                        result.append(t)
+            return result
+        else:
+            return tms
 
 
 class Supplement:
