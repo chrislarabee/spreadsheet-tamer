@@ -35,6 +35,48 @@ class TestGeniusAccessor:
         df, metadata = df.genius.explore()
         pd.testing.assert_frame_equal(metadata.collected, expected)
 
+    def test_clean(self, sales, needs_cleanse_totals):
+        df = pd.DataFrame(**needs_cleanse_totals)
+        expected = pd.DataFrame(**sales).iloc[1:3].reset_index(drop=True)
+        df, metadata = df.genius.clean(
+            required_cols=['location'],
+            reject_str_content=dict(location='Bayside'),
+            reject_conditions='sales < 300'
+        )
+        pd.testing.assert_frame_equal(df, expected)
+
+        expected_metadata = pd.DataFrame([
+            ['clean', 'reject_incomplete_rows', 0, 0, 2.0],
+            ['clean', 'reject_on_conditions', 1.0, 1, 1.0],
+            ['clean', 'reject_on_str_content', 1.0, 1.0, 1.0],
+        ], columns=[
+            'stage', 'transmutation', 'location', 'region', 'sales'
+        ])
+        pd.testing.assert_frame_equal(metadata.collected, expected_metadata)
+
+        expected_rejects = pd.DataFrame(
+            columns=['location', 'region', 'sales'],
+            data=[
+                [np.nan, np.nan, 800],
+                [np.nan, np.nan, 1200],
+                ['Kalliope Store', 'Southern', 200],
+                ['Bayside Store', 'Northern', 500],
+            ]
+        )
+        pd.testing.assert_frame_equal(metadata.rejects, expected_rejects)
+
+    def test_align_tms_with_options(self):
+        tms = [
+            ge.lib.clean.reject_on_conditions,
+            ge.lib.clean.reject_on_str_content,
+            ge.lib.clean.reject_incomplete_rows
+        ]
+        expected = [
+            ge.lib.clean.reject_on_conditions
+        ]
+        assert pd.DataFrame.genius._align_tms_with_options(
+            tms, dict(reject_conditions='a == 1')
+        ) == expected
 
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(

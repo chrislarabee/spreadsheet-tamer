@@ -47,10 +47,8 @@ class GeniusAccessor:
         Args:
             header_func: A callable object that takes a Dataset object
                 and kwargs.
-            options: Keyword args. Currently in use:
-                manual_header: Used to override detect_header with a
-                    list of labels if the Dataset has no derivable
-                    header.
+            **options: Keyword args. See the preprocess transmutations
+                for details on the arguments they take.
         Returns: self.df, modified by preprocess transmutations, and a
             metadata dictionary describing the changes made.
 
@@ -86,6 +84,51 @@ class GeniusAccessor:
             ex_tms,
             metadata
         )
+
+    def clean(
+            self,
+            metadata: md.GeniusMetadata = None,
+            **options) -> tuple:
+        """
+        A convenient way to run functions from lib.clean on self.df.
+
+        Args:
+            metadata:
+            **options: Keyword args. See the clean transmutations
+                for details on the arguments they take.
+
+        Returns: self.df, modified by clean transmutations, and a
+            metadata dictionary describing the changes made.
+
+        """
+        all_cl_tms = [
+            lib.clean.complete_clusters,
+            lib.clean.reject_incomplete_rows,
+            lib.clean.reject_on_conditions,
+            lib.clean.reject_on_str_content,
+        ]
+        cl_tms = self._align_tms_with_options(all_cl_tms, options)
+        return self.transmute(cl_tms, metadata, **options)
+
+    @staticmethod
+    def _align_tms_with_options(tms: list, options: dict) -> list:
+        """
+        Takes a list of transmutations and returns only those with all
+        their required args in options.
+
+        Args:
+            tms: A list of transmutations.
+            options: A dictionary of options kwargs.
+
+        Returns: A list of the transmutations in tms that have
+            sufficient corresponding kwargs in options.
+
+        """
+        result = []
+        for tm in tms:
+            if None not in u.align_args(tm, options, 'df').values():
+                result.append(tm)
+        return result
 
     def transmute(
             self,
