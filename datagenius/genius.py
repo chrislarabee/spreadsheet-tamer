@@ -61,7 +61,7 @@ class GeniusAccessor:
         if self.df.columns[0] in ('Unnamed: 0', 0):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
-        return self._run_pipeline_stage(
+        return self.transmute(
             pp_tms,
             **options
         )
@@ -82,19 +82,19 @@ class GeniusAccessor:
             lib.explore.count_nulls,
             lib.explore.collect_data_types
         ]
-        return self._run_pipeline_stage(
+        return self.transmute(
             ex_tms,
             metadata
         )
 
-    def _run_pipeline_stage(
+    def transmute(
             self,
             transmutations: list,
             metadata: md.GeniusMetadata = None,
             **options) -> tuple:
         """
-        Generalizes some of the common functionality of all pipeline
-        stage methods.
+        Executes the passed transmutation list on self.df with the
+        passed options and using the passed metadata.
 
         Args:
             transmutations: A list of the transmutations in the stage.
