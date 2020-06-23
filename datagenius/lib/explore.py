@@ -59,13 +59,13 @@ def collect_data_types(df: pd.DataFrame):
 
 
 @u.transmutation(stage='violations')
-def check_type_violations(
+def id_type_violations(
         df: pd.DataFrame,
         required_types: dict) -> tuple:
     """
     Checks if each value in the columns specified in the passed dict
     is an object of the passed type. Note that nan values will always
-    count as matching the passed type, see check_nullable_violations
+    count as matching the passed type, see id_nullable_violations
     to find erroneous nulls.
 
     Args:
@@ -86,7 +86,7 @@ def check_type_violations(
 
 
 @u.transmutation(stage='violations')
-def check_nullable_violations(
+def id_nullable_violations(
         df: pd.DataFrame,
         not_nullable: (list, tuple)) -> tuple:
     """
@@ -105,3 +105,58 @@ def check_nullable_violations(
     for col in not_nullable:
         result[col] = nulls[col] > 0
     return df, {'metadata': result}
+
+
+# noinspection PyTypeChecker
+@u.transmutation(stage='violations')
+def id_clustering_violations(
+        df: pd.DataFrame,
+        cluster_group_by: list,
+        cluster_unique_cols: list) -> tuple:
+    """
+    Clusters are sets of rows that share one or more identical columns
+    and have another set of columns which must be unique within the
+    cluster. This function identifies rows that are part of a cluster
+    that violates these rules.
+
+    Args:
+        df: A DataFrame.
+        cluster_group_by: A list of columns in df that, when grouped,
+            define a cluster.
+        cluster_unique_cols: A lis tof columns in df that, when the df
+            is grouped on cluster_group_by, must be unique within the
+            cluster.
+
+    Returns: The DataFrame, with each row appended with details about
+        whether it violates clustering, and how. Also a metadata
+        dictionary.
+
+    """
+    md = u.gen_empty_md_df(df.columns)
+    df['row_ct'] = 1
+    # Get number of rows in each cluster, reset_index twice so each
+    # cluster has a unique id:
+    cluster_row_cts = df.groupby(
+        cluster_group_by)['row_ct'].sum().reset_index().reset_index()
+    cluster_row_cts.rename(
+        columns={'index': 'cluster_id'}, inplace=True)
+    df = df.drop(columns='row_ct')
+    g = df.groupby(cluster_group_by).nunique().drop(
+        columns=cluster_group_by).reset_index()
+    clusters = df.merge(
+        cluster_row_cts,
+        on=cluster_group_by
+    ).merge(
+        g[[*cluster_group_by, *cluster_unique_cols]],
+        on=cluster_group_by,
+        suffixes=('', '_ct')
+    )
+    clusters['rn'] = clusters.groupby(
+        [*cluster_group_by, 'cluster_id']).cumcount() + 1
+    invalid_inds = u.broadcast_suffix(cluster_unique_cols, '_invalid')
+    for c in cluster_unique_cols:
+        result = clusters[c + '_ct'] != clusters['row_ct']
+        md[c] = result.sum()
+        clusters[c + '_invalid'] = result
+    clusters['invalid'] = clusters[invalid_inds].any(axis=1)
+    return clusters, {'metadata': md}

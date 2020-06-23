@@ -46,7 +46,7 @@ def test_collect_data_types():
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
 
 
-def test_check_type_violations():
+def test_id_type_violations():
     df = pd.DataFrame([
         dict(a=1, b=2.4, c='string'),
         dict(a=2, b='x', c=nan)
@@ -54,12 +54,12 @@ def test_check_type_violations():
     expected = pd.DataFrame([
         dict(a=False, b=True, c=False)
     ])
-    df, md_dict = ex.check_type_violations(
+    df, md_dict = ex.id_type_violations(
         df, dict(a=int, b=float, c=str))
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
 
 
-def test_check_nullable_violations():
+def test_id_nullable_violations():
     df = pd.DataFrame([
         dict(a=1, b=nan, c='x'),
         dict(a=nan, b=2, c='y')
@@ -67,5 +67,34 @@ def test_check_nullable_violations():
     expected = pd.DataFrame([
         dict(a=False, b=True, c=False)
     ])
-    df, md_dict = ex.check_nullable_violations(df, ('b', 'c'))
+    df, md_dict = ex.id_nullable_violations(df, ('b', 'c'))
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
+
+
+def test_id_clustering_violations():
+    df = pd.DataFrame([
+        dict(a='w', b='i', c=1),
+        dict(a='x', b='j', c=2),
+        dict(a='x', b='j', c=2),
+        dict(a='x', b='j', c=nan),
+        dict(a='x', b='k', c=1),
+        dict(a='x', b='k', c=2),
+    ])
+    expected_cols = [
+        'cluster_id', 'row_ct', 'c_ct', 'rn', 'c_invalid', 'invalid']
+    expected = pd.DataFrame([
+        [0, 1, 1, 1, False, False],
+        [1, 3, 1, 1, True, True],
+        [1, 3, 1, 2, True, True],
+        [1, 3, 1, 3, True, True],
+        [2, 2, 2, 1, False, False],
+        [2, 2, 2, 2, False, False]
+    ], columns=expected_cols)
+    df, md_dict = ex.id_clustering_violations(
+        df, ['a', 'b'], ['c']
+    )
+    pd.testing.assert_frame_equal(df[expected_cols], expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=0, b=0, c=3)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
