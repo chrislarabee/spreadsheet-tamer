@@ -18,6 +18,16 @@ class GeniusAccessor:
     A custom pandas DataFrame accessor that adds a number of additional
     methods and properties that extend the DataFrame's functionality.
     """
+    @property
+    def preprocess_tms(self, header_func=pp.detect_header):
+        pp_tms = [
+            pp.normalize_whitespace,
+        ]
+        if self.df.columns[0] in ('Unnamed: 0', 0):
+            pp_tms.insert(0, pp.purge_pre_header)
+            pp_tms.insert(0, header_func)
+        return pp_tms
+
     def __init__(self, df: pd.DataFrame):
         """
 
@@ -29,7 +39,6 @@ class GeniusAccessor:
     def preprocess(
             self,
             header_func: Callable = pp.detect_header,
-            metadata: md.GeniusMetadata = None,
             **options):
         """
         A convenient way to run functions from lib.preprocess on
@@ -38,9 +47,6 @@ class GeniusAccessor:
         Args:
             header_func: A callable object that takes a Dataset object
                 and kwargs.
-            metadata: An optional GeniusMetadata object. If none is
-                passed, one will be created and passed out in the
-                results.
             options: Keyword args. Currently in use:
                 manual_header: Used to override detect_header with a
                     list of labels if the Dataset has no derivable
@@ -48,15 +54,39 @@ class GeniusAccessor:
         Returns:
 
         """
-        metadata = metadata if metadata else md.GeniusMetadata()
-        preprocess_tms = [
+        pp_tms = [
             pp.normalize_whitespace,
         ]
         if self.df.columns[0] in ('Unnamed: 0', 0):
-            preprocess_tms.insert(0, pp.purge_pre_header)
-            preprocess_tms.insert(0, header_func)
-        self.df = metadata(self.df, *preprocess_tms, **options)
-        return self.df.reset_index(drop=True), metadata
+            pp_tms.insert(0, pp.purge_pre_header)
+            pp_tms.insert(0, header_func)
+        return self._run_pipeline_stage(
+            pp_tms,
+            **options
+        )
+
+    def _run_pipeline_stage(
+            self,
+            transmutations: list,
+            metadata: md.GeniusMetadata = None,
+            **options) -> tuple:
+        """
+        Generalizes some of the common functionality of all pipeline
+        stage methods.
+
+        Args:
+            transmutations: A list of the transmutations in the stage.
+            metadata: A GeniusMetadata object. If None is passed, one
+                will be created.
+            **options: Keyword args that will be passed to each
+                relevant transmutation in transmutations.
+
+        Returns: A tuple of self.df and the metadata object.
+
+        """
+        metadata = md.GeniusMetadata() if metadata is None else metadata
+        self.df = metadata(self.df, *transmutations, **options)
+        return self.df, metadata
 
     @classmethod
     def from_file(cls, file_path: str, **kwargs):
@@ -129,7 +159,6 @@ class GeniusAccessor:
                 odbc.write_sqlite(conn, f'{table}_rejects', m.rejects)
 
 
-# TODO: Add handling for things like duplicate variants
 #
 #     @staticmethod
 #     def order_parsers(parsers: (list, tuple)):
