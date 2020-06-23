@@ -107,7 +107,6 @@ def id_nullable_violations(
     return df, {'metadata': result}
 
 
-# noinspection PyTypeChecker
 @u.transmutation(stage='violations')
 def id_clustering_violations(
         df: pd.DataFrame,
