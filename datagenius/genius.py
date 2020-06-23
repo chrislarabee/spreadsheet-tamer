@@ -93,7 +93,7 @@ class GeniusAccessor:
         A convenient way to run functions from lib.clean on self.df.
 
         Args:
-            metadata:
+            metadata: A GeniusMetadata object.
             **options: Keyword args. See the clean transmutations
                 for details on the arguments they take.
 
@@ -109,6 +109,30 @@ class GeniusAccessor:
         ]
         cl_tms = self._align_tms_with_options(all_cl_tms, options)
         return self.transmute(cl_tms, metadata, **options)
+
+    def reformat(
+            self,
+            metadata: md.GeniusMetadata = None,
+            **options) -> tuple:
+        """
+        A convenient way to run functions from lib.reformat on
+        self.df.
+
+        Args:
+            metadata: A GeniusMetadata object.
+            **options: Keyword args. See the reformat transmutations
+                for details on the arguments they take.
+
+        Returns: self.df, modified by reformat transmutations, and a
+            metadata dictionary describing the changes made.
+
+        """
+        all_rf_tms = [
+            lib.reformat.reformat_df,
+            lib.reformat.fill_defaults,
+        ]
+        rf_tms = self._align_tms_with_options(all_rf_tms, options)
+        return self.transmute(rf_tms, metadata, **options)
 
     @staticmethod
     def _align_tms_with_options(tms: list, options: dict) -> list:

@@ -65,6 +65,21 @@ class TestGeniusAccessor:
         )
         pd.testing.assert_frame_equal(metadata.rejects, expected_rejects)
 
+    def test_reformat(self, products, formatted_products):
+        df = pd.DataFrame(**products)
+        expected = pd.DataFrame(**formatted_products)
+        expected['material'] = expected['material'].fillna('plastic')
+        df, metadata = df.genius.reformat(
+            reformat_template=[
+                'Prod Id', 'Name', 'Price', 'Cost', 'Prod UPC',
+                'Material', 'Barcode'],
+            reformat_mapping=dict(
+                id='Prod Id', name='Name', price='Price', cost='Cost',
+                upc=('Prod UPC', 'Barcode'), attr1='Material'),
+            defaults_mapping=dict(material='plastic')
+        )
+        pd.testing.assert_frame_equal(df, expected)
+
     def test_align_tms_with_options(self):
         tms = [
             ge.lib.clean.reject_on_conditions,
