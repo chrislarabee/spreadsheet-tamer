@@ -1,9 +1,83 @@
 from typing import Sequence
+import collections.abc as abc
 
 import pandas as pd
 
 import datagenius.util as u
 import datagenius.element as e
+
+
+class CleaningGuide(abc.Mapping, abc.Callable):
+    """
+    Convenience class for use with datagenius.clean.cleanse_typos.
+    Designed to make it easier to write complex mappings between typos
+    and corrected values. Any value passed to the CleaningGuide will
+    be checked against the key values in the passed mapping arguments,
+    and, if found in the key values, the alternative mapped value will
+    be returned.
+    """
+    def __init__(self, *complex_maps, **simple_maps):
+        """
+
+        Args:
+            *complex_maps: Arbitrary list of tuples, the first index of
+                which can be a value or a tuple of values.
+            **simple_maps: Arbitrary list of keyword arguments.
+        """
+        data = dict()
+
+        for x in complex_maps:
+            data[u.tuplify(x[0])] = x[1]
+        for k, v in simple_maps.items():
+            data[u.tuplify(k)] = v
+        self._data = data
+
+    @classmethod
+    def convert(cls, incoming):
+        """
+        Ensures incoming is a CleaningGuide object, or a dict that can
+        be converted to a CleaningGuide object.
+
+        Args:
+            incoming: Any object.
+
+        Returns: A CleaningGuide object using incoming's data.
+
+        """
+        if isinstance(incoming, CleaningGuide):
+            return incoming
+        elif isinstance(incoming, dict):
+            return CleaningGuide(**incoming)
+        else:
+            raise ValueError(f'Must pass a dict or CleaningGuide object. '
+                             f'Invalid object={incoming}, '
+                             f'type={type(incoming)}')
+
+    def __call__(self, check):
+        """
+        Compares check with the keys in self._data and returns the
+        corresponding stored value if check is found in a key.
+
+        Args:
+            check: Any value.
+
+        Returns: The passed check object, or its replacement if a match
+            is found.
+
+        """
+        for k, v in self.items():
+            if check in k:
+                return v
+        return check
+
+    def __getitem__(self, item):
+        return self._data[item]
+
+    def __iter__(self):
+        return self._data.__iter__()
+
+    def __len__(self):
+        return len(self._data)
 
 
 @u.transmutation(stage='clean', priority=15)
@@ -137,7 +211,7 @@ def cleanse_typos(df: pd.DataFrame, cleaning_guides: dict):
     """
     results = u.gen_empty_md_df(df.columns)
     for k, v in cleaning_guides.items():
-        cleaning_guides[k] = e.CleaningGuide.convert(v)
+        cleaning_guides[k] = CleaningGuide.convert(v)
 
     for k, cl_guide in cleaning_guides.items():
         new = df[k].apply(cl_guide)
@@ -147,9 +221,6 @@ def cleanse_typos(df: pd.DataFrame, cleaning_guides: dict):
         df[k] = new
 
     return df, {'metadata': results}
-
-
-# TODO: Rewrite cleanse_numeric_typos here.
 
 
 @u.transmutation(stage='clean')
