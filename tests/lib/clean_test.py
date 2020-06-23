@@ -82,8 +82,9 @@ def test_cleanse_typos(needs_cleanse_typos):
     df = pd.DataFrame(**needs_cleanse_typos)
     df2, md_dict = cl.cleanse_typos(
         df,
-        attr1=dict(cu='copper'),
-        attr2=e.CleaningGuide((('sm', 's'), 'small'))
+        dict(
+            attr1=dict(cu='copper'),
+            attr2=e.CleaningGuide((('sm', 's'), 'small')))
     )
     pd.testing.assert_frame_equal(df, df2)
     expected_metadata = pd.DataFrame([

@@ -120,7 +120,7 @@ def reject_on_str_content(
 
 
 @u.transmutation(stage='clean')
-def cleanse_typos(df: pd.DataFrame, **guides):
+def cleanse_typos(df: pd.DataFrame, cleaning_guides: dict):
     """
     Corrects typos in the passed DataFrame based on keyword args where
     the key is the column and the arg is a dictionary of simple
@@ -128,18 +128,18 @@ def cleanse_typos(df: pd.DataFrame, **guides):
 
     Args:
         df: A DataFrame.
-        **guides: Keyword args where each key is a column name and each
-            value is a dict or CleaningGuide object.
+        cleaning_guides: A dict where each key is a column name and
+            each value is a dict or CleaningGuide object.
 
     Returns: The df, with the specified columns cleaned of typos, and a
         metadata dictionary.
 
     """
     results = u.gen_empty_md_df(df.columns)
-    for k, v in guides.items():
-        guides[k] = e.CleaningGuide.convert(v)
+    for k, v in cleaning_guides.items():
+        cleaning_guides[k] = e.CleaningGuide.convert(v)
 
-    for k, cl_guide in guides.items():
+    for k, cl_guide in cleaning_guides.items():
         new = df[k].apply(cl_guide)
         # nan != nan always evaluates to True, so need to subtract the
         # number of nans from the differing values:
