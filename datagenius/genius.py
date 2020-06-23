@@ -5,7 +5,7 @@ from typing import Callable
 import pandas as pd
 import recordlinkage as link
 
-import datagenius.lib.preprocess as pp
+import datagenius.lib as lib
 import datagenius.element as e
 import datagenius.util as u
 import datagenius.metadata as md
@@ -19,12 +19,12 @@ class GeniusAccessor:
     methods and properties that extend the DataFrame's functionality.
     """
     @property
-    def preprocess_tms(self, header_func=pp.detect_header):
+    def preprocess_tms(self, header_func=lib.preprocess.detect_header):
         pp_tms = [
-            pp.normalize_whitespace,
+            lib.preprocess.normalize_whitespace,
         ]
         if self.df.columns[0] in ('Unnamed: 0', 0):
-            pp_tms.insert(0, pp.purge_pre_header)
+            pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return pp_tms
 
@@ -38,11 +38,11 @@ class GeniusAccessor:
 
     def preprocess(
             self,
-            header_func: Callable = pp.detect_header,
-            **options):
+            header_func: Callable = lib.preprocess.detect_header,
+            **options) -> tuple:
         """
         A convenient way to run functions from lib.preprocess on
-        self.ds.
+        self.df.
 
         Args:
             header_func: A callable object that takes a Dataset object
@@ -51,18 +51,40 @@ class GeniusAccessor:
                 manual_header: Used to override detect_header with a
                     list of labels if the Dataset has no derivable
                     header.
-        Returns:
+        Returns: self.df, modified by preprocess transmutations, and a
+            metadata dictionary describing the changes made.
 
         """
         pp_tms = [
-            pp.normalize_whitespace,
+            lib.preprocess.normalize_whitespace,
         ]
         if self.df.columns[0] in ('Unnamed: 0', 0):
-            pp_tms.insert(0, pp.purge_pre_header)
+            pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return self._run_pipeline_stage(
             pp_tms,
             **options
+        )
+    
+    def explore(self, metadata: md.GeniusMetadata = None) -> tuple:
+        """
+        A convenient way to run functions from lib.explore on self.df.
+
+        Args:
+            metadata: A GeniusMetadata object.
+
+        Returns: self.df, and a metadata dictionary describing explore
+            results.
+
+        """
+        ex_tms = [
+            lib.explore.count_uniques,
+            lib.explore.count_nulls,
+            lib.explore.collect_data_types
+        ]
+        return self._run_pipeline_stage(
+            ex_tms,
+            metadata
         )
 
     def _run_pipeline_stage(

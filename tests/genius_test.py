@@ -21,6 +21,21 @@ class TestGeniusAccessor:
         df, metadata = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
+    def test_explore(self, employees):
+        df = pd.DataFrame(**employees)
+        expected = pd.DataFrame([
+            ['explore', 'count_uniques', 4, 2, 4, 1],
+            ['explore', 'count_nulls', 0, 0, 0, 2],
+            ['explore', 'collect_data_types',
+             'int(1.0)', 'str(1.0)', 'str(1.0)', 'float(0.5),nan(0.5)']
+        ], columns=[
+            'stage', 'transmutation', 'employee_id', 'department',
+            'name', 'wfh_stipend'
+        ])
+        df, metadata = df.genius.explore()
+        pd.testing.assert_frame_equal(metadata.collected, expected)
+
+
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
             'tests/samples/csv/simple.csv')
