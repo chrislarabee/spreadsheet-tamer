@@ -5,9 +5,10 @@ setup(
     url='https://gitlab.com/mnhs/bipi/datagenius',
     author='Chris Larabee',
     author_email='chris.larabee9@gmail.com',
-    packages=['datagenius', 'datagenius.io'],
-    install_requires=['pandas', 'xlrd', 'SQLalchemy', 'recordlinkage'],
-    version=0.1,
+    packages=['datagenius', 'datagenius.io', 'datagenius.lib'],
+    install_requires=[
+        'pandas>=1.0.4', 'xlrd', 'SQLalchemy', 'recordlinkage'],
+    version=0.2,
     license='GNU',
     description=('A suite of classes and functions that attempt to '
                  'generalize and automate the basic steps of exploring '
