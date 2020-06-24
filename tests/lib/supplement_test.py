@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 import datagenius.lib.supplement as su
+import datagenius.lib.guides as gd
 
 
 def test_do_exact(sales, regions):
@@ -200,12 +201,12 @@ def test_prep_suffixes():
         
 class TestSupplementGuide:
     def test_basics(self):
-        sg = su.SupplementGuide('a', 'b', 'c', inexact=True)
+        sg = gd.SupplementGuide('a', 'b', 'c', inexact=True)
         # Ensures thresholds is subscriptable:
         assert sg.thresholds[0] == .9
 
     def test_output(self):
-        sg = su.SupplementGuide('a', 'b', 'c', conditions={'c': 'x'})
+        sg = gd.SupplementGuide('a', 'b', 'c', conditions={'c': 'x'})
         assert sg.output() == (('a', 'b', 'c'), {'c': ('x',)})
         assert sg.output('on', 'thresholds') == (('a', 'b', 'c'), None)
         assert sg.output('on') == ('a', 'b', 'c')

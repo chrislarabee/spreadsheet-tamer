@@ -1,97 +1,11 @@
 import warnings
-from collections import abc
 
 import pandas as pd
 import recordlinkage as link
 
 import datagenius.util as u
+import datagenius.lib.guides as gd
 
-
-class SupplementGuide(abc.MutableSequence):
-    """
-    A simple object used by supplement functions below to control what
-    rules they use for creating and merging chunks of DataFrames.
-    """
-    def __init__(
-            self,
-            *on,
-            conditions: dict = None,
-            thresholds: (float, tuple) = None,
-            block: (str, tuple) = None,
-            inexact: bool = False):
-        """
-
-        Args:
-            *on: An arbitrary list of strings, names of columns in the
-                target DataFrame.
-            conditions: A dictionary of conditions which rows in the
-                target DataFrame must meet in order to qualify for this
-                Supplement guide's instructions. Keys are column names
-                and values are the value(s) in that column that qualify.
-            thresholds: A float or tuple of floats of the same length
-                as on. Used only if inexact is True, each threshold
-                will be used with the on at the same index and matches
-                in that column must equal or exceed the threshold to
-                qualify as a match.
-            block: A string or tuple of strings, column names in the
-                target DataFrame. Use this if you're lucky enough to
-                have data that you can match partially exactly on and
-                just need inexact matches within that set of exact
-                matches.
-            inexact: A boolean, indicates whether this SupplementGuide
-                represents exact or inexact match guidelines.
-        """
-        self.on: tuple = on
-        c = {None: (None,)} if conditions is None else conditions
-        for k, v in c.items():
-            c[k] = u.tuplify(v)
-        self.conditions: dict = c
-        self.thresholds: tuple = u.tuplify(thresholds)
-        self.block: tuple = u.tuplify(block)
-        self.inexact: bool = inexact
-        if self.inexact:
-            if self.thresholds is None:
-                self.thresholds = tuple([.9 for _ in range(len(self.on))])
-            elif len(self.thresholds) != len(self.on):
-                raise ValueError(
-                    f'If provided, thresholds length must match on '
-                    f'length: thresholds={self.thresholds}, on={self.on}')
-        self.chunks: list = []
-
-    def insert(self, index: int, x):
-        self.chunks.insert(index, x)
-
-    def output(self, *attrs) -> tuple:
-        """
-        Convenience method for quickly collecting a tuple of attributes
-        from SupplementGuide.
-
-        Args:
-            *attrs: An arbitrary number of strings, which must be
-                attributes in SupplementGuide. If no attrs are passed, output
-                will just return on and conditions attributes.
-
-        Returns: A tuple of attribute values.
-
-        """
-        if len(attrs) == 0:
-            return self.on, self.conditions
-        else:
-            results = [getattr(self, a) for a in attrs]
-            return results[0] if len(results) == 1 else tuple(results)
-
-    def __getitem__(self, item: int):
-        return self.chunks[item]
-
-    def __setitem__(self, key: int, value: list):
-        self.chunks[key] = value
-
-    def __delitem__(self, key: int):
-        self.chunks.pop(key)
-
-    def __len__(self):
-        return len(self.chunks)
-    
 
 def do_exact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
              rsuffix: str = '_s') -> pd.DataFrame:
@@ -262,7 +176,7 @@ def build_plan(on: tuple) -> tuple:
     simple_ons = list()
     complex_ons = list()
     for o in on:
-        if isinstance(o, SupplementGuide):
+        if isinstance(o, gd.SupplementGuide):
             complex_ons.append(o)
         elif isinstance(o, str):
             simple_ons.append(o)
@@ -279,10 +193,10 @@ def build_plan(on: tuple) -> tuple:
                         f'their arguments and a str/tuple as the '
                         f'other Invalid tuple={o}'
                     )
-            sg = SupplementGuide(*pair[0], conditions=pair[1])
+            sg = gd.SupplementGuide(*pair[0], conditions=pair[1])
             complex_ons.append(sg)
     if len(simple_ons) > 0:
-        complex_ons.append(SupplementGuide(*simple_ons))
+        complex_ons.append(gd.SupplementGuide(*simple_ons))
     return tuple(complex_ons)
 
 

@@ -134,6 +134,30 @@ class GeniusAccessor:
         rf_tms = self._align_tms_with_options(all_rf_tms, options)
         return self.transmute(rf_tms, metadata, **options)
 
+    def standardize(
+            self,
+            metadata: md.GeniusMetadata = None,
+            **options) -> tuple:
+        """
+        A convenient way to run standardize functions from lib.clean on
+        self.df.
+
+        Args:
+            metadata: A GeniusMetadata object.
+            **options: Keyword args. See the clean transmutations
+                for details on the arguments they take.
+
+        Returns: self.df, modified by standardize transmutations, and a
+            metadata dictionary describing the changes made.
+
+        """
+        all_st_tms = [
+            lib.clean.cleanse_typos,
+            lib.clean.convert_types,
+        ]
+        st_tms = self._align_tms_with_options(all_st_tms, options)
+        return self.transmute(st_tms, metadata, **options)
+
     @staticmethod
     def _align_tms_with_options(tms: list, options: dict) -> list:
         """

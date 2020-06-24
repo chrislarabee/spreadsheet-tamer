@@ -3,12 +3,13 @@ from numpy import nan
 import pytest
 
 import datagenius.lib.clean as cl
+import datagenius.lib.guides as gd
 import datagenius.element as e
 
 
 class TestCleaningGuide:
     def test_basics(self):
-        cg = cl.CleaningGuide(
+        cg = gd.CleaningGuide(
             ('a', 'x'),
             (('b', 'c'), 'y'),
             d='z'
@@ -20,8 +21,8 @@ class TestCleaningGuide:
         assert cg('e') == 'e'
 
     def test_convert(self):
-        cg = cl.CleaningGuide.convert(
-            cl.CleaningGuide(
+        cg = gd.CleaningGuide.convert(
+            gd.CleaningGuide(
                 ('a', 'x'),
                 (('b', 'c'), 'y'),
                 d='z'
@@ -33,7 +34,7 @@ class TestCleaningGuide:
         assert cg('d') == 'z'
         assert cg('e') == 'e'
 
-        cg = cl.CleaningGuide.convert(
+        cg = gd.CleaningGuide.convert(
             dict(a='x', b='y', c='z')
         )
         assert cg('a') == 'x'
@@ -44,7 +45,7 @@ class TestCleaningGuide:
         with pytest.raises(
                 ValueError,
                 match="Invalid object=test, type=<class 'str'>"):
-            cg = cl.CleaningGuide.convert('test')
+            cg = gd.CleaningGuide.convert('test')
 
 
 def test_complete_clusters(needs_extrapolation, employees):
@@ -126,7 +127,7 @@ def test_cleanse_typos(needs_cleanse_typos):
         df,
         dict(
             attr1=dict(cu='copper'),
-            attr2=cl.CleaningGuide((('sm', 's'), 'small')))
+            attr2=gd.CleaningGuide((('sm', 's'), 'small')))
     )
     pd.testing.assert_frame_equal(df, df2)
     expected_metadata = pd.DataFrame([
