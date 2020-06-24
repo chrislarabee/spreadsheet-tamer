@@ -159,7 +159,7 @@ def count_true_str(x: (list, pd.Series)) -> int:
     )
 
 
-def gen_alpha_keys(num: int) -> set:
+def gen_alpha_keys(num: int) -> list:
     """
     Generates a set of characters from the Latin alphabet a la excel
     headers.
@@ -172,13 +172,13 @@ def gen_alpha_keys(num: int) -> set:
 
     """
     a = string.ascii_uppercase
-    result = set()
+    result = list()
     x = num // 26
     for i in range(x + 1):
         root = a[i - 1] if i > 0 else ''
         keys = [root + a[j] for j in range(26)]
         for k in keys:
-            result.add(k) if len(result) < num else None
+            result.append(k) if len(result) < num else None
     return result
 
 
