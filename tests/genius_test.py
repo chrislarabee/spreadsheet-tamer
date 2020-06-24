@@ -4,6 +4,7 @@ import numpy as np
 import datagenius.element as e
 import datagenius.genius as ge
 import datagenius.util as u
+from datagenius.lib.supplement import SupplementGuide
 
 
 class TestGeniusAccessor:
@@ -93,6 +94,59 @@ class TestGeniusAccessor:
             tms, dict(reject_conditions='a == 1')
         ) == expected
 
+    def test_supplement(self, sales, regions, stores):
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
+        result = df1.genius.supplement(
+            df2,
+            on=({'region': 'Northern'}, 'region'),
+        )
+        assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
+        assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
+
+        # Test split results:
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
+        result = df1.genius.supplement(
+            df2,
+            on=({'region': 'Northern'}, 'region'),
+            split_results=True
+        )
+        assert len(result) == 2
+        assert list(result[0].stores) == [50.0, 50.0]
+        assert list(result[0].employees) == [500.0, 500.0]
+        assert set(result[1].columns).difference(
+            {'location', 'region', 'sales'}) == set()
+
+        # Test select columns functionality on exact match:
+        df1 = pd.DataFrame(**sales)
+        df2 = pd.DataFrame(**regions)
+        result = df1.genius.supplement(
+            df2,
+            on='region',
+            select_cols='stores'
+        )
+        assert list(result.stores) == [50, 50, 42, 42]
+        assert list(result.region) == [
+            'Northern', 'Northern', 'Southern', 'Southern']
+        assert set(result.columns).difference({
+            'region', 'stores', 'location', 'sales', 'merged_on'}
+        ) == set()
+
+        df1 = pd.DataFrame(**sales)
+        df3 = pd.DataFrame(**stores)
+        result = df1.genius.supplement(
+            df3,
+            on=SupplementGuide('location', thresholds=.7, inexact=True),
+            select_cols=('budget', 'location', 'other')
+        )
+        assert list(result.budget) == [100000, 90000, 110000, 90000]
+        assert list(result.region) == [
+            'Northern', 'Northern', 'Southern', 'Southern']
+        assert set(result.columns).difference({
+            'location', 'budget', 'region', 'sales',
+            'location_A', 'merged_on'}) == set()
+
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
             'tests/samples/csv/simple.csv')
@@ -157,221 +211,3 @@ class TestGeniusAccessor:
 
         assert pd.DataFrame.genius.order_transmutations(
             [x2, x3, x1]) == expected
-
-
-class TestSupplement:
-    def test_call(self, sales, regions, stores):
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        s = ge.Supplement(({'region': 'Northern'}, 'region'))
-        result = s(df1, df2)
-        assert list(result.stores.fillna(0)) == [50.0, 50.0, 0, 0]
-        assert list(result.employees.fillna(0)) == [500.0, 500.0, 0, 0]
-
-        # Test split results:
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        s = ge.Supplement(({'region': 'Northern'}, 'region'))
-        result = s(df1, df2, split_results=True)
-        assert len(result) == 2
-        assert list(result[0].stores) == [50.0, 50.0]
-        assert list(result[0].employees) == [500.0, 500.0]
-        assert set(result[1].columns).difference(
-            {'location', 'region', 'sales'}) == set()
-
-        # Test select columns functionality on exact match:
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        s = ge.Supplement('region', select_cols='stores')
-        result = s(df1, df2)
-        assert list(result.stores) == [50, 50, 42, 42]
-        assert list(result.region) == [
-            'Northern', 'Northern', 'Southern', 'Southern']
-        assert set(result.columns).difference({
-            'region', 'stores', 'location', 'sales', 'merged_on'}
-        ) == set()
-
-        df1 = pd.DataFrame(**sales)
-        df3 = pd.DataFrame(**stores)
-        s = ge.Supplement(
-            e.MatchRule('location', thresholds=.7, inexact=True),
-            select_cols=('budget', 'location', 'other'))
-        result = s(df1, df3)
-        assert list(result.budget) == [100000, 90000, 110000, 90000]
-        assert list(result.region) == [
-            'Northern', 'Northern', 'Southern', 'Southern']
-        assert set(result.columns).difference({
-            'location', 'budget', 'region', 'sales',
-            'location_A', 'merged_on'}) == set()
-
-    def test_do_exact(self, sales, regions):
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        result = ge.Supplement.do_exact(df1, df2, ('region',))
-        assert list(result.stores) == [50, 50, 42, 42]
-        assert list(result.employees) == [500, 500, 450, 450]
-
-    def test_do_inexact(self, sales, regions, stores):
-        # Make sure inexact can replicate exact, just as a sanity
-        # check:
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        result = ge.Supplement.do_inexact(
-            df1, df2, ('region',), thresholds=(1,))
-        assert list(result.stores) == [50, 50, 42, 42]
-        assert list(result.employees) == [500, 500, 450, 450]
-
-        # Now for a real inexact match:
-        df3 = pd.DataFrame(**stores)
-        result = ge.Supplement.do_inexact(
-            df1, df3, ('location',), thresholds=(.7,))
-        assert list(result.budget) == [100000, 90000, 110000, 90000]
-        assert list(result.inventory) == [5000, 4500, 4500, 4500]
-        assert set(result.columns).difference({
-            'location', 'region', 'region_s', 'sales', 'location_s',
-            'budget', 'inventory'}) == set()
-
-        # Same match, but with block:
-        df3 = pd.DataFrame(**stores)
-        result = ge.Supplement.do_inexact(
-            df1, df3, ('location',), thresholds=(.7,), block=('region',))
-        assert list(result.budget) == [100000, 90000, 110000, 90000]
-        assert list(result.inventory) == [5000, 4500, 4500, 4500]
-        assert set(result.columns).difference({
-            'location', 'region', 'region_s', 'sales', 'location_s',
-            'budget', 'inventory'}) == set()
-
-        # Same match, but with multiple ons:
-        df3 = pd.DataFrame(**stores)
-        result = ge.Supplement.do_inexact(
-            df1, df3, ('location', 'region'), thresholds=(.7, 1))
-        assert list(result.budget) == [100000, 90000, 110000, 90000]
-        assert list(result.inventory) == [5000, 4500, 4500, 4500]
-        assert set(result.columns).difference({
-            'location', 'region', 'region_s', 'sales', 'location_s',
-            'budget', 'inventory'}) == set()
-
-    def test_chunk_dframes(self, stores, sales, regions):
-        df = pd.DataFrame(**stores)
-        plan = ge.Supplement.build_plan((
-            ({'budget': (90000,)}, 'location'),
-            ({'inventory': (4500,)}, 'budget')
-        ))
-        c, p_df = ge.Supplement.chunk_dframes(plan, df)
-        assert c[0][0].to_dict('records') == [
-            dict(location='W Valley', region='Northern', budget=90000,
-                 inventory=4500),
-            dict(location='Kalliope', region='Southern', budget=90000,
-                 inventory=4500)
-        ]
-        assert c[1][0].to_dict('records') == [
-            dict(location='Precioso', region='Southern', budget=110000,
-                 inventory=4500)
-        ]
-        assert p_df.to_dict('records') == [
-            dict(location='Bayside', region='Northern', budget=100000,
-                 inventory=5000)
-        ]
-        # Test multiple dframes:
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        # Test with no conditions:
-        plan = ge.Supplement.build_plan((
-            ({None: (None,)}, 'region'),
-        ))
-        c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[0][0].to_dict('records') == [
-            dict(location='Bayside Store', region='Northern', sales=500),
-            dict(location='West Valley Store', region='Northern', sales=300),
-            dict(location='Precioso Store', region='Southern', sales=1000),
-            dict(location='Kalliope Store', region='Southern', sales=200),
-        ]
-        assert c[0][1].to_dict('records') == [
-            dict(region='Northern', stores=50, employees=500),
-            dict(region='Southern', stores=42, employees=450)
-        ]
-        assert p_df.to_dict('records') == []
-        # Test with conditions
-        df1 = pd.DataFrame(**sales)
-        df2 = pd.DataFrame(**regions)
-        plan = ge.Supplement.build_plan((
-            ({'region': ('Northern',)}, 'region'),
-        ))
-        c, p_df = ge.Supplement.chunk_dframes(plan, df1, df2)
-        assert c[0][0].to_dict('records') == [
-            dict(location='Bayside Store', region='Northern', sales=500),
-            dict(location='West Valley Store', region='Northern', sales=300),
-        ]
-        assert c[0][1].to_dict('records') == [
-            dict(region='Northern', stores=50, employees=500)
-        ]
-        assert p_df.to_dict('records') == [
-            dict(location='Precioso Store', region='Southern', sales=1000),
-            dict(location='Kalliope Store', region='Southern', sales=200),
-        ]
-
-    def test_slice_dframe(self, stores):
-        df = pd.DataFrame(**stores)
-        expected = [
-            dict(location='W Valley', region='Northern', budget=90000,
-                 inventory=4500),
-            dict(location='Precioso', region='Southern', budget=110000,
-                 inventory=4500),
-            dict(location='Kalliope', region='Southern', budget=90000,
-                 inventory=4500)
-        ]
-        x = ge.Supplement.slice_dframe(df, {'inventory': (4500,)})
-        assert df is not x[0]
-        assert x[0].to_dict('records') == expected
-        assert x[1]
-
-        # Test multiple conditions:
-        expected = [
-            dict(location='W Valley', region='Northern', budget=90000,
-                 inventory=4500),
-            dict(location='Kalliope', region='Southern', budget=90000,
-                 inventory=4500)
-        ]
-        x = ge.Supplement.slice_dframe(df, {'inventory': (4500,),
-                                            'budget': (90000,)})
-        assert x[0].to_dict('records') == expected
-        assert x[1]
-
-        # Test no conditions:
-        expected = [
-            dict(location='Bayside', region='Northern', budget=100000,
-                 inventory=5000),
-            dict(location='W Valley', region='Northern', budget=90000,
-                 inventory=4500),
-            dict(location='Precioso', region='Southern', budget=110000,
-                 inventory=4500),
-            dict(location='Kalliope', region='Southern', budget=90000,
-                 inventory=4500)
-        ]
-        x = ge.Supplement.slice_dframe(df, {None: (None,)})
-        assert x[0].to_dict('records') == expected
-        assert x[1]
-
-        # Test unmet conditions:
-        expected = []
-        x = ge.Supplement.slice_dframe(df, {'budget': (25000,)})
-        assert x[0].to_dict('records') == expected
-        assert not x[1]
-
-    def test_build_plan(self):
-        plan = ge.Supplement.build_plan(('a', 'b', 'c'))
-        assert plan[0].output() == (('a', 'b', 'c'), {None: (None,)})
-
-        # Check that condition/on pairs can be in any order:
-        plan = ge.Supplement.build_plan(('a', 'b', ('a', {'c': 'x'})))
-
-        assert plan[0].output() == (('a',), {'c': ('x',)})
-        assert plan[1].output() == (('a', 'b'), {None: (None,)})
-
-        plan = ge.Supplement.build_plan(('a', 'b', ({'c': 'x'}, 'a')))
-        assert plan[0].output() == (('a',), {'c': ('x',)})
-        assert plan[1].output() == (('a', 'b'), {None: (None,)})
-
-        plan = ge.Supplement.build_plan((({'c': 'x'}, 'a'),))
-        assert plan[0].output() == (('a',), {'c': ('x',)})
-        assert len(plan) == 1

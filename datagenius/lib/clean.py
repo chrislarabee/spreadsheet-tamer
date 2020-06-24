@@ -4,7 +4,6 @@ import collections.abc as abc
 import pandas as pd
 
 import datagenius.util as u
-import datagenius.element as e
 
 
 class CleaningGuide(abc.Mapping, abc.Callable):
