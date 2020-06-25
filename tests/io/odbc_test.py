@@ -1,8 +1,10 @@
 import os
+from datetime import datetime
 
 import pandas as pd
 
 import datagenius.io.odbc as odbc
+import datagenius.element as e
 
 
 # These tests all share a single ODBConnector.
@@ -37,6 +39,12 @@ class TestODBConnector:
         assert o.drop_tbl('sales')
         assert o.tables.get('sales') is None
         assert o.schemas.get('sales') is None
+
+    def test_prep_object_dtype(self):
+        assert o._prep_object_dtype(1) == 1
+        assert o._prep_object_dtype(e.ZeroNumeric('00123')) == "'00123"
+        assert o._prep_object_dtype(
+            datetime(2020, 1, 1)) == '2020-01-01 00:00:00'
 
 
 def test_gen_schema():

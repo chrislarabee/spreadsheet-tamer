@@ -213,6 +213,24 @@ class TestGeniusAccessor:
             'tests/samples/', table='products', db_name='genius_test')
         pd.testing.assert_frame_equal(d, d2)
 
+    def test_to_sqlite_dates(self):
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/excel/dt_nonsense.xlsx')
+        df.genius.to_sqlite(
+            'tests/samples', 'dt_nonsense', db_name='genius_test'
+        )
+        expected = pd.DataFrame([
+            ['Eugene', '23', '2020-01-23 00:00:00', '2020-01-02 00:00:00',
+             '2020-01-02 00:00:00']
+        ], columns=[
+            'collect_by', 'num_collected', 'date', 'ratio',
+            'range']
+        )
+        df2 = pd.DataFrame.genius.from_file(
+            'tests/samples', table='dt_nonsense', db_name='genius_test'
+        )
+        pd.testing.assert_frame_equal(expected, df2)
+
     def test_order_transmutations(self):
         x2 = u.transmutation(lambda x: x)
         x3 = u.transmutation(lambda x: x - 1)

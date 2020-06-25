@@ -308,7 +308,7 @@ class GeniusAccessor:
         # Expectation is that no column for these exts will have data
         # types that are safe for pandas to interpret.
         if ext in ('.xls', '.xlsx', '.csv'):
-            kwargs['dtype'] = 'object'
+            kwargs['dtype'] = object
         if ext not in read_funcs.keys():
             raise ValueError(f'read_file error: file extension must be '
                              f'one of {read_funcs.keys()}')

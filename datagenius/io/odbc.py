@@ -98,6 +98,7 @@ class ODBConnector:
         if table not in self._tables.keys():
             schema = gen_schema(df) if schema is None else schema
             self.new_tbl(table, schema)
+        df = df.applymap(self._prep_object_dtype)
         with self.engine.connect() as conn:
             conn.execute(
                 self._tables[table].insert(),
@@ -188,6 +189,26 @@ class ODBConnector:
             s[k] = v.type.python_type
         return s
 
+    @staticmethod
+    def _prep_object_dtype(x):
+        """
+        Pandas O/object dtype is a catch all and thus could contain
+        python objects or other values that SQLalchemy and sqlite won't
+        accept. Thus, anything not in an acceptable data type must be
+        converted to its string representation.
+
+        Args:
+            x: Any value.
+
+        Returns: The value, or a string representation of the value if
+            the object's type is one of those listed below.
+
+        """
+        if type(x) not in (str, float, int):
+            return str(x)
+        else:
+            return x
+
 
 def from_sqlite(dir_path: str, table: str, **options) -> pd.DataFrame:
     """
@@ -226,6 +247,8 @@ def convert_pandas_type(pd_dtype) -> object:
     Returns: The corresponding python object.
 
     """
+    if str(pd_dtype) not in ODBConnector.type_map.keys():
+        pd_dtype = 'O'
     return ODBConnector.type_map[str(pd_dtype)]
 
 

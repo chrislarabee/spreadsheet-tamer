@@ -1,4 +1,3 @@
-import inspect
 from collections import OrderedDict as od
 import string
 
