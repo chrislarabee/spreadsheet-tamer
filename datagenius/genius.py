@@ -282,12 +282,19 @@ class GeniusAccessor:
             return pd.concat([matched, unmatched])
 
     @classmethod
-    def from_file(cls, file_path: str, **kwargs):
+    def from_file(
+            cls,
+            file_path: str,
+            incl_header: bool = False,
+            **kwargs):
         """
         Uses read_file to read in the passed file path.
 
         Args:
             file_path: The file path to the desired data file.
+            incl_header: A boolean, indicates whether to include
+                the unmodified header(if found) in an output tuple.
+            kwargs: Kwargs will be passed to the reader function.
 
         Returns: For excel workbooks with multiple sheets, it will
             return a dictionary of sheet names as keys and raw
@@ -316,7 +323,11 @@ class GeniusAccessor:
             df = u.purge_gap_rows(
                 pd.DataFrame(read_funcs[ext](file_path, **kwargs))
             )
-            return df
+            df.columns, o_header = u.standardize_header(df.columns)
+            if incl_header:
+                return df, o_header
+            else:
+                return df
 
     def to_sqlite(self, dir_path: str, table: str, **options):
         """
