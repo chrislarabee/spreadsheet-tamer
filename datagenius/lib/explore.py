@@ -50,7 +50,8 @@ def collect_data_types(df: pd.DataFrame):
     dtypes['ctr'] = 1
     result = u.gen_empty_md_df(df.columns)
     for c in orig_cols:
-        c_pcts = dtypes.groupby([c]).sum() / dtypes[c].count()
+        c_pcts = (
+                dtypes.groupby([c]).sum() / dtypes[c].count()).round(2)
         c_pcts = c_pcts.reset_index()
         result[c] = ','.join(
             c_pcts.apply(

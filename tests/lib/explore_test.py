@@ -37,10 +37,13 @@ def test_count_nulls(products):
 def test_collect_data_types():
     df = pd.DataFrame([
         dict(a=1, b=2.4, c='string'),
-        dict(a=2, b='x', c=nan)
+        dict(a=2, b='x', c=nan),
+        dict(a=3, b=2, c='string2')
     ])
     expected = pd.DataFrame([
-        dict(a='int(1.0)', b='float(0.5),str(0.5)', c='nan(0.5),str(0.5)')
+        dict(a='int(1.0)',
+             b='float(0.33),int(0.33),str(0.33)',
+             c='nan(0.33),str(0.67)')
     ])
     df, md_dict = ex.collect_data_types(df)
     pd.testing.assert_frame_equal(md_dict['metadata'], expected)
