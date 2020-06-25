@@ -32,15 +32,14 @@ class ZeroNumeric:
         self._zeros: str = ''
         self._numeric: (int, float, None) = None
         if pd.isna(value):
-            self._value = value
-            self._numeric = value
+            raise ValueError('Cannot convert float NaN to ZeroNumeric')
         elif u.isnumericplus(value):
             self._value = value
             self._zeros, self._numeric = self.split_zeros(value)
         else:
             raise ValueError(
-                f'ZeroNumeric must be a numeric string, numeric value, '
-                f'or nan. Invalid value={value}')
+                f'ZeroNumeric must be a numeric string or value. '
+                f'Invalid value={value}')
 
     def pad(self, length: int = None):
         """
@@ -90,7 +89,7 @@ class ZeroNumeric:
             a string, or self._numeric.
 
         """
-        if isinstance(str, other):
+        if isinstance(other, str):
             return op(self._value, other)
         else:
             return op(self._numeric, other)

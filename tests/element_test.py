@@ -1,6 +1,8 @@
 import operator as o
 
 import pytest
+import pandas as pd
+from numpy import nan
 
 import datagenius.element as e
 
@@ -26,8 +28,13 @@ class TestZeroNumeric:
         assert not isinstance(x, e.ZeroNumeric)
 
         with pytest.raises(
-                ValueError, match='or nan. Invalid value=test'):
+                ValueError, match='or value. Invalid value=test'):
             e.ZeroNumeric('test')
+
+        with pytest.raises(
+                ValueError,
+                match='Cannot convert float NaN to ZeroNumeric'):
+            e.ZeroNumeric(nan)
 
     def test_pad(self):
         assert e.ZeroNumeric('123').pad(3) == '123'

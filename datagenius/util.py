@@ -237,12 +237,15 @@ def gconvert(obj, target_type):
         float: (isnumericplus, '-convert', '-no_bool'),
         e.ZeroNumeric: (isnumericplus, '-convert', '-no_bool')
     }
-    if target_type not in type_funcs.keys():
-        raise ValueError(
-            f'target_type must be one of {list(type_funcs.keys())}')
-    conv_tuple = type_funcs[target_type]
-    args = (obj, *conv_tuple[1:])
-    return conv_tuple[0](*args)
+    if pd.isna(obj):
+        return obj
+    else:
+        if target_type not in type_funcs.keys():
+            raise ValueError(
+                f'target_type must be one of {list(type_funcs.keys())}')
+        conv_tuple = type_funcs[target_type]
+        args = (obj, *conv_tuple[1:])
+        return conv_tuple[0](*args)
 
 
 def gtype(obj):
