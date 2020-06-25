@@ -9,6 +9,15 @@ import datagenius.element as e
 
 class TestZeroNumeric:
     def test_basics(self):
+        z = e.ZeroNumeric("'00123")
+        assert z.numeric == 123
+        assert z.value == "00123"
+        z = e.ZeroNumeric("'''00123")
+        assert z.numeric == 123
+        assert z.value == "00123"
+        z = e.ZeroNumeric(123)
+        assert z.numeric == 123
+        assert z.value == '123'
         z = e.ZeroNumeric('00124')
         assert z.numeric == 124
         assert z.value == '00124'
