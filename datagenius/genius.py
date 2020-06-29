@@ -282,6 +282,39 @@ class GeniusAccessor:
         else:
             return pd.concat([matched, unmatched])
 
+    def apply_strf(
+            self,
+            *columns,
+            strf: Callable = None,
+            **col_strf_map) -> pd.DataFrame:
+        """
+        Applies passed string function(s) to indicated columns. Skips
+        nan values.
+
+        Just pass strf if you want to apply it to every value.
+
+        Args:
+            *columns: An arbitrary list of column names, all of which
+                will have strf applied to them.
+            strf: A Callable function that takes a string and returns
+                a formatted string. If you want to use upper/lower/etc
+                pass str.upper/str.lower/etc.
+            **col_strf_map: Kwargs version of columns and strf, each
+                key should be a column and each
+
+        Returns: The passed DataFrame with the indicated string columns
+            reformatted with the passed string function.
+
+        """
+        if columns is None and col_strf_map is None:
+            col_strf_map = {c: strf for c in self.df.columns}
+        col_strf_map = {**col_strf_map, **{c: strf for c in columns}}
+        for c, f in col_strf_map.items():
+            self.df[c] = self.df[c].apply(
+                lambda x: f(x) if pd.notna(x) else x
+            )
+        return self.df
+
     @classmethod
     def from_file(
             cls,

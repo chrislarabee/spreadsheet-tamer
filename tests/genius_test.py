@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+from numpy import nan
 
 import datagenius.genius as ge
 import datagenius.util as u
@@ -57,8 +57,8 @@ class TestGeniusAccessor:
         expected_rejects = pd.DataFrame(
             columns=['location', 'region', 'sales'],
             data=[
-                [np.nan, np.nan, 800],
-                [np.nan, np.nan, 1200],
+                [nan, nan, 800],
+                [nan, nan, 1200],
                 ['Kalliope Store', 'Southern', 200],
                 ['Bayside Store', 'Northern', 500],
             ]
@@ -157,6 +157,37 @@ class TestGeniusAccessor:
         assert set(result.columns).difference({
             'location', 'budget', 'region', 'sales',
             'location_A', 'merged_on'}) == set()
+        
+    def test_apply_strf(self, products):
+        df = pd.DataFrame(**products)
+        expected = pd.DataFrame([
+            [1, 'WIDGET', 8.5, 4.0, 1234567890,
+             nan, nan, nan, nan, nan],
+            [2, 'DOOHICKEY', 9.99, 5.0, 2345678901,
+             'Copper', 'Large', nan, nan, nan],
+            [3, 'FLANGE', 1.0, 0.2, 3456789012,
+             'Steel', 'Small', nan, nan, nan],
+            [4, 'WHATSIT', 5.0, 2.0, 4567890123,
+             'Aluminum', 'Small', nan, nan, nan]
+        ], columns=[
+            'id', 'name', 'price', 'cost', 'upc', 'attr1', 'attr2',
+            'attr3', 'attr4', 'attr5']
+        )
+        df = df.genius.apply_strf('name', strf=str.upper)
+        df = df.genius.apply_strf('attr1', 'attr2', strf=str.title)
+        pd.testing.assert_frame_equal(df, expected)
+
+        # Test col_strf_map:
+        df = pd.DataFrame(**products)
+        df = df.genius.apply_strf(
+            attr1=str.title, attr2=str.title, name=str.upper)
+        pd.testing.assert_frame_equal(df, expected)
+
+        # Test mixed:
+        df = pd.DataFrame(**products)
+        df = df.genius.apply_strf(
+            'attr1', 'attr2', strf=str.title, name=str.upper)
+        pd.testing.assert_frame_equal(df, expected)
 
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
