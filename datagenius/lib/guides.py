@@ -1,4 +1,7 @@
+import re
 from collections import abc
+
+from numpy import nan
 
 import datagenius.util as u
 
@@ -160,3 +163,43 @@ class SupplementGuide(abc.MutableSequence):
 
     def __len__(self):
         return len(self.chunks)
+
+
+class RedistributionGuide(abc.Callable):
+    """
+    Used by lib.clean.redistribute to guide its redistribution of some
+    values in one column to a different column.
+    """
+    def __init__(
+            self,
+            *patterns,
+            destination: str,
+            overwrite: bool = False):
+        """
+
+        Args:
+            *patterns: An arbitrary list of strings, can be regex
+                patterns.
+            destination: The destination column to send qualifying
+                values to.
+            overwrite: Whether to overwrite a value in the destination
+                column with the qualifying value or not.
+        """
+        self.patterns: tuple = patterns
+        self.destination: str = destination
+        self.overwrite: bool = overwrite
+
+    def __call__(self, check):
+        """
+        Compares check with the patterns in self.patterns and returns
+        the check if it matches, otherwise returns a numpy nan.
+
+        Args:
+            check: Any value.
+
+        Returns: The passed check object, or nan if no match was found.
+        """
+        for p in self.patterns:
+            if re.search(p, str(check)) is not None:
+                return check
+        return nan

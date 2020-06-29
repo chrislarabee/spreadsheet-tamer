@@ -154,6 +154,7 @@ class GeniusAccessor:
         all_st_tms = [
             lib.clean.cleanse_typos,
             lib.clean.convert_types,
+            lib.clean.redistribute,
         ]
         st_tms = self._align_tms_with_options(all_st_tms, options)
         return self.transmute(st_tms, metadata, **options)

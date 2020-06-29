@@ -147,3 +147,44 @@ def test_convert_types(customers):
         dict(id=4, fname=0, lname=0, foreign_key=4)
     ])
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+
+def test_redistribute():
+    df = pd.DataFrame([
+        dict(a='red', b=nan),
+        dict(a='L', b='blue'),
+        dict(a='S', b=nan),
+        dict(a='yellow', b='hex'),
+    ])
+    expected = pd.DataFrame([
+        dict(a=nan, b='red'),
+        dict(a='L', b='blue'),
+        dict(a='S', b=nan),
+        dict(a=nan, b='hex'),
+    ])
+    df2, md_dict = cl.redistribute(
+        df.copy(), redistribution_guides=dict(
+            a=gd.RedistributionGuide('red', 'yellow', destination='b')
+        ))
+    pd.testing.assert_frame_equal(df2, expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=2, b=1)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+    expected = pd.DataFrame([
+        dict(a=nan, b='red'),
+        dict(a='L', b='blue'),
+        dict(a='S', b=nan),
+        dict(a=nan, b='yellow'),
+    ])
+    df2, md_dict = cl.redistribute(
+        df.copy(), redistribution_guides=dict(
+            a=gd.RedistributionGuide(
+                'red', 'yellow', destination='b', overwrite=True)
+        ))
+    pd.testing.assert_frame_equal(df2, expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=2, b=2)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)

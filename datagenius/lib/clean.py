@@ -1,6 +1,7 @@
 from typing import Sequence
 
 import pandas as pd
+from numpy import nan
 
 import datagenius.util as u
 import datagenius.lib.guides as gd
@@ -174,4 +175,23 @@ def convert_types(df: pd.DataFrame, type_mapping: dict) -> tuple:
         md[col] = (result.apply(type) != df[col].apply(type)).sum()
         df[col] = result
 
+    return df, {'metadata': md}
+
+
+@u.transmutation(stage='standardize', priority=9)
+def redistribute(df: pd.DataFrame, redistribution_guides: dict) -> tuple:
+    md = u.gen_empty_md_df(df.columns)
+    for k, rd_guide in redistribution_guides.items():
+        result = df[k].apply(rd_guide)
+        c = rd_guide.destination
+        if rd_guide.overwrite:
+            rd_val_ct = result.count()
+            df[c] = result.fillna(df[c])
+        else:
+            df[c] = df[rd_guide.destination].fillna(result)
+            rd_val_ct = (result == df[c]).sum()
+        # Replace moved values with nan:
+        df.loc[result[result.notna()].index, k] = nan
+        md[k] = result.count()
+        md[c] += rd_val_ct
     return df, {'metadata': md}
