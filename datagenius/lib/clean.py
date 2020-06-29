@@ -180,6 +180,19 @@ def convert_types(df: pd.DataFrame, type_mapping: dict) -> tuple:
 
 @u.transmutation(stage='standardize', priority=9)
 def redistribute(df: pd.DataFrame, redistribution_guides: dict) -> tuple:
+    """
+    Uses the passed redistribution_guides to find matching values in
+    the specified columns and move them to the destination columns.
+
+    Args:
+        df: A DataFrame.
+        redistribution_guides: A dictionary with source columns as keys
+            and RedistributionGuide objects as values.
+
+    Returns: The transformed DataFrame, as well as a metadata
+        dictionary.
+
+    """
     md = u.gen_empty_md_df(df.columns)
     for k, rd_guide in redistribution_guides.items():
         result = df[k].apply(rd_guide)
