@@ -186,7 +186,7 @@ class TestGeniusAccessor:
         # Test mixed:
         df = pd.DataFrame(**products)
         df = df.genius.apply_strf(
-            'attr1', 'attr2', strf=str.title, name=str.upper)
+            'attr1', 'attr2', 'upc', strf=str.title, name=str.upper)
         pd.testing.assert_frame_equal(df, expected)
 
     def test_from_file(self, customers):

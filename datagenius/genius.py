@@ -289,13 +289,13 @@ class GeniusAccessor:
             **col_strf_map) -> pd.DataFrame:
         """
         Applies passed string function(s) to indicated columns. Skips
-        nan values.
+        nan values and non-string values.
 
         Just pass strf if you want to apply it to every value.
 
         Args:
             *columns: An arbitrary list of column names, all of which
-                will have strf applied to them.
+                will have strf applied to them if they contain strings.
             strf: A Callable function that takes a string and returns
                 a formatted string. If you want to use upper/lower/etc
                 pass str.upper/str.lower/etc.
@@ -311,7 +311,7 @@ class GeniusAccessor:
         col_strf_map = {**col_strf_map, **{c: strf for c in columns}}
         for c, f in col_strf_map.items():
             self.df[c] = self.df[c].apply(
-                lambda x: f(x) if pd.notna(x) else x
+                lambda x: f(x) if isinstance(x, str) else x
             )
         return self.df
 
