@@ -186,12 +186,14 @@ def test_redistribute():
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
         dict(a='yellow', b=1),
+        dict(a=123, b='x'),
     ])
     expected = pd.DataFrame([
         dict(a=nan, b='red'),
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
         dict(a=nan, b=1),
+        dict(a=123, b='x'),
     ])
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
@@ -210,15 +212,16 @@ def test_redistribute():
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
         dict(a=nan, b='yellow'),
+        dict(a=nan, b=123),
     ])
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
             a=gd.RedistributionGuide(
-                'red', 'yellow', destination='b', mode='overwrite')
+                'red', 'yellow', '123', destination='b', mode='overwrite')
         ))
     pd.testing.assert_frame_equal(df2, expected)
     expected_metadata = pd.DataFrame([
-        dict(a=2, b=2)
+        dict(a=3, b=3)
     ])
     pd.testing.assert_frame_equal(
         md_dict['metadata'], expected_metadata)
@@ -228,15 +231,16 @@ def test_redistribute():
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
         dict(a=nan, b='1 yellow'),
+        dict(a=nan, b='x 123'),
     ])
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
             a=gd.RedistributionGuide(
-                'red', 'yellow', destination='b', mode='append')
+                'red', 'yellow', '123', destination='b', mode='append')
         ))
     pd.testing.assert_frame_equal(df2, expected)
     expected_metadata = pd.DataFrame([
-        dict(a=2, b=2)
+        dict(a=3, b=3)
     ])
     pd.testing.assert_frame_equal(
         md_dict['metadata'], expected_metadata)

@@ -239,7 +239,10 @@ def redistribute(
                 rd_val_ct = result.count()
                 df[c] = result.fillna(df[c])
             elif rd_guide.mode == 'append':
+                # To properly append, need both result and destination
+                # to be strings:
                 df[c] = df[c].apply(u.gconvert, target_type=str)
+                result = result.apply(u.gconvert, target_type=str)
                 rd_val_ct = result.count()
                 spaces = result.notna().replace([True, False], [' ', ''])
                 df[c] = df[c] + spaces + result.fillna('')
