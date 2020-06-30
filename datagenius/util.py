@@ -381,6 +381,28 @@ def tuplify(value, do_none: bool = False) -> tuple:
     return value
 
 
+def tuplify_iterable(value: Sequence, do_none: bool = False) -> Sequence:
+    """
+    Convenience method to apply tuplify function to the values of an
+    iterable sequence.
+
+    Args:
+        value: An iterable Sequence.
+        do_none: A boolean, indicates whether None values contained
+            in the Sequence should be tuplified.
+
+    Returns: The Sequence, with values rendered into tuples.
+
+    """
+    if isinstance(value, (dict, OrderedDict)):
+        iterable = value.items()
+    else:
+        iterable = enumerate(value)
+    for k, v in iterable:
+        value[k] = tuplify(v, do_none)
+    return value
+
+
 def validate_attr(obj, attr: str, match = None) -> bool:
     """
     Takes an object and checks its attributes. Useful in situations 

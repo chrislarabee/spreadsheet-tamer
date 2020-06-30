@@ -183,6 +183,10 @@ def test_tuplify():
     assert u.tuplify(None, True) == (None,)
 
 
+def test_tuplify_iterable():
+    assert u.tuplify_iterable([1, 2, 3]) == [(1,), (2,), (3,)]
+
+
 def test_validate_attr():
     df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
     assert u.validate_attr(df, 'shape', (2, 3))
