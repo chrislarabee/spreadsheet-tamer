@@ -68,6 +68,7 @@ class GeniusMetadata(Callable):
             rejects = meta_result.get('rejects')
             new_kwargs = meta_result.get('new_kwargs')
             o_header = meta_result.get('orig_header')
+            print(self._collected.columns)
             if metadata is not None:
                 metadata['transmutation'] = transmutation.__name__
                 stage = getattr(transmutation, 'stage', '_no_stage')

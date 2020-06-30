@@ -14,13 +14,19 @@ class TestGeniusAccessor:
         df, metadata = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
-        # More realistic test:
+        # More realistic test with a partial header:
         g = gaps_totals(False, False)
         expected = pd.DataFrame(g[1:], columns=g[0])
         df = pd.DataFrame.genius.from_file(
             'tests/samples/excel/gaps_totals.xlsx')
         df, metadata = df.genius.preprocess()
-        print(df)
+        pd.testing.assert_frame_equal(df, expected)
+
+        # More realistic test with no header:
+        expected = pd.DataFrame(**customers())
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/csv/gaps.csv')
+        df, metadata = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
     def test_explore(self, employees):

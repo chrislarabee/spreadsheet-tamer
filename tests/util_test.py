@@ -129,6 +129,12 @@ def test_gwithin():
     assert not u.gwithin([1, 2, 3], 4, 5)
     assert u.gwithin(['xyz', 'a23'], r'[a-z]\d+')
     assert not u.gwithin(['xyz', 'a23'], r'[a-z]\d[a-z]')
+    assert u.gwithin(
+        pd.Index(['unnamed_0', 'unnamed_1']), r'[Uu]nnamed:*[ _]\d')
+    assert u.gwithin(
+        pd.Index(['Unnamed: 0', 'Unnamed: 1']), r'[Uu]nnamed:*[ _]\d')
+    assert u.gwithin(
+        pd.Index(['Unnamed:_0', 'Unnamed:_1']), r'[Uu]nnamed:*[ _]\d')
 
 
 def test_isnumericplus():
