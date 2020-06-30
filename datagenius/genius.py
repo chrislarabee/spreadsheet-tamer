@@ -76,6 +76,7 @@ class GeniusAccessor:
 
         """
         ex_tms = [
+            lib.explore.count_values,
             lib.explore.count_uniques,
             lib.explore.count_nulls,
             lib.explore.collect_data_types

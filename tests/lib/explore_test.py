@@ -4,6 +4,14 @@ from numpy import nan
 import datagenius.lib.explore as ex
 
 
+def test_count_values(employees):
+    expected = pd.DataFrame([
+        dict(employee_id=4, department=4, name=4, wfh_stipend=2)
+    ])
+    df, md_dict = ex.count_values(pd.DataFrame(**employees))
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)
+
+
 def test_count_uniques(customers, sales, products):
     expected = pd.DataFrame([
         dict(id=4, fname=4, lname=4, foreign_key=4)
