@@ -143,6 +143,7 @@ def test_isnumericplus():
     assert u.isnumericplus('00123')
     assert u.isnumericplus('00123', '-v') == (True, e.ZeroNumeric)
     assert u.isnumericplus('123', '-no_bool', '-convert') == 123
+    assert u.isnumericplus('0.00', '-v') == (True, float)
 
 
 def test_purge_gap_rows(gaps, gaps_totals):

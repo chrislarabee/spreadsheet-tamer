@@ -287,7 +287,7 @@ def isnumericplus(x, *options) -> (bool, tuple):
     elif isinstance(x, str):
         v = int if re.search(r'^\d+$', x) else v
         v = float if re.search(r'^\d+\.+\d*$', x) else v
-        v = e.ZeroNumeric if x[0] == '0' else v
+        v = e.ZeroNumeric if x[0] == '0' and x not in ('0', '0.00') else v
         numeric = True if v in (int, float, e.ZeroNumeric) else False
     result = [] if '-no_bool' in options else [numeric]
     if '-v' in options:
