@@ -6,5 +6,5 @@ from .util import transmutation
 
 __all__ = [
     'element', 'genius', 'util', 'CleaningGuide', 'SupplementGuide',
-    'ZeroNumeric', 'transmutation'
+    'RedistributionGuide', 'ZeroNumeric', 'transmutation'
 ]
