@@ -3,7 +3,7 @@ import inspect
 import re
 import string
 from collections import OrderedDict
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Mapping
 
 import pandas as pd
 from numpy import nan
@@ -381,7 +381,9 @@ def tuplify(value, do_none: bool = False) -> tuple:
     return value
 
 
-def tuplify_iterable(value: Sequence, do_none: bool = False) -> Sequence:
+def tuplify_iterable(
+        value: (Sequence, Mapping),
+        do_none: bool = False) -> (Sequence, Mapping):
     """
     Convenience method to apply tuplify function to the values of an
     iterable sequence.
