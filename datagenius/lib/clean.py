@@ -213,7 +213,8 @@ def convert_types(df: pd.DataFrame, type_mapping: dict) -> tuple:
 
 
 @u.transmutation(stage='standardize', priority=9)
-def redistribute(df: pd.DataFrame, redistribution_guides: dict) -> tuple:
+def redistribute(
+        df: pd.DataFrame, redistribution_guides: dict) -> tuple:
     """
     Uses the passed redistribution_guides to find matching values in
     the specified columns and move them to the destination columns.
@@ -221,24 +222,32 @@ def redistribute(df: pd.DataFrame, redistribution_guides: dict) -> tuple:
     Args:
         df: A DataFrame.
         redistribution_guides: A dictionary with source columns as keys
-            and RedistributionGuide objects as values.
+            and RedistributionGuide objects as values. Tuples of
+            RedistributionGuides as values are also acceptable.
 
     Returns: The transformed DataFrame, as well as a metadata
         dictionary.
 
     """
     md = u.gen_empty_md_df(df.columns)
-    for k, rd_guide in redistribution_guides.items():
-        result = df[k].apply(rd_guide)
-        c = rd_guide.destination
-        if rd_guide.overwrite:
-            rd_val_ct = result.count()
-            df[c] = result.fillna(df[c])
-        else:
-            df[c] = df[rd_guide.destination].fillna(result)
-            rd_val_ct = (result == df[c]).sum()
-        # Replace moved values with nan:
-        df.loc[result[result.notna()].index, k] = nan
-        md[k] = result.count()
-        md[c] += rd_val_ct
+    redistribution_guides = u.tuplify_iterable(redistribution_guides)
+    for k, rd_guides in redistribution_guides.items():
+        for rd_guide in rd_guides:
+            result = df[k].apply(rd_guide)
+            c = rd_guide.destination
+            if rd_guide.mode == 'overwrite':
+                rd_val_ct = result.count()
+                df[c] = result.fillna(df[c])
+            elif rd_guide.mode == 'append':
+                rd_val_ct = result.count()
+                spaces = result.notna().replace([True, False], [' ', ''])
+                df[c] = df[c] + spaces + result.fillna('')
+                df[c] = df[c].fillna(result)
+            else:
+                df[c] = df[c].fillna(result)
+                rd_val_ct = (result == df[c]).sum()
+            # Replace moved values with nan:
+            df.loc[result[result.notna()].index, k] = nan
+            md[k] += result.count()
+            md[c] += rd_val_ct
     return df, {'metadata': md}

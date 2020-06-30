@@ -55,7 +55,8 @@ def test_complete_clusters(needs_extrapolation, employees):
     expected_metadata = pd.DataFrame([
         dict(department=2)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
     df = pd.DataFrame([
         dict(a=1, b=2, c=3),
@@ -74,41 +75,48 @@ def test_complete_clusters(needs_extrapolation, employees):
     expected_metadata = pd.DataFrame([
         dict(a=2, b=3, c=2)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
 
 def test_reject_incomplete_rows(needs_cleanse_totals, sales):
     df = pd.DataFrame(**needs_cleanse_totals)
-    df, md_dict = cl.reject_incomplete_rows(df, ['location', 'region'])
+    df, md_dict = cl.reject_incomplete_rows(
+        df, ['location', 'region'])
     pd.testing.assert_frame_equal(df, pd.DataFrame(**sales))
     expected_metadata = pd.DataFrame([
         dict(location=0, region=0, sales=2)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
     expected_rejects = pd.DataFrame([
         dict(location=nan, region=nan, sales=800),
         dict(location=nan, region=nan, sales=1200),
     ], index=[2, 5])
-    pd.testing.assert_frame_equal(md_dict['rejects'], expected_rejects,
-                                  check_dtype=False)
+    pd.testing.assert_frame_equal(
+        md_dict['rejects'], expected_rejects, check_dtype=False)
 
 
 def test_reject_on_conditions(employees):
     df = pd.DataFrame(**employees)
-    df2, md_dict = cl.reject_on_conditions(df, "department == 'Sales'")
+    df2, md_dict = cl.reject_on_conditions(
+        df, "department == 'Sales'")
     pd.testing.assert_frame_equal(df[2:].reset_index(drop=True), df2)
     expected_metadata = pd.DataFrame([
         dict(employee_id=2, department=2, name=2, wfh_stipend=1)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
     df2, md_dict = cl.reject_on_conditions(
         df, ("department == 'Customer Service'", "employee_id == 4"))
-    pd.testing.assert_frame_equal(df.iloc[:3].reset_index(drop=True), df2)
+    pd.testing.assert_frame_equal(
+        df.iloc[:3].reset_index(drop=True), df2)
     expected_metadata = pd.DataFrame([
         dict(employee_id=1, department=1, name=1, wfh_stipend=0)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
 
 def test_reject_on_str_content(customers):
@@ -118,7 +126,8 @@ def test_reject_on_str_content(customers):
     expected_metadata = pd.DataFrame([
         dict(id=1, fname=1, lname=1, foreign_key=1)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
 
 def cleanse_redundancies():
@@ -137,7 +146,8 @@ def cleanse_redundancies():
     expected_metadata = pd.DataFrame([
         dict(a=0, b=1, c=2)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
 
 def test_cleanse_typos(needs_cleanse_typos):
@@ -153,7 +163,8 @@ def test_cleanse_typos(needs_cleanse_typos):
         dict(id=0, name=0, price=0, cost=0, upc=0, attr1=1, attr2=2,
              attr3=0, attr4=0, attr5=0)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
 
 def test_convert_types(customers):
@@ -165,7 +176,8 @@ def test_convert_types(customers):
     expected_metadata = pd.DataFrame([
         dict(id=4, fname=0, lname=0, foreign_key=4)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
 
 def test_redistribute():
@@ -183,13 +195,15 @@ def test_redistribute():
     ])
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
-            a=gd.RedistributionGuide('red', 'yellow', destination='b')
+            a=gd.RedistributionGuide(
+                'red', 'yellow', destination='b')
         ))
     pd.testing.assert_frame_equal(df2, expected)
     expected_metadata = pd.DataFrame([
         dict(a=2, b=1)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
 
     expected = pd.DataFrame([
         dict(a=nan, b='red'),
@@ -200,10 +214,29 @@ def test_redistribute():
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
             a=gd.RedistributionGuide(
-                'red', 'yellow', destination='b', overwrite=True)
+                'red', 'yellow', destination='b', mode='overwrite')
         ))
     pd.testing.assert_frame_equal(df2, expected)
     expected_metadata = pd.DataFrame([
         dict(a=2, b=2)
     ])
-    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)
+
+    expected = pd.DataFrame([
+        dict(a=nan, b='red'),
+        dict(a='L', b='blue'),
+        dict(a='S', b=nan),
+        dict(a=nan, b='hex yellow'),
+    ])
+    df2, md_dict = cl.redistribute(
+        df.copy(), redistribution_guides=dict(
+            a=gd.RedistributionGuide(
+                'red', 'yellow', destination='b', mode='append')
+        ))
+    pd.testing.assert_frame_equal(df2, expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=2, b=2)
+    ])
+    pd.testing.assert_frame_equal(
+        md_dict['metadata'], expected_metadata)

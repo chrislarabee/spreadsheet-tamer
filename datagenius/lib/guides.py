@@ -174,7 +174,7 @@ class RedistributionGuide(abc.Callable):
             self,
             *patterns,
             destination: str,
-            overwrite: bool = False):
+            mode: str = 'fillna'):
         """
 
         Args:
@@ -182,12 +182,24 @@ class RedistributionGuide(abc.Callable):
                 patterns.
             destination: The destination column to send qualifying
                 values to.
-            overwrite: Whether to overwrite a value in the destination
-                column with the qualifying value or not.
+            mode: A string, tells redistribute what to do with
+                qualifying values when the destination column already
+                has a value present. Available modes are overwrite
+                (self-explanatory), append (add qualifying values after
+                a space to any existing values in destination), and
+                fillna (place qualifying values in destination only if
+                destination is nan, remove qualifying values otherwise).
         """
         self.patterns: tuple = patterns
         self.destination: str = destination
-        self.overwrite: bool = overwrite
+        valid_modes = ('overwrite', 'append', 'fillna')
+        if mode in valid_modes:
+            self.mode: str = mode
+        else:
+            raise ValueError(
+                f'Parameter mode must be one of {valid_modes}, passed '
+                f'mode = {mode}'
+            )
 
     def __call__(self, check):
         """
