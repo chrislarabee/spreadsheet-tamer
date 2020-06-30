@@ -185,13 +185,13 @@ def test_redistribute():
         dict(a='red', b=nan),
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
-        dict(a='yellow', b='hex'),
+        dict(a='yellow', b=1),
     ])
     expected = pd.DataFrame([
         dict(a=nan, b='red'),
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
-        dict(a=nan, b='hex'),
+        dict(a=nan, b=1),
     ])
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
@@ -227,7 +227,7 @@ def test_redistribute():
         dict(a=nan, b='red'),
         dict(a='L', b='blue'),
         dict(a='S', b=nan),
-        dict(a=nan, b='hex yellow'),
+        dict(a=nan, b='1 yellow'),
     ])
     df2, md_dict = cl.redistribute(
         df.copy(), redistribution_guides=dict(
