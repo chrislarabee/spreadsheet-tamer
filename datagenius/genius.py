@@ -61,7 +61,7 @@ class GeniusAccessor:
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return self.transmute(
-            pp_tms,
+            self.order_transmutations(pp_tms),
             **options
         )
     
@@ -180,7 +180,7 @@ class GeniusAccessor:
         for tm in tms:
             if None not in u.align_args(tm, options, 'df').values():
                 result.append(tm)
-        return result
+        return GeniusAccessor.order_transmutations(result)
 
     def transmute(
             self,
