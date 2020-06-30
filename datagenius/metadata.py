@@ -62,6 +62,7 @@ class GeniusMetadata(Callable):
         t_kwargs = u.align_args(transmutation, kwargs, 'df')
         result = transmutation(df, **t_kwargs)
         if isinstance(result, tuple):
+            print(transmutation.__name__)
             meta_result = result[1]
             result = result[0]
             metadata = meta_result.get('metadata')
