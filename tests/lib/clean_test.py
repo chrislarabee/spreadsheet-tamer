@@ -121,6 +121,25 @@ def test_reject_on_str_content(customers):
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
 
 
+def cleanse_redundancies():
+    df = pd.DataFrame([
+        dict(a=1, b=1, c=1),
+        dict(a=2, b=3, c=2),
+        dict(a=3, b=nan, c=nan),
+    ])
+    expected = pd.DataFrame([
+        dict(a=1, b=nan, c=nan),
+        dict(a=2, b=3, c=nan),
+        dict(a=3, b=nan, c=nan),
+    ])
+    df, md_dict = cl.cleanse_redundancies(df, dict(a=('b', 'c')))
+    pd.testing.assert_frame_equal(df, expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=0, b=1, c=2)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+
 def test_cleanse_typos(needs_cleanse_typos):
     df = pd.DataFrame(**needs_cleanse_typos)
     df2, md_dict = cl.cleanse_typos(

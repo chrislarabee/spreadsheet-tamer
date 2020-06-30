@@ -120,6 +120,24 @@ def reject_on_str_content(
     return df, u.package_rejects_metadata(rejects)
 
 
+@u.transmutation(stage='clean', priority=9)
+def cleanse_redundancies(
+        df: pd.DataFrame, redundancy_map: dict) -> tuple:
+    for k, v in redundancy_map.items():
+        redundancy_map[k] = u.tuplify(v)
+
+    md = u.gen_empty_md_df(df.columns)
+    for master, extras in redundancy_map.items():
+        for e in extras:
+            result = df.apply(
+                lambda row: nan if row[master] == row[e] else row[e],
+                axis=1
+            )
+            md[e] = df[e].count() - result.count()
+            df[e] = result
+    return df, {'metadata': md}
+
+
 @u.transmutation(stage='standardize')
 def cleanse_typos(df: pd.DataFrame, cleaning_guides: dict):
     """

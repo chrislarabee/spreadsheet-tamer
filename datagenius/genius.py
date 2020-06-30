@@ -106,6 +106,7 @@ class GeniusAccessor:
             lib.clean.reject_incomplete_rows,
             lib.clean.reject_on_conditions,
             lib.clean.reject_on_str_content,
+            lib.clean.cleanse_redundancies,
         ]
         cl_tms = self._align_tms_with_options(all_cl_tms, options)
         return self.transmute(cl_tms, metadata, **options)
