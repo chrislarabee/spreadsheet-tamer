@@ -24,6 +24,7 @@ class TestGeniusAccessor:
     def test_explore(self, employees):
         df = pd.DataFrame(**employees)
         expected = pd.DataFrame([
+            ['explore', 'count_values', 4, 4, 4, 2],
             ['explore', 'count_uniques', 4, 2, 4, 1],
             ['explore', 'count_nulls', 0, 0, 0, 2],
             ['explore', 'collect_data_types',
