@@ -336,8 +336,21 @@ def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
+    """
+    Takes a list-like object and ensures every element in it is
+    compliant as a sqlite column name.
+
+    Args:
+        header: An Index, list, or tuple.
+
+    Returns: A tuple of the altered header as a list and the original
+        header as a list.
+
+    """
     result = []
     for h in header:
+        p = string.punctuation.replace('_', '')
+        h = re.sub(re.compile(r'[' + p + ']'), '', h)
         result.append(re.sub(' +', '_', h.strip()).lower())
     return result, list(header)
 
