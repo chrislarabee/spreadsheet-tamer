@@ -189,6 +189,18 @@ class TestGeniusAccessor:
             'attr1', 'attr2', 'upc', strf=str.title, name=str.upper)
         pd.testing.assert_frame_equal(df, expected)
 
+    def test_multiapply(self):
+        df = pd.DataFrame([
+            dict(a=1, b=2, c=3),
+            dict(a=4, b=5, c=6)
+        ])
+        expected = pd.DataFrame([
+            dict(a=2, b=2, c=6),
+            dict(a=8, b=5, c=12)
+        ])
+        df = df.genius.multiapply(lambda x: x * 2, 'a', 'c')
+        pd.testing.assert_frame_equal(df, expected)
+
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
             'tests/samples/csv/simple.csv')

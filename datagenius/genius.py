@@ -315,6 +315,29 @@ class GeniusAccessor:
             )
         return self.df
 
+    def multiapply(self, func: Callable, *columns, **kwargs):
+        """
+        Convenience method for running the same function on one or more
+        columns of the DataFrame with the same arguments. Avoids having
+        to write out df['colx'] = df['colx'].apply(...) repeatedly.
+
+        Args:
+            func: A function that takes at least one argument.
+            *columns: Column labels from self.df.
+            **kwargs: Keyword args expected by func.
+
+        Returns: The DataFrame, with the specified columns modified by
+            the specified column.
+
+        """
+        kwargs = u.align_args(func, kwargs)
+        for c in columns:
+            if len(kwargs) > 1:
+                self.df[c] = self.df[c].apply(func, **kwargs)
+            else:
+                self.df[c] = self.df[c].apply(func)
+        return self.df
+
     @classmethod
     def from_file(
             cls,
