@@ -56,7 +56,8 @@ class GeniusAccessor:
         pp_tms = [
             lib.preprocess.normalize_whitespace,
         ]
-        if self.df.columns[0] in ('Unnamed: 0', 'unnamed:_0', 0):
+        if (u.gwithin(self.df.columns, r'[Uu]nnamed:*[ _]\d')
+                or isinstance(self.df.columns, pd.RangeIndex)):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return self.transmute(

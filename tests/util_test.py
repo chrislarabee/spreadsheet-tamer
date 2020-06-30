@@ -123,6 +123,14 @@ def test_gtype():
     assert pd.isna(u.gtype(nan))
 
 
+def test_gwithin():
+    assert u.gwithin([1, 2, 3], 1)
+    assert u.gwithin([1, 2, 3], 1, 4)
+    assert not u.gwithin([1, 2, 3], 4, 5)
+    assert u.gwithin(['xyz', 'a23'], r'[a-z]\d+')
+    assert not u.gwithin(['xyz', 'a23'], r'[a-z]\d[a-z]')
+
+
 def test_isnumericplus():
     assert u.isnumericplus(1)
     assert u.isnumericplus(2.25)

@@ -262,6 +262,37 @@ def gtype(obj):
     return nan if pd.isna(obj) else type(obj)
 
 
+def gwithin(within: Sequence, *values) -> bool:
+    """
+    A more sophisticated way to execute "x in iterable" type python
+    statements. Allows searching for multiple values at once and using
+    regex.
+
+    Args:
+        within: A sequence to search within.
+        *values: An arbitrary list of values. Strings will be used to
+            create regex-based matches against each value in within. If
+            any of the values are found in within, gwithin will return
+            True.
+
+    Returns: A boolean indicating whether any of the objects in values
+        are contained in within.
+
+    """
+    result = False
+    for v in values:
+        if isinstance(v, str):
+            for w in within:
+                if re.search(v, str(w)) is not None:
+                    result = True
+                    break
+        else:
+            if v in within:
+                result = True
+                break
+    return result
+
+
 def isnumericplus(x, *options) -> (bool, tuple):
     """
     A better version of the str.isnumeric test that correctly
