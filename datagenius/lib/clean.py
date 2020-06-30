@@ -123,6 +123,22 @@ def reject_on_str_content(
 @u.transmutation(stage='clean', priority=9)
 def cleanse_redundancies(
         df: pd.DataFrame, redundancy_map: dict) -> tuple:
+    """
+    For each row in the DataFrame, if a key in redundancy_map contains
+    the same value as the column(s) in the paired value, replaces the
+    column(s)' value with nan, removing the redundant data.
+
+    Args:
+        df: A DataFrame.
+        redundancy_map: A dictionary with master column names as keys
+            (the columns that *should* contain the data) and a one or
+            more other columns that some rows may also contain the
+            value in the master column.
+
+    Returns: The DataFrame, with redundant data removed from rows
+        where it is appropriate, as well as a metadata dictionary.
+
+    """
     for k, v in redundancy_map.items():
         redundancy_map[k] = u.tuplify(v)
 
