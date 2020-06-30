@@ -62,14 +62,12 @@ class GeniusMetadata(Callable):
         t_kwargs = u.align_args(transmutation, kwargs, 'df')
         result = transmutation(df, **t_kwargs)
         if isinstance(result, tuple):
-            print(transmutation.__name__)
             meta_result = result[1]
             result = result[0]
             metadata = meta_result.get('metadata')
             rejects = meta_result.get('rejects')
             new_kwargs = meta_result.get('new_kwargs')
             o_header = meta_result.get('orig_header')
-            print(self._collected.columns)
             if metadata is not None:
                 metadata['transmutation'] = transmutation.__name__
                 stage = getattr(transmutation, 'stage', '_no_stage')
