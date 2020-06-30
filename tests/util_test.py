@@ -76,6 +76,12 @@ def test_count_true_str():
     assert u.count_true_str(pd.Series([np.nan, 'test', 1])) == 1
 
 
+def test_enforce_uniques():
+    assert u.enforce_uniques([1, 2, 3]) == [1, 2, 3]
+    assert u.enforce_uniques(['x', 'x', 'y']) == ['x', 'x_1', 'y']
+    assert u.enforce_uniques([1, 2, 2]) == [1, 2, '2_1']
+
+
 def test_gen_alpha_keys():
     assert u.gen_alpha_keys(5) == ['A', 'B', 'C', 'D', 'E']
     assert u.gen_alpha_keys(26) == list(string.ascii_uppercase)
@@ -171,10 +177,10 @@ def test_purge_gap_rows(gaps, gaps_totals):
 
 def test_standardize_header():
     header = pd.Index(
-        ['Variant SKU', ' Barcode  2 ', 'Barcode  #3']
+        ['Variant SKU', ' Barcode  2 ', 'Barcode  #3', 'Barcode 3']
     )
     assert u.standardize_header(header) == (
-        ['variant_sku', 'barcode_2', 'barcode_3'],
+        ['variant_sku', 'barcode_2', 'barcode_3', 'barcode_3_1'],
         list(header)
     )
 

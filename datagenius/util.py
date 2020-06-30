@@ -159,6 +159,28 @@ def count_true_str(x: (list, pd.Series)) -> int:
     )
 
 
+def enforce_uniques(x: list) -> list:
+    """
+    Loops a list and appends incremental numerals to any repeated
+    values.
+
+    Args:
+        x: A list.
+
+    Returns: The list, with any repeated values converted to strings
+        and appended with _X, where X is an integer.
+
+    """
+    values = dict()
+    for i, val in enumerate(x):
+        if val in values.keys():
+            x[i] = str(val) + '_' + str(values[val])
+            values[val] += 1
+        else:
+            values[val] = 1
+    return x
+
+
 def gen_alpha_keys(num: int) -> list:
     """
     Generates a set of characters from the Latin alphabet a la excel
@@ -383,6 +405,8 @@ def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
         p = string.punctuation.replace('_', '')
         h = re.sub(re.compile(r'[' + p + ']'), '', h)
         result.append(re.sub(' +', '_', h.strip()).lower())
+    if len(set(result)) < len(result):
+        result = enforce_uniques(result)
     return result, list(header)
 
 
