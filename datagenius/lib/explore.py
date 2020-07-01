@@ -30,7 +30,14 @@ def count_uniques(df: pd.DataFrame):
     Returns: The DataFrame, and a metadata dictionary.
 
     """
-    return df, {'metadata': pd.DataFrame(df.nunique()).T}
+    md = u.gen_empty_md_df(df.columns)
+    # This loop avoids using nunique on raw data, which can cause
+    # errors if the data contains unexpected data types like lists.
+    # Using gconvert to convert to string before counting uniques
+    # prevents errors.
+    for c in df.columns:
+        md[c] = df[c].apply(u.gconvert, target_type=str).nunique()
+    return df, {'metadata': md}
 
 
 @u.transmutation(stage='explore')

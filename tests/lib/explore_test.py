@@ -5,6 +5,15 @@ import datagenius.lib.explore as ex
 
 
 def test_count_values(employees):
+    # Data type compatibility check:
+    df = pd.DataFrame([
+        dict(a=[1, 2, 3], b=2),
+        dict(a=[4, 5, 6], b=3)
+    ])
+    expected = pd.DataFrame([dict(a=2, b=2)])
+    df, md_dict = ex.count_values(df)
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)
+
     expected = pd.DataFrame([
         dict(employee_id=4, department=4, name=4, wfh_stipend=2)
     ])
@@ -13,6 +22,15 @@ def test_count_values(employees):
 
 
 def test_count_uniques(customers, sales, products):
+    # Data type compatibility check:
+    df = pd.DataFrame([
+        dict(a=[1, 2, 3], b=2),
+        dict(a=[4, 5, 6], b=3)
+    ])
+    expected = pd.DataFrame([dict(a=2, b=2)])
+    df, md_dict = ex.count_uniques(df)
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)
+
     expected = pd.DataFrame([
         dict(id=4, fname=4, lname=4, foreign_key=4)
     ])
@@ -34,6 +52,15 @@ def test_count_uniques(customers, sales, products):
 
 
 def test_count_nulls(products):
+    # Data type compatibility check:
+    df = pd.DataFrame([
+        dict(a=[1, 2, 3], b=2),
+        dict(a=[4, 5, 6], b=3)
+    ])
+    expected = pd.DataFrame([dict(a=0, b=0)])
+    df, md_dict = ex.count_nulls(df)
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected)
+
     expected = pd.DataFrame([
         dict(id=0, name=0, price=0, cost=0, upc=0,
              attr1=1, attr2=1, attr3=4, attr4=4, attr5=4)
