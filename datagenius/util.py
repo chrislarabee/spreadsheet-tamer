@@ -56,6 +56,32 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
         return decorator_transmutation(func)
 
 
+def nullable(func: Callable):
+    """
+    An easy way to wrap functions that need to not execute if they are
+    used in a DataFrame/Series.apply call on data that contains nan
+    values. Simply use this decorator and the function will simply
+    return nan if passed a nan value.
+
+    Args:
+        func: A callable object.
+
+    Returns: The result of func, or nan if the first positional
+        argument is nan.
+
+    """
+    # Allows nullable to be used as a decorator:
+    @functools.wraps(func)
+    def wrapper_nullable(*args, **kwargs):
+        arg1 = args[0]
+        if isinstance(arg1, (list, tuple, dict)) or pd.notna(arg1):
+            return func(*args, **kwargs)
+        else:
+            return args[0]
+
+    return wrapper_nullable
+
+
 def align_args(func: Callable, kwargs: dict,
                suppress: (list, str) = None) -> dict:
     """
@@ -240,6 +266,7 @@ def get_class_name(obj) -> str:
         return re.findall(r"<class '(.+)'>", str(t))[0]
 
 
+@nullable
 def gconvert(obj, target_type):
     """
     Smart type conversion that avoids errors when converting to numeric
@@ -259,17 +286,15 @@ def gconvert(obj, target_type):
         float: (isnumericplus, '-convert', '-no_bool'),
         e.ZeroNumeric: (isnumericplus, '-convert', '-no_bool')
     }
-    if pd.isna(obj):
-        return obj
-    else:
-        if target_type not in type_funcs.keys():
-            raise ValueError(
-                f'target_type must be one of {list(type_funcs.keys())}')
-        conv_tuple = type_funcs[target_type]
-        args = (obj, *conv_tuple[1:])
-        return conv_tuple[0](*args)
+    if target_type not in type_funcs.keys():
+        raise ValueError(
+            f'target_type must be one of {list(type_funcs.keys())}')
+    conv_tuple = type_funcs[target_type]
+    args = (obj, *conv_tuple[1:])
+    return conv_tuple[0](*args)
 
 
+@nullable
 def gtype(obj):
     """
     Wrapper for type that distinguishes nan values as nan and not
@@ -281,7 +306,7 @@ def gtype(obj):
     Returns: The type of the object, or nan if it is a numpy nan.
 
     """
-    return nan if pd.isna(obj) else type(obj)
+    return type(obj)
 
 
 def gwithin(within: Sequence, *values) -> bool:
@@ -377,12 +402,12 @@ def package_rejects_metadata(df: pd.DataFrame):
 
 def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Takes a Dataset object and drops rows that are entirely nan.
+    Takes a DataFrame object and drops rows that are entirely nan.
 
     Args:
-        df: A Dataset object.
+        df: A DataFrame.
 
-    Returns: A Dataset without entirely nan rows.
+    Returns: A DataFrame without entirely nan rows.
 
     """
     return df.dropna(how='all').reset_index(drop=True)
@@ -473,7 +498,7 @@ def tuplify_iterable(
     return value
 
 
-def validate_attr(obj, attr: str, match = None) -> bool:
+def validate_attr(obj, attr: str, match=None) -> bool:
     """
     Takes an object and checks its attributes. Useful in situations 
     where you want to check an object's attributes without first 

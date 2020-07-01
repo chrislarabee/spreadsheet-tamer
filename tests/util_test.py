@@ -28,6 +28,14 @@ def test_transmutation():
     assert func.stage == 'a_custom_stage'
 
 
+def test_nullable():
+    @u.nullable
+    def func(x):
+        return x[0]
+    assert func([1, 2, 3]) == 1
+    assert pd.isna(func(nan))
+
+
 def test_align_args():
     assert u.align_args(
         lambda x, y: x + y, kwargs=dict(x=1, y=3)) == dict(x=1, y=3)
