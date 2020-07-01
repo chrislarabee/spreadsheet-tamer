@@ -3,7 +3,7 @@ import inspect
 import re
 import string
 from collections import OrderedDict
-from typing import Callable, Sequence, Mapping
+from typing import Callable, Sequence, Mapping, Collection
 
 import pandas as pd
 from numpy import nan
@@ -81,7 +81,7 @@ def nullable(func: Callable = None, *, nan_return=nan):
             # Need to avoid an error when passing the various pandas
             # nan detection functions, which cannot handle any kind of
             # list-like:
-            if isinstance(arg1, (list, tuple, dict)) or pd.notna(arg1):
+            if isinstance(arg1, Collection) or pd.notna(arg1):
                 return _func(*args, **kwargs)
             else:
                 return nan_return
