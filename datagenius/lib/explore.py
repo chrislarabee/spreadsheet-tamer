@@ -182,10 +182,12 @@ def id_clustering_violations(
     # Combine row_cts and unique counts into core df:
     clusters = df.merge(
         cluster_row_cts,
+        how='left',
         on=cluster_group_by
     ).merge(
         g[[*cluster_group_by, *u_col_names]],
         on=cluster_group_by,
+        how='left',
         suffixes=('', '_ct')
     )
     clusters['rn'] = clusters.groupby(
