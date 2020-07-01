@@ -56,7 +56,7 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
         return decorator_transmutation(func)
 
 
-def nullable(func: Callable):
+def nullable(func: Callable = None, *, nan_return=nan):
     """
     An easy way to wrap functions that need to not execute if they are
     used in a DataFrame/Series.apply call on data that contains nan
@@ -65,21 +65,33 @@ def nullable(func: Callable):
 
     Args:
         func: A callable object.
+        nan_return: The value to return if func is passed a nan value
+            as its first argument. Defaults to nan.
 
     Returns: The result of func, or nan if the first positional
         argument is nan.
 
     """
-    # Allows nullable to be used as a decorator:
-    @functools.wraps(func)
-    def wrapper_nullable(*args, **kwargs):
-        arg1 = args[0]
-        if isinstance(arg1, (list, tuple, dict)) or pd.notna(arg1):
-            return func(*args, **kwargs)
-        else:
-            return args[0]
+    # Allows nullable functions to take arguments:
+    def decorator_nullable(_func):
+        # Allows nullable to be used as a decorator:
+        @functools.wraps(_func)
+        def wrapper_nullable(*args, **kwargs):
+            arg1 = args[0]
+            # Need to avoid an error when passing the various pandas
+            # nan detection functions, which cannot handle any kind of
+            # list-like:
+            if isinstance(arg1, (list, tuple, dict)) or pd.notna(arg1):
+                return _func(*args, **kwargs)
+            else:
+                return nan_return
 
-    return wrapper_nullable
+        return wrapper_nullable
+
+    if not isinstance(func, Callable):
+        return decorator_nullable
+    else:
+        return decorator_nullable(func)
 
 
 def align_args(func: Callable, kwargs: dict,
@@ -248,6 +260,7 @@ def gen_empty_md_df(columns: Sequence, default_val=0) -> pd.DataFrame:
     return pd.DataFrame([[default_val for _ in columns]], columns=columns)
 
 
+@nullable(nan_return='nan')
 def get_class_name(obj) -> str:
     """
     Gets the name of the passed object's class, even if it doesn't
@@ -259,11 +272,8 @@ def get_class_name(obj) -> str:
     Returns: A string representing the name of the object's class.
 
     """
-    if pd.isna(obj):
-        return 'nan'
-    else:
-        t = type(obj)
-        return re.findall(r"<class '(.+)'>", str(t))[0]
+    t = type(obj)
+    return re.findall(r"<class '(.+)'>", str(t))[0]
 
 
 @nullable

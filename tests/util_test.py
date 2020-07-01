@@ -119,12 +119,14 @@ def test_get_class_name():
     assert u.get_class_name(123) == 'int'
     assert u.get_class_name(1.245) == 'float'
     assert u.get_class_name(nan) == 'nan'
+    assert u.get_class_name([1, 2, 3]) == 'list'
 
 
 def test_gconvert():
     assert u.gconvert(123, str) == '123'
     assert u.gconvert('1..23', float) == 1.23
     assert pd.isna(u.gconvert(nan, int))
+    assert u.gconvert([1, 2, 3], str) == '[1, 2, 3]'
     with pytest.raises(
             ValueError, match='target_type must be one of'):
         u.gconvert(123, dict)
