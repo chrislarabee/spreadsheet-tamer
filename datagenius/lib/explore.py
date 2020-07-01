@@ -145,9 +145,10 @@ def id_clustering_violations(
         df: A DataFrame.
         cluster_group_by: A list of columns in df that, when grouped,
             define a cluster.
-        cluster_unique_cols: A lis tof columns in df that, when the df
+        cluster_unique_cols: A list of columns in df that, when the df
             is grouped on cluster_group_by, must be unique within the
-            cluster.
+            cluster. If you want combinations of columns to be unique,
+            pass them as a tuple within cluster_unique_cols.
 
     Returns: The DataFrame, with each row appended with details about
         whether it violates clustering, and how. Also a metadata
@@ -156,27 +157,41 @@ def id_clustering_violations(
     """
     md = u.gen_empty_md_df(df.columns)
     df['row_ct'] = 1
+    # Preprocess cluster_unique_cols to handle column combinations:
+    u_col_names = []
+    for c in cluster_unique_cols:
+        if isinstance(c, tuple):
+            name = '_'.join(c) + '_x'
+            df[name] = ''
+            for source_col in c:
+                df[name] = df[name] + df[source_col].astype(str)
+            u_col_names.append(name)
+        else:
+            u_col_names.append(c)
     # Get number of rows in each cluster, reset_index twice so each
     # cluster has a unique id:
     cluster_row_cts = df.groupby(
         cluster_group_by)['row_ct'].sum().reset_index().reset_index()
     cluster_row_cts.rename(
         columns={'index': 'cluster_id'}, inplace=True)
+    # row_ct in core df no longer necessary:
     df = df.drop(columns='row_ct')
+    # Get the count of each unique value in the ungrouped columns:
     g = df.groupby(cluster_group_by).nunique().drop(
         columns=cluster_group_by).reset_index()
+    # Combine row_cts and unique counts into core df:
     clusters = df.merge(
         cluster_row_cts,
         on=cluster_group_by
     ).merge(
-        g[[*cluster_group_by, *cluster_unique_cols]],
+        g[[*cluster_group_by, *u_col_names]],
         on=cluster_group_by,
         suffixes=('', '_ct')
     )
     clusters['rn'] = clusters.groupby(
         [*cluster_group_by, 'cluster_id']).cumcount() + 1
-    invalid_inds = u.broadcast_suffix(cluster_unique_cols, '_invalid')
-    for c in cluster_unique_cols:
+    invalid_inds = u.broadcast_suffix(u_col_names, '_invalid')
+    for c in u_col_names:
         result = clusters[c + '_ct'] != clusters['row_ct']
         md[c] = result.sum()
         clusters[c + '_invalid'] = result

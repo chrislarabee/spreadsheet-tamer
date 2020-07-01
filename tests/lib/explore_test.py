@@ -136,3 +136,31 @@ def test_id_clustering_violations():
         dict(a=0, b=0, c=3)
     ])
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+    # Test unique combos:
+    df = pd.DataFrame([
+        dict(a='w', b='i', c=1),
+        dict(a='x', b='j', c=2),
+        dict(a='x', b='j', c=2),
+        dict(a='x', b='j', c=nan),
+        dict(a='y', b='k', c=1),
+        dict(a='y', b='k', c=2),
+    ])
+    expected_cols = [
+        'cluster_id', 'row_ct', 'b_c_x_ct', 'rn', 'b_c_x_invalid', 'invalid']
+    expected = pd.DataFrame([
+        [0, 1, 1, 1, False, False],
+        [1, 3, 2, 1, True, True],
+        [1, 3, 2, 2, True, True],
+        [1, 3, 2, 3, True, True],
+        [2, 2, 2, 1, False, False],
+        [2, 2, 2, 2, False, False]
+    ], columns=expected_cols)
+    df, md_dict = ex.id_clustering_violations(
+        df, ['a'], [('b', 'c')]
+    )
+    pd.testing.assert_frame_equal(df[expected_cols], expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=0, b=0, c=0, b_c_x=3)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
