@@ -178,9 +178,13 @@ def test_isnumericplus():
     assert u.isnumericplus('0.00', '-v') == (True, float)
     assert u.isnumericplus('-123')
     assert u.isnumericplus('-12.02')
+    assert u.isnumericplus('-0.12')
     assert not u.isnumericplus('-abc')
     assert u.isnumericplus('-1234', '-convert') == (True, -1234)
     assert u.isnumericplus('-1234..56', '-convert') == (True, -1234.56)
+    assert u.isnumericplus('-0.12', '-convert') == (True, -0.12)
+    assert u.isnumericplus('-0.00', '-convert') == (True, 0.00)
+    assert u.isnumericplus('0.90', '-convert') == (True, 0.90)
 
 
 def test_purge_gap_rows(gaps, gaps_totals):
