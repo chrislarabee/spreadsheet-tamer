@@ -2,9 +2,9 @@ from .element import ZeroNumeric
 from .genius import GeniusAccessor
 from .io import odbc, text
 from .lib import CleaningGuide, SupplementGuide, RedistributionGuide
-from .util import transmutation
+from .util import transmutation, nullable
 
 __all__ = [
     'element', 'genius', 'util', 'CleaningGuide', 'SupplementGuide',
-    'RedistributionGuide', 'ZeroNumeric', 'transmutation'
+    'RedistributionGuide', 'ZeroNumeric', 'transmutation', 'nullable'
 ]
