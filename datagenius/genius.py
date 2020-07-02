@@ -1,12 +1,10 @@
 import os
-import warnings
 from typing import Callable
 
 import pandas as pd
-import recordlinkage as link
+import numpy as np
 
 import datagenius.lib as lib
-import datagenius.element as e
 import datagenius.util as u
 import datagenius.metadata as md
 from datagenius.io import odbc
@@ -336,6 +334,39 @@ class GeniusAccessor:
                 self.df[c] = self.df[c].apply(func, **kwargs)
             else:
                 self.df[c] = self.df[c].apply(func)
+        return self.df
+
+    def fillna_shift(self, *columns):
+        """
+        Takes at least two columns in the DataFrame shifts all their
+        values "leftward", replacing nan values. Basically, a given
+        column's value will be moved "left" in the reverse of the order
+        specified by columns until it hits the end or a non-null value.
+
+        So:
+            a   b   c            a   b   c
+        0   1   nan 2        0   1   2   nan
+        1   nan 3   4   ->   1   3   4   nan
+        2   nan nan 5        2   5   nan nan
+
+        If you pass a, b, c in that order. c, b, a would reverse the
+        direction of the shift. You can also do arbitrary column orders
+        like b, c, a.
+
+        Args:
+            *columns: A list of columns in the DataFrame.
+
+        Returns: The DataFrame, with values shifted into nan cells per
+            the order of the passed columns.
+
+        """
+        if len(columns) < 2:
+            raise ValueError('Must supply at least 2 columns.')
+        for i, c in enumerate(columns[:-1]):
+            for c2 in columns[i + 1:]:
+                self.df[c].fillna(self.df[c2], inplace=True)
+                self.df[c2] = np.where(
+                    self.df[c] == self.df[c2], np.nan, self.df[c2])
         return self.df
 
     @classmethod
