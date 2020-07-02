@@ -61,7 +61,7 @@ class GeniusAccessor:
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return self.transmute(
-            self.order_transmutations(pp_tms),
+            *self.order_transmutations(pp_tms),
             **options
         )
     
@@ -82,10 +82,7 @@ class GeniusAccessor:
             lib.explore.count_nulls,
             lib.explore.collect_data_types
         ]
-        return self.transmute(
-            ex_tms,
-            metadata
-        )
+        return self.transmute(*ex_tms, metadata=metadata)
 
     def clean(
             self,
@@ -111,7 +108,7 @@ class GeniusAccessor:
             lib.clean.cleanse_redundancies,
         ]
         cl_tms = self._align_tms_with_options(all_cl_tms, options)
-        return self.transmute(cl_tms, metadata, **options)
+        return self.transmute(*cl_tms, metadata=metadata, **options)
 
     def reformat(
             self,
@@ -135,7 +132,7 @@ class GeniusAccessor:
             lib.reformat.fill_defaults,
         ]
         rf_tms = self._align_tms_with_options(all_rf_tms, options)
-        return self.transmute(rf_tms, metadata, **options)
+        return self.transmute(*rf_tms, metadata=metadata, **options)
 
     def standardize(
             self,
@@ -160,7 +157,7 @@ class GeniusAccessor:
             lib.clean.redistribute,
         ]
         st_tms = self._align_tms_with_options(all_st_tms, options)
-        return self.transmute(st_tms, metadata, **options)
+        return self.transmute(*st_tms, metadata=metadata, **options)
 
     @staticmethod
     def _align_tms_with_options(tms: list, options: dict) -> list:
@@ -184,7 +181,7 @@ class GeniusAccessor:
 
     def transmute(
             self,
-            transmutations: list,
+            *transmutations,
             metadata: md.GeniusMetadata = None,
             **options) -> tuple:
         """
