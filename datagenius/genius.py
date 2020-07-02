@@ -61,7 +61,7 @@ class GeniusAccessor:
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return self.transmute(
-            *self.order_transmutations(pp_tms),
+            *pp_tms,
             **options
         )
     
@@ -177,7 +177,7 @@ class GeniusAccessor:
         for tm in tms:
             if None not in u.align_args(tm, options, 'df').values():
                 result.append(tm)
-        return GeniusAccessor.order_transmutations(result)
+        return result
 
     def transmute(
             self,
@@ -199,7 +199,7 @@ class GeniusAccessor:
 
         """
         metadata = md.GeniusMetadata() if metadata is None else metadata
-        transmutations = self.order_transmutations(transmutations)
+        transmutations = self._order_transmutations(transmutations)
         self.df = metadata(self.df, *transmutations, **options)
         return self.df, metadata
 
@@ -420,7 +420,7 @@ class GeniusAccessor:
                 odbc.write_sqlite(conn, f'{table}_rejects', m.rejects)
 
     @staticmethod
-    def order_transmutations(tms: (list, tuple)):
+    def _order_transmutations(tms: (list, tuple)):
         """
         Places a list/tuple of transmutations in priority order.
         Primarily useful when mixing end-user custom transmutations

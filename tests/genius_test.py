@@ -114,6 +114,18 @@ class TestGeniusAccessor:
             tms, dict(reject_conditions='a == 1')
         ) == expected
 
+    def test_transmute(self, customers):
+        expected = pd.DataFrame([
+            [1, 'Yancy', 'Cordwainer', '00025']
+        ], columns=['id', 'fname', 'lname', 'foreign_key'])
+        df, md_dict = pd.DataFrame(**customers()).genius.transmute(
+            ge.lib.clean.convert_types,
+            ge.lib.clean.reject_on_conditions,
+            type_mapping=dict(id=int),
+            reject_conditions='id > 1'
+        )
+        pd.testing.assert_frame_equal(df, expected)
+
     def test_supplement(self, sales, regions, stores):
         df1 = pd.DataFrame(**sales)
         df2 = pd.DataFrame(**regions)
@@ -290,5 +302,5 @@ class TestGeniusAccessor:
 
         expected = [x1, x2, x3]
 
-        assert pd.DataFrame.genius.order_transmutations(
+        assert pd.DataFrame.genius._order_transmutations(
             [x2, x3, x1]) == expected
