@@ -119,14 +119,15 @@ def test_id_clustering_violations():
         dict(a='x', b='k', c=2),
     ])
     expected_cols = [
-        'cluster_id', 'row_ct', 'c_ct', 'rn', 'c_invalid', 'invalid']
+        'cluster_id', 'row_ct', 'c_ct', 'c_nu', 'rn', 'c_invalid',
+        'cluster_invalid']
     expected = pd.DataFrame([
-        [0, 1, 1, 1, False, False],
-        [1, 3, 1, 1, True, True],
-        [1, 3, 1, 2, True, True],
-        [1, 3, 1, 3, True, True],
-        [2, 2, 2, 1, False, False],
-        [2, 2, 2, 2, False, False]
+        [0, 1, 1, 1, 1, False, False],
+        [1, 3, 2, 1, 1, True, True],
+        [1, 3, 2, 1, 2, True, True],
+        [1, 3, 2, 1, 3, True, True],
+        [2, 2, 2, 2, 1, False, False],
+        [2, 2, 2, 2, 2, False, False]
     ], columns=expected_cols)
     df, md_dict = ex.id_clustering_violations(
         df, ['a', 'b'], ['c']
@@ -144,23 +145,28 @@ def test_id_clustering_violations():
         dict(a='x', b='j', c=2),
         dict(a='x', b='j', c=nan),
         dict(a='y', b='k', c=1),
-        dict(a='y', b='k', c=2),
+        dict(a='y', b=nan, c=2),
+        dict(a='z', b='l', c=nan),
+        dict(a='z', b='m', c=nan)
     ])
     expected_cols = [
-        'cluster_id', 'row_ct', 'b_c_x_ct', 'rn', 'b_c_x_invalid', 'invalid']
+        'cluster_id', 'row_ct', 'b_ct', 'c_ct', 'b_c_x_nu', 'rn',
+        'b_invalid', 'c_invalid', 'b_c_x_invalid', 'cluster_invalid']
     expected = pd.DataFrame([
-        [0, 1, 1, 1, False, False],
-        [1, 3, 2, 1, True, True],
-        [1, 3, 2, 2, True, True],
-        [1, 3, 2, 3, True, True],
-        [2, 2, 2, 1, False, False],
-        [2, 2, 2, 2, False, False]
+        [0, 1, 1, 1, 1, 1, False, False, False, False],
+        [1, 3, 3, 2, 2, 1, False, True, True, True],
+        [1, 3, 3, 2, 2, 2, False, True, True, True],
+        [1, 3, 3, 2, 2, 3, False, True, True, True],
+        [2, 2, 1, 2, 2, 1, True, False, False, True],
+        [2, 2, 1, 2, 2, 2, True, False, False, True],
+        [3, 2, 2, 0, 2, 1, False, False, False, False],
+        [3, 2, 2, 0, 2, 2, False, False, False, False],
     ], columns=expected_cols)
     df, md_dict = ex.id_clustering_violations(
         df, ['a'], [('b', 'c')]
     )
     pd.testing.assert_frame_equal(df[expected_cols], expected)
     expected_metadata = pd.DataFrame([
-        dict(a=0, b=0, c=0, b_c_x=3)
+        dict(a=0, b=2, c=3, b_c_x=3)
     ])
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
