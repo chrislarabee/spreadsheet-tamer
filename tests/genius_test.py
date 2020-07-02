@@ -225,34 +225,34 @@ class TestGeniusAccessor:
 
     def test_fillna_shift(self):
         df = pd.DataFrame([
-            dict(a=1, b=nan, c=2),
-            dict(a=nan, b=3, c=4),
-            dict(a=nan, b=nan, c=5)
+            dict(a=1, b=nan, c=nan, d=2),
+            dict(a=nan, b=3, c=4, d=nan),
+            dict(a=nan, b=nan, c=5, d=nan)
         ])
         expected = pd.DataFrame([
-            dict(a=1, b=2, c=nan),
-            dict(a=3, b=4, c=nan),
-            dict(a=5, b=nan, c=nan)
+            dict(a=1, b=2, c=nan, d=nan),
+            dict(a=3, b=4, c=nan, d=nan),
+            dict(a=5, b=nan, c=nan, d=nan)
         ])
-        df2 = df.copy().genius.fillna_shift('a', 'b', 'c')
+        df2 = df.copy().genius.fillna_shift('a', 'b', 'c', 'd')
         pd.testing.assert_frame_equal(df2, expected, check_dtype=False)
 
         # Check rightward column order:
         expected = pd.DataFrame([
-            dict(a=nan, b=1, c=2),
-            dict(a=nan, b=3, c=4),
-            dict(a=nan, b=nan, c=5)
+            dict(a=nan, b=nan, c=1, d=2),
+            dict(a=nan, b=nan, c=3, d=4),
+            dict(a=nan, b=nan, c=nan, d=5)
         ])
-        df2 = df.copy().genius.fillna_shift('c', 'b', 'a')
+        df2 = df.copy().genius.fillna_shift('d', 'c', 'b', 'a')
         pd.testing.assert_frame_equal(df2, expected, check_dtype=False)
 
         # Check unusual column order:
         expected = pd.DataFrame([
-            dict(a=nan, b=2, c=1),
-            dict(a=nan, b=3, c=4),
-            dict(a=nan, b=5, c=nan)
+            dict(a=nan, b=2, c=1, d=nan),
+            dict(a=nan, b=3, c=4, d=nan),
+            dict(a=nan, b=5, c=nan, d=nan)
         ])
-        df2 = df.copy().genius.fillna_shift('b', 'c', 'a')
+        df2 = df.copy().genius.fillna_shift('b', 'c', 'd', 'a')
         pd.testing.assert_frame_equal(df2, expected, check_dtype=False)
 
         with pytest.raises(
