@@ -100,6 +100,36 @@ class ZeroNumeric:
         else:
             return op(self._numeric, other)
 
+    @staticmethod
+    @u.nullable
+    def zn_float(zn):
+        """
+        Usable with pandas apply.
+
+        Args:
+            zn: A ZeroNumeric object.
+
+        Returns: A ZeroNumeric object with the numeric portion as a
+            float.
+
+        """
+        return ZeroNumeric(zn.zeros + str(float(zn.numeric)))
+
+    @staticmethod
+    @u.nullable
+    def zn_int(zn):
+        """
+        Usable with pandas apply.
+
+        Args:
+            zn: A ZeroNumeric object.
+
+        Returns: A ZeroNumeric object with the numeric portion as an
+            integer.
+
+        """
+        return ZeroNumeric(zn.zeros + str(int(zn.numeric)))
+
     def to_float(self):
         """
         Converts the numeric portion of the ZeroNumeric to a float.
@@ -108,7 +138,7 @@ class ZeroNumeric:
             portion in float format.
 
         """
-        return ZeroNumeric(self._zeros + str(float(self._numeric)))
+        return self.zn_float(self)
 
     def to_int(self):
         """
@@ -118,7 +148,7 @@ class ZeroNumeric:
             portion in integer format.
 
         """
-        return ZeroNumeric(self._zeros + str(int(self._numeric)))
+        return self.zn_int(self)
 
     def _mod(self, new_val: (int, float)):
         """

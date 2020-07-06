@@ -68,3 +68,5 @@ class TestZeroNumeric:
         z = z.to_float()
         assert z == 123.0
         assert isinstance(z.numeric, float)
+
+        assert pd.isna(e.ZeroNumeric.zn_int(nan))
