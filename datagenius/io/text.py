@@ -29,16 +29,15 @@ import pandas as pd
 #     return result
 
 
-def build_template(file_path: str) -> list:
+def get_output_template(file_path: str) -> list:
     """
-    Builds a list of strings from a spreadsheet file's header row.
+    Builds a list of strings from a csv file's header row.
 
     Args:
-        file_path: The file path of the file to read the header row
+        file_path: The file path of the csv file to read the header row
             from.
 
     Returns: A list containing the values of the file's header row.
 
     """
-    data = pd.DataFrame.genius.from_file(file_path)
-    return list(data.columns)
+    return list(pd.read_csv(file_path).columns)
