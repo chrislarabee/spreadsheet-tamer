@@ -280,8 +280,7 @@ def get_class_name(obj) -> str:
 def gconvert(obj, target_type):
     """
     Smart type conversion that avoids errors when converting to numeric
-    from non-standard strings. Also allows conversion to ZeroNumeric
-    type.
+    from non-standard strings.
 
     Args:
         obj: Any object.
@@ -290,18 +289,13 @@ def gconvert(obj, target_type):
     Returns:
 
     """
-    type_funcs = {
-        str: (str,),
-        int: (isnumericplus, '-convert', '-no_bool'),
-        float: (isnumericplus, '-convert', '-no_bool'),
-        e.ZeroNumeric: (isnumericplus, '-convert', '-no_bool')
-    }
-    if target_type not in type_funcs.keys():
-        raise ValueError(
-            f'target_type must be one of {list(type_funcs.keys())}')
-    conv_tuple = type_funcs[target_type]
-    args = (obj, *conv_tuple[1:])
-    return conv_tuple[0](*args)
+    if (isinstance(obj, str)
+            and target_type == float
+            and isnumericplus(obj)):
+        point_ct = len(re.search(r'\.+', obj).group())
+        if point_ct > 1:
+            obj = re.sub(r'\.+', '.', obj)
+    return target_type(obj)
 
 
 @nullable
@@ -353,17 +347,13 @@ def gwithin(within: Sequence, *values) -> bool:
 def isnumericplus(x, *options) -> (bool, tuple):
     """
     A better version of the str.isnumeric test that correctly
-    identifies floats stored as strings as numeric and can convert
-    them if desired.
+    identifies floats stored as strings as numeric.
 
     Args:
         x: Any object.
         options: Arbitrary number of args to alter isnumericplus'
             exact behavior. Currently in use options:
                 -v: Causes isnumericplus to return the type of x.
-                -convert: Causes isnumericplus to convert x to int or
-                    float, if it is found to be numeric.
-                -no_bool: Causes isnumericplus to not return a boolean.
 
     Returns: A boolean or tuple if options were passed.
 
@@ -377,18 +367,9 @@ def isnumericplus(x, *options) -> (bool, tuple):
         v = e.ZeroNumeric if x[0] == '0' and x not in ('0', '0.00') else v
         v = float if re.search(r'^-*\d+\.+\d*$', x) else v
         numeric = True if v in (int, float, e.ZeroNumeric) else False
-    result = [] if '-no_bool' in options else [numeric]
+    result = [numeric]
     if '-v' in options:
         result.append(v)
-    if '-convert' in options:
-        if type(x) != v:
-            if v == float:
-                point_ct = len(re.search(r'\.+', x).group())
-            else:
-                point_ct = 0
-            if point_ct > 1:
-                x = re.sub(r'\.+', '.', x)
-        result.append(v(x))
     return tuple(result) if len(result) > 1 else result[0]
 
 

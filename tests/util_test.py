@@ -126,12 +126,10 @@ def test_get_class_name():
 def test_gconvert():
     assert u.gconvert(123, str) == '123'
     assert u.gconvert('1..23', float) == 1.23
+    assert u.gconvert(1.23, int) == 1
     assert pd.isna(u.gconvert(nan, int))
     assert u.gconvert([1, 2, 3], str) == '[1, 2, 3]'
     assert u.gconvert(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
-    with pytest.raises(
-            ValueError, match='target_type must be one of'):
-        u.gconvert(123, dict)
 
 
 def test_gtype():
@@ -167,24 +165,13 @@ def test_isnumericplus():
     assert u.isnumericplus(1.0, '-v') == (True, float)
     assert u.isnumericplus(2.25, '-v') == (True, float)
     assert u.isnumericplus('100 strings', '-v') == (False, str)
-    assert u.isnumericplus('1234', '-convert') == (True, 1234)
-    assert u.isnumericplus('1234..56', '-convert') == (True, 1234.56)
-    assert u.isnumericplus('100 strings', '-convert') == (False, '100 strings')
-    assert u.isnumericplus('1234.56', '-v', '-convert') == (
-        True, float, 1234.56)
     assert u.isnumericplus('00123')
     assert u.isnumericplus('00123', '-v') == (True, e.ZeroNumeric)
-    assert u.isnumericplus('123', '-no_bool', '-convert') == 123
     assert u.isnumericplus('0.00', '-v') == (True, float)
     assert u.isnumericplus('-123')
     assert u.isnumericplus('-12.02')
     assert u.isnumericplus('-0.12')
     assert not u.isnumericplus('-abc')
-    assert u.isnumericplus('-1234', '-convert') == (True, -1234)
-    assert u.isnumericplus('-1234..56', '-convert') == (True, -1234.56)
-    assert u.isnumericplus('-0.12', '-convert') == (True, -0.12)
-    assert u.isnumericplus('-0.00', '-convert') == (True, 0.00)
-    assert u.isnumericplus('0.90', '-convert') == (True, 0.90)
 
 
 def test_purge_gap_rows(gaps, gaps_totals):

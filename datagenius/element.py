@@ -80,8 +80,8 @@ class ZeroNumeric:
 
         """
         pieces = re.findall(r'(^0*)([1-9]+\d*\.*\d*)', value)[0]
-        return pieces[0], u.isnumericplus(
-                            pieces[1], '-convert', '-no_bool')
+        _, conv_type = u.isnumericplus(pieces[1], '-v')
+        return pieces[0], u.gconvert(pieces[1], conv_type)
 
     def do_op(self, op, other):
         """
