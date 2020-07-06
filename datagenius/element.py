@@ -100,6 +100,26 @@ class ZeroNumeric:
         else:
             return op(self._numeric, other)
 
+    def to_float(self):
+        """
+        Converts the numeric portion of the ZeroNumeric to a float.
+
+        Returns: A new ZeroNumeric with the same zeros and the numeric
+            portion in float format.
+
+        """
+        return ZeroNumeric(self._zeros + str(float(self._numeric)))
+
+    def to_int(self):
+        """
+        Converts the numeric portion of the ZeroNumeric to an integer.
+
+        Returns: A new ZeroNumeric with the same zeros and the numeric
+            portion in integer format.
+
+        """
+        return ZeroNumeric(self._zeros + str(int(self._numeric)))
+
     def _mod(self, new_val: (int, float)):
         """
 

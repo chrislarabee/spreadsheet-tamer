@@ -59,3 +59,12 @@ class TestZeroNumeric:
     def test_do_op(self):
         assert e.ZeroNumeric('00123').do_op(o.add, 22) == 145
         assert e.ZeroNumeric('00123').do_op(o.sub, 22) == 101
+
+    def test_casting(self):
+        z = e.ZeroNumeric('00123.0')
+        z = z.to_int()
+        assert z == 123
+        assert isinstance(z.numeric, int)
+        z = z.to_float()
+        assert z == 123.0
+        assert isinstance(z.numeric, float)
