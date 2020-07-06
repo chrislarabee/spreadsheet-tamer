@@ -1,7 +1,9 @@
 import pandas as pd
+import pytest
 from numpy import nan
 
 import datagenius.lib.explore as ex
+import datagenius.element as e
 
 
 def test_count_values(employees):
@@ -170,3 +172,14 @@ def test_id_clustering_violations():
         dict(a=0, b=2, c=3, b_c_x=3)
     ])
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+    # TODO: Need to figure out how to fix this and make ZeroNumeric
+    #       usable in more pandas operations.
+    with pytest.raises(TypeError, match="unhashable type: 'ZeroNumeric'"):
+        df = pd.DataFrame([
+            [1, e.ZeroNumeric('00123')],
+            [1, e.ZeroNumeric('00124')],
+            [2, e.ZeroNumeric('00125')],
+            [2, e.ZeroNumeric('00125')]
+        ], columns=['a', 'b'])
+        df, md_dict = ex.id_clustering_violations(df, ['a'], ['b'])

@@ -126,6 +126,7 @@ def test_get_class_name():
 def test_gconvert():
     assert u.gconvert(123, str) == '123'
     assert u.gconvert('1..23', float) == 1.23
+    assert isinstance(u.gconvert('00123', e.ZeroNumeric), e.ZeroNumeric)
     assert u.gconvert(1.23, int) == 1
     x = u.gconvert(1234.0, int)
     assert isinstance(x, int)
