@@ -167,7 +167,7 @@ def test_cleanse_typos(needs_cleanse_typos):
         md_dict['metadata'], expected_metadata)
 
 
-def test_convert_types(customers):
+def test_convert_types(customers, products):
     df = pd.DataFrame(**customers())
     df2, md_dict = cl.convert_types(
         df, {'id': int, 'foreign_key': e.ZeroNumeric})
@@ -178,6 +178,12 @@ def test_convert_types(customers):
     ])
     pd.testing.assert_frame_equal(
         md_dict['metadata'], expected_metadata)
+
+    df = pd.DataFrame(**products)
+    df, md_dict = cl.convert_types(
+        df, dict(price=int))
+    pd.testing.assert_series_equal(
+        df['price'], pd.Series([8, 9, 1, 5], name='price'))
 
 
 def test_redistribute():

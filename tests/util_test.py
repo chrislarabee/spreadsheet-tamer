@@ -127,6 +127,8 @@ def test_gconvert():
     assert u.gconvert(123, str) == '123'
     assert u.gconvert('1..23', float) == 1.23
     assert u.gconvert(1.23, int) == 1
+    x = u.gconvert(1234.0, int)
+    assert isinstance(x, int)
     assert pd.isna(u.gconvert(nan, int))
     assert u.gconvert([1, 2, 3], str) == '[1, 2, 3]'
     assert u.gconvert(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
