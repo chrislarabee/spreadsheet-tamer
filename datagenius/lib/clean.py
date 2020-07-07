@@ -103,7 +103,8 @@ def reject_on_str_content(
         df: A DataFrame
         reject_str_content: A dictionary of column names as keys and
             strings as a value to search within strings held in that
-            column.
+            column. Alternately, the value can be a tuple of strings
+            if you want to check for multiple conditions.
 
     Returns: The passed df, cleansed of rows that meet the rejection
         criteria in reject_str_content, as well as a metadata
@@ -112,6 +113,8 @@ def reject_on_str_content(
     """
     cond_results = pd.DataFrame()
     for k, v in reject_str_content.items():
+        if isinstance(v, tuple):
+            v = '|'.join(v)
         cond_results[k] = df[k].str.contains(v)
     matches = cond_results.any(axis=1)
     rejects = df.iloc[matches[matches].index]

@@ -121,13 +121,24 @@ def test_reject_on_conditions(employees):
 
 def test_reject_on_str_content(customers):
     df = pd.DataFrame(**customers())
-    df2, md_dict = cl.reject_on_str_content(df, dict(foreign_key='25'))
+    df2, md_dict = cl.reject_on_str_content(
+        df.copy(), dict(foreign_key='25'))
     pd.testing.assert_frame_equal(df[1:].reset_index(drop=True), df2)
     expected_metadata = pd.DataFrame([
         dict(id=1, fname=1, lname=1, foreign_key=1)
     ])
-    pd.testing.assert_frame_equal(
-        md_dict['metadata'], expected_metadata)
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+    # Test tuple of strings:
+    df2, md_dict = cl.reject_on_str_content(
+        df.copy(), dict(fname=('i', 'e')))
+    pd.testing.assert_frame_equal((df[:2]).reset_index(drop=True), df2)
+    expected_metadata = pd.DataFrame([
+        dict(id=2, fname=2, lname=2, foreign_key=2)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+    
+
 
 
 def cleanse_redundancies():
