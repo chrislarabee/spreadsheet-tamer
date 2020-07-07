@@ -115,7 +115,7 @@ def reject_on_str_content(
     for k, v in reject_str_content.items():
         if isinstance(v, tuple):
             v = '|'.join(v)
-        cond_results[k] = df[k].str.contains(v)
+        cond_results[k] = df[k].str.contains(v, case=False)
     matches = cond_results.any(axis=1)
     rejects = df.iloc[matches[matches].index]
     df = df.drop(index=rejects.index)
