@@ -3,7 +3,7 @@ import inspect
 import re
 import string
 from collections import OrderedDict
-from typing import Callable, Sequence, Mapping, Collection
+from typing import Callable, Sequence, Mapping, Collection, Iterable
 
 import pandas as pd
 from numpy import nan
@@ -447,7 +447,7 @@ def translate_null(obj, to: (nan, None) = nan):
         return obj
 
 
-def tuplify(value, do_none: bool = False) -> tuple:
+def tuplify(value, do_none: bool = False) -> (tuple, None):
     """
     Simple function that puts the passed object value into a tuple, if
     it is not already.
@@ -460,9 +460,14 @@ def tuplify(value, do_none: bool = False) -> tuple:
     Returns: A tuple, or None.
 
     """
-    if (value is not None or do_none) and not isinstance(value, tuple):
-        value = tuple([value])
-    return value
+    if not isinstance(value, tuple) and (value is not None or do_none):
+        if isinstance(value, dict):
+            value = [(k, v) for k, v in value.items()]
+        elif not isinstance(value, Iterable) or isinstance(value, str):
+            value = [value]
+        return tuple(value)
+    else:
+        return value
 
 
 def tuplify_iterable(
