@@ -115,6 +115,7 @@ def align_args(func: Callable, kwargs: dict,
     func_args = getattr(func, 'args', None)
     if func_args is None:
         func_args = inspect.getfullargspec(func).args
+    # TODO: Make this auto-suppress args that are passed as None.
     if suppress:
         suppress = (
             [suppress] if not isinstance(suppress, list) else suppress)
