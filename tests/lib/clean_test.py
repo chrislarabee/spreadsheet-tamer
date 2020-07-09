@@ -261,3 +261,40 @@ def test_redistribute():
     ])
     pd.testing.assert_frame_equal(
         md_dict['metadata'], expected_metadata)
+
+
+def test_accrete():
+    df = pd.DataFrame([
+        dict(a='t', b='u', c='v', d=1),
+        dict(a='t', b='w', c=nan, d=2),
+        dict(a='y', b='z', c='z', d=3),
+    ])
+    expected = pd.DataFrame([
+        dict(a='t', b='u,w', c='v', d=1),
+        dict(a='t', b='u,w', c='v', d=2),
+        dict(a='y', b='z', c='z', d=3),
+    ])
+    df2, md_dict = cl.accrete(df.copy(), ['a'], ('b', 'c'), ',')
+    pd.testing.assert_frame_equal(df2, expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=0, b=2, c=2, d=0)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
+
+    # Test multiple group_by:
+    df = pd.DataFrame([
+        dict(a='t', b='u', c=1),
+        dict(a='t', b='u', c=2),
+        dict(a='x', b='y', c=nan)
+    ])
+    expected = pd.DataFrame([
+        dict(a='t', b='u', c='1.0 2.0'),
+        dict(a='t', b='u', c='1.0 2.0'),
+        dict(a='x', b='y', c=nan)
+    ])
+    df2, md_dict = cl.accrete(df.copy(), ['a', 'b'], 'c')
+    pd.testing.assert_frame_equal(df2, expected)
+    expected_metadata = pd.DataFrame([
+        dict(a=0, b=0, c=2)
+    ])
+    pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)

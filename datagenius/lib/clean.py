@@ -258,3 +258,45 @@ def redistribute(
             md[k] += result.count()
             md[c] += rd_val_ct
     return df, {'metadata': md}
+
+
+@u.transmutation(stage='standardize')
+def accrete(
+        df: pd.DataFrame,
+        accrete_group_by: list,
+        accretion_cols: (str, tuple),
+        accretion_sep: str = ' ') -> tuple:
+    """
+    Groups the dataframe by the passed group_by values and then
+    combines text values in the accretion columns.
+
+    Args:
+        df: A DataFrame.
+        accrete_group_by: A list of columns to group by.
+        accretion_cols: The columns you want to accrete on within
+            groups created by accrete_group_by.
+        accretion_sep: A string indicating how you want the combined
+            string values to be separated.
+
+    Returns: The transformed DataFrame, and a metadata dictionary.
+
+    """
+    accretion_cols = u.tuplify(accretion_cols)
+    md = u.gen_empty_md_df(df.columns)
+    for c in accretion_cols:
+        df[c] = df[c].fillna('')
+        df[c] = df[c].astype(str)
+        result = df.groupby(
+            accrete_group_by)[c].apply(
+            accretion_sep.join).reset_index()
+        df = df.merge(result, on=accrete_group_by, suffixes=('', '_x'))
+        cx = c + '_x'
+        md[c] = (df[c] != df[cx]).sum()
+        df[c] = df[cx]
+        df.drop(columns=cx, inplace=True)
+        df[c] = df[c].str.strip()
+        df[c] = df[c].apply(
+            lambda x: x if len(x) > 0 and x[-1] != accretion_sep else x[:-1]
+        )
+        df[c] = df[c].replace('', nan)
+    return df, {'metadata': md}
