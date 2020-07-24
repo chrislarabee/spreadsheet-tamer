@@ -99,7 +99,9 @@ def _get_modules(cwd: str, dirs: list, ignore: list):
                 for f in files:
                     if f not in ignore:
                         m, ext = os.path.splitext(f)
-                        if m not in ignore and ext == '.py':
+                        if ('.' not in m
+                                and m not in ignore
+                                and ext == '.py'):
                             results.add((package, m))
     return list(results)
 
