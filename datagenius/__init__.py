@@ -19,4 +19,4 @@ def _setup():
     return service.gather_custom_transmutations(os.getcwd())
 
 
-custom_tms = _setup()
+# custom_tms = _setup()
