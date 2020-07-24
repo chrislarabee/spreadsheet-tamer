@@ -2,7 +2,14 @@ import os
 from importlib import import_module
 
 
-def gather_transmutations(cwd) -> dict:
+def gather_prebuilt_transmutations(lib) -> dict:
+    mods = []
+    for m in lib:
+        mods.append(('datagenius.lib', m))
+    return _collect_tms(mods)
+
+
+def gather_custom_transmutations(cwd) -> dict:
     """
     Collects all functions decorated as transmutations in the passed
     directory, as long as it is a git repository. These are then
@@ -14,21 +21,27 @@ def gather_transmutations(cwd) -> dict:
         values.
 
     """
-    tms_by_stage = dict()
+    tms_by_stage = {}
     if os.path.exists(os.path.join(cwd, '.git')):
         p = os.path.join(cwd, '.gitignore')
         if os.path.exists(p):
             with open(p, 'r') as r:
                 g = [line.strip() for line in r]
-        g.append('.git')
+        g += ['.git', 'datagenius']
         dirs = _get_repository_dirs(cwd, g)
         mods = _get_modules(dirs, g)
-        for m in mods:
-            tms = _get_tms(m)
-            for t in tms:
-                if t.stage not in tms_by_stage.keys():
-                    tms_by_stage[t.stage] = []
-                tms_by_stage[t.stage].append(t)
+        tms_by_stage = _collect_tms(mods)
+    return tms_by_stage
+
+
+def _collect_tms(mods):
+    tms_by_stage = dict()
+    for m in mods:
+        tms = _get_tms(m)
+        for t in tms:
+            if t.stage not in tms_by_stage.keys():
+                tms_by_stage[t.stage] = []
+            tms_by_stage[t.stage].append(t)
     return tms_by_stage
 
 

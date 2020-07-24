@@ -16,16 +16,6 @@ class GeniusAccessor:
     A custom pandas DataFrame accessor that adds a number of additional
     methods and properties that extend the DataFrame's functionality.
     """
-    @property
-    def preprocess_tms(self, header_func=lib.preprocess.detect_header):
-        pp_tms = [
-            lib.preprocess.normalize_whitespace,
-        ]
-        if self.df.columns[0] in ('Unnamed: 0', 0):
-            pp_tms.insert(0, lib.preprocess.purge_pre_header)
-            pp_tms.insert(0, header_func)
-        return pp_tms
-
     def __init__(self, df: pd.DataFrame):
         """
 
@@ -99,11 +89,7 @@ class GeniusAccessor:
 
         """
         all_cl_tms = [
-            lib.clean.complete_clusters,
-            lib.clean.reject_incomplete_rows,
-            lib.clean.reject_on_conditions,
-            lib.clean.reject_on_str_content,
-            lib.clean.cleanse_redundancies,
+            *lib.prebuilt_tms['clean']
         ]
         cl_tms = self._align_tms_with_options(all_cl_tms, options)
         return self.transmute(*cl_tms, metadata=metadata, **options)

@@ -56,7 +56,7 @@ def test_complete_clusters(needs_extrapolation, employees):
         dict(department=2)
     ])
     pd.testing.assert_frame_equal(
-        md_dict['metadata'], expected_metadata)
+        md_dict['metadata'], expected_metadata, check_dtype=False)
 
     df = pd.DataFrame([
         dict(a=1, b=2, c=3),
@@ -76,7 +76,7 @@ def test_complete_clusters(needs_extrapolation, employees):
         dict(a=2, b=3, c=2)
     ])
     pd.testing.assert_frame_equal(
-        md_dict['metadata'], expected_metadata)
+        md_dict['metadata'], expected_metadata, check_dtype=False)
 
 
 def test_reject_incomplete_rows(needs_cleanse_totals, sales):
@@ -137,8 +137,6 @@ def test_reject_on_str_content(customers):
         dict(id=2, fname=2, lname=2, foreign_key=2)
     ])
     pd.testing.assert_frame_equal(md_dict['metadata'], expected_metadata)
-    
-
 
 
 def cleanse_redundancies():

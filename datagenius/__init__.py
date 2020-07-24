@@ -1,3 +1,5 @@
+import os
+
 from .element import ZeroNumeric
 from .genius import GeniusAccessor
 from .io import odbc
@@ -10,3 +12,11 @@ __all__ = [
     'RedistributionGuide', 'ZeroNumeric', 'transmutation', 'nullable',
     'get_output_template'
 ]
+
+
+def _setup():
+    from .lib import service
+    return service.gather_custom_transmutations(os.getcwd())
+
+
+custom_tms = _setup()
