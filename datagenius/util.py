@@ -48,6 +48,7 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
             re.sub(r' +', '_', stage).lower()
             if stage is not None else '_no_stage')
         wrapper_transmutation.priority = priority
+        wrapper_transmutation.is_transmutation = True
         return wrapper_transmutation
 
     if not isinstance(func, Callable):

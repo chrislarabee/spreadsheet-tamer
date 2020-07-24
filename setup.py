@@ -8,10 +8,10 @@ setup(
     packages=['datagenius', 'datagenius.io', 'datagenius.lib'],
     install_requires=[
         'pandas>=1.0.4', 'xlrd', 'SQLalchemy', 'recordlinkage'],
-    version='0.2.4',
+    version='0.3.0',
     license='GNU',
     description=('A suite of classes and functions that attempt to '
                  'generalize and automate the basic steps of exploring '
-                 'and cleaning data in any format and form'),
+                 'and cleaning data in any format and form.'),
     long_description=open('README.md').read()
 )
