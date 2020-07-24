@@ -1,4 +1,5 @@
 import os
+import re
 from importlib import import_module
 
 
@@ -24,12 +25,20 @@ def gather_custom_transmutations(cwd) -> dict:
     tms_by_stage = {}
     if os.path.exists(os.path.join(cwd, '.git')):
         p = os.path.join(cwd, '.gitignore')
+        g = []
         if os.path.exists(p):
             with open(p, 'r') as r:
-                g = [line.strip() for line in r]
+                for line in r:
+                    line = line.strip()
+                    line = re.sub(r'/$', '', line)
+                    g.append(line)
+        # datagenius being here prevents the datagenius repo from
+        # importing prebuilt transmutations twice.
         g += ['.git', 'datagenius']
         dirs = _get_repository_dirs(cwd, g)
-        mods = _get_modules(dirs, g)
+        print(dirs)
+        mods = _get_modules(cwd, dirs, g)
+        print(mods)
         tms_by_stage = _collect_tms(mods)
     return tms_by_stage
 
@@ -59,18 +68,21 @@ def _get_repository_dirs(cwd: str, ignore: list) -> list:
     """
     results = []
     for f in os.listdir(cwd):
-        if os.path.isdir(f) and f not in ignore and 'test' not in f:
+        if (os.path.isdir(os.path.join(cwd, f))
+                and f not in ignore
+                and 'test' not in f):
             results.append(f)
     return results
 
 
-def _get_modules(dirs: list, ignore: list):
+def _get_modules(cwd: str, dirs: list, ignore: list):
     """
     Gets all python modules in the passed list of directories. Any
     files in directories listed in ignore or files listed in ignore
     will be ignored.
 
     Args:
+        cwd: The path to a root directory to search.
         dirs: A list of strings, the dirs to collect modules from.
         ignore: A list of strings, the names of files and
             subdirectories in dirs to ignore.
@@ -80,14 +92,17 @@ def _get_modules(dirs: list, ignore: list):
     """
     results = set()
     for d in dirs:
-        for root, _, files in os.walk(d):
+        d_path = os.path.join(cwd, d)
+        parent_dir, _ = os.path.split(d_path)
+        for root, _, files in os.walk(d_path):
             _, root_dir = os.path.split(root)
+            package = root.replace(parent_dir + '\\', '').replace('\\', '.')
             if root_dir not in ignore:
                 for f in files:
-                    m, ext = os.path.splitext(f)
-                    if m not in ignore and ext == '.py':
-                        root = root.replace('\\', '.')
-                        results.add((root, m))
+                    if f not in ignore:
+                        m, ext = os.path.splitext(f)
+                        if m not in ignore and ext == '.py':
+                            results.add((package, m))
     return list(results)
 
 
