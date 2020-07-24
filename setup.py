@@ -8,7 +8,7 @@ setup(
     packages=['datagenius', 'datagenius.io', 'datagenius.lib'],
     install_requires=[
         'pandas>=1.0.4', 'xlrd', 'SQLalchemy', 'recordlinkage'],
-    version='0.3.2',
+    version='0.3.3',
     license='GNU',
     description=('A suite of classes and functions that attempt to '
                  'generalize and automate the basic steps of exploring '

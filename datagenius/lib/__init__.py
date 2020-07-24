@@ -1,9 +1,5 @@
-from . import (preprocess, explore, clean, reformat, supplement, service)
+from . import (preprocess, explore, clean, reformat, supplement)
 from .guides import CleaningGuide, SupplementGuide, RedistributionGuide
-
-prebuilt_tms = service.gather_prebuilt_transmutations(
-    ['preprocess', 'explore', 'clean', 'reformat']
-)
 
 __all__ = [
     'preprocess', 'explore', 'clean', 'reformat', 'supplement', 'guides',

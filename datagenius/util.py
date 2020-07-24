@@ -9,6 +9,7 @@ import pandas as pd
 from numpy import nan
 
 import datagenius.element as e
+from datagenius.tms_registry import TMS
 
 
 def transmutation(func=None, *, stage: str = None, priority: int = 10):
@@ -30,6 +31,8 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
     Returns: The passed function once decorated.
 
     """
+    stage = '_no_stage' if stage is None else stage
+
     # Allows transmutation functions to have special attributes:
     def decorator_transmutation(_func):
 
@@ -44,11 +47,14 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
 
         # Attributes of transmutation functions expected by other
         # objects:
-        wrapper_transmutation.stage = (
-            re.sub(r' +', '_', stage).lower()
-            if stage is not None else '_no_stage')
+        wrapper_transmutation.stage = (re.sub(r' +', '_', stage).lower())
         wrapper_transmutation.priority = priority
-        wrapper_transmutation.is_transmutation = True
+
+        # Registers the transmutation in the tms_registry.
+        if stage not in TMS.keys():
+            TMS[stage] = []
+        TMS[stage].append(wrapper_transmutation)
+
         return wrapper_transmutation
 
     if not isinstance(func, Callable):

@@ -8,14 +8,7 @@ import datagenius.lib as lib
 import datagenius.util as u
 import datagenius.metadata as md
 from datagenius.io import odbc
-
-
-def _setup():
-    from .lib import service
-    return service.gather_custom_transmutations(os.getcwd())
-
-
-custom_tms = _setup()
+from datagenius.tms_registry import TMS
 
 
 @pd.api.extensions.register_dataframe_accessor('genius')
@@ -50,17 +43,13 @@ class GeniusAccessor:
 
         """
         pp_tms = [
-            *lib.prebuilt_tms['preprocess'],
-            *custom_tms
+            *TMS['preprocess']
         ]
         if (u.gwithin(self.df.columns, r'[Uu]nnamed:*[ _]\d')
                 or isinstance(self.df.columns, pd.RangeIndex)):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
-        return self.transmute(
-            *pp_tms,
-            **options
-        )
+        return self.transmute(*pp_tms, **options)
     
     def explore(self, metadata: md.GeniusMetadata = None) -> tuple:
         """
@@ -73,13 +62,7 @@ class GeniusAccessor:
             results.
 
         """
-        ex_tms = [
-            lib.explore.count_values,
-            lib.explore.count_uniques,
-            lib.explore.count_nulls,
-            lib.explore.collect_data_types
-        ]
-        return self.transmute(*ex_tms, metadata=metadata)
+        return self.transmute(*TMS['explore'], metadata=metadata)
 
     def clean(
             self,
@@ -97,10 +80,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        all_cl_tms = [
-            *lib.prebuilt_tms['clean']
-        ]
-        cl_tms = self._align_tms_with_options(all_cl_tms, options)
+        cl_tms = self._align_tms_with_options(TMS['clean'], options)
         return self.transmute(*cl_tms, metadata=metadata, **options)
 
     def reformat(
@@ -120,11 +100,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        all_rf_tms = [
-            lib.reformat.reformat_df,
-            lib.reformat.fill_defaults,
-        ]
-        rf_tms = self._align_tms_with_options(all_rf_tms, options)
+        rf_tms = self._align_tms_with_options(TMS['reformat'], options)
         return self.transmute(*rf_tms, metadata=metadata, **options)
 
     def standardize(
@@ -144,13 +120,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        all_st_tms = [
-            lib.clean.cleanse_typos,
-            lib.clean.convert_types,
-            lib.clean.redistribute,
-            lib.clean.accrete
-        ]
-        st_tms = self._align_tms_with_options(all_st_tms, options)
+        st_tms = self._align_tms_with_options(TMS['standardize'], options)
         return self.transmute(*st_tms, metadata=metadata, **options)
 
     @staticmethod
