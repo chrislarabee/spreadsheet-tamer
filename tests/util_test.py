@@ -140,6 +140,7 @@ def test_gconvert():
     assert u.gconvert([1, 2, 3], str) == '[1, 2, 3]'
     assert u.gconvert(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
     assert u.gconvert('0', float) == 0.0
+    assert u.gconvert('1', float) == 1.0
 
 
 def test_gtype():

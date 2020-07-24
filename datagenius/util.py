@@ -315,9 +315,9 @@ def gconvert(obj, target_type):
     """
     if (isinstance(obj, str)
             and target_type == float
-            and obj != '0'
             and isnumericplus(obj)):
-        point_ct = len(re.search(r'\.+', obj).group())
+        pts = re.search(r'\.+', obj)
+        point_ct = len(pts.group()) if pts else 0
         if point_ct > 1:
             obj = re.sub(r'\.+', '.', obj)
     return target_type(obj)
