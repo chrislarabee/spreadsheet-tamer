@@ -299,7 +299,7 @@ class TestGeniusAccessor:
             'tests/samples', table='sales_metadata', db_name='genius_test'
         )
         expected = pd.DataFrame([
-            dict(stage='preprocess', transmutation='purge_pre_header',
+            dict(stage='h_preprocess', transmutation='purge_pre_header',
                  location=2.0, region=0.0, sales=0.0),
             dict(stage='preprocess', transmutation='normalize_whitespace',
                  location=0.0, region=0.0, sales=0.0),

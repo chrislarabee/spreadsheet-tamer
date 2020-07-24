@@ -3,7 +3,18 @@ import re
 from importlib import import_module
 
 
-def gather_prebuilt_transmutations(lib) -> dict:
+def gather_prebuilt_transmutations(lib: list) -> dict:
+    """
+    Collects all functions decorated as transmutations from the passed
+    list of modules in datagenius.lib.
+
+    Args:
+        lib: A list of strings, the names of modules in datagenius.lib.
+
+    Returns: A dictionary of transmutation stages and accompanying
+        lists of pre-built transmutations in those stages.
+
+    """
     mods = []
     for m in lib:
         mods.append(('datagenius.lib', m))
@@ -16,6 +27,9 @@ def gather_custom_transmutations(cwd) -> dict:
     directory, as long as it is a git repository. These are then
     automatically added to the appropriate pipeline stage in
     datagenius.genius when it is imported.
+
+    Args:
+        cwd: A string, the target working directory.
 
     Returns: A dictionary containing transmutation stage names as keys
         and a list of transmutations corresponding to that stage as
@@ -41,7 +55,21 @@ def gather_custom_transmutations(cwd) -> dict:
     return tms_by_stage
 
 
-def _collect_tms(mods):
+def _collect_tms(mods: list) -> dict:
+    """
+    Runs _get_tms on each module in mods and creates a dictionary with
+    transmutation stages as keys and lists of corresponding functions
+    as values.
+
+    Args:
+        mods: A list of tuples, the second value being the module name
+            and the first value being the parent package for that
+            module.
+
+    Returns: A dictionary containing stages and corresponding
+        transmutation functions.
+
+    """
     tms_by_stage = dict()
     for m in mods:
         tms = _get_tms(m)

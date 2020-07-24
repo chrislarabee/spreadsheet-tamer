@@ -10,6 +10,14 @@ import datagenius.metadata as md
 from datagenius.io import odbc
 
 
+def _setup():
+    from .lib import service
+    return service.gather_custom_transmutations(os.getcwd())
+
+
+custom_tms = _setup()
+
+
 @pd.api.extensions.register_dataframe_accessor('genius')
 class GeniusAccessor:
     """
@@ -42,7 +50,8 @@ class GeniusAccessor:
 
         """
         pp_tms = [
-            lib.preprocess.normalize_whitespace,
+            *lib.prebuilt_tms['preprocess'],
+            *custom_tms
         ]
         if (u.gwithin(self.df.columns, r'[Uu]nnamed:*[ _]\d')
                 or isinstance(self.df.columns, pd.RangeIndex)):
