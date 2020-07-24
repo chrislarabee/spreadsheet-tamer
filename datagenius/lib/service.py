@@ -36,9 +36,7 @@ def gather_custom_transmutations(cwd) -> dict:
         # importing prebuilt transmutations twice.
         g += ['.git', 'datagenius']
         dirs = _get_repository_dirs(cwd, g)
-        print(dirs)
         mods = _get_modules(cwd, dirs, g)
-        print(mods)
         tms_by_stage = _collect_tms(mods)
     return tms_by_stage
 
