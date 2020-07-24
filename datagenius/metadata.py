@@ -60,6 +60,7 @@ class GeniusMetadata(Callable):
 
         """
         t_kwargs = u.align_args(transmutation, kwargs, 'df')
+        print(f'[DATAGENIUS]: Applying {transmutation.__name__}...')
         result = transmutation(df, **t_kwargs)
         if isinstance(result, tuple):
             meta_result = result[1]
