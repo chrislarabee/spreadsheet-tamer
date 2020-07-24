@@ -140,6 +140,30 @@ def broadcast_suffix(
     return [i + suffix for i in list(x)]
 
 
+def broadcast_type(x: (list, tuple, pd.Series), type_func: Callable):
+    """
+    Applies the passed type conversion function to each element in the
+    passed list. Note that if you pass isnumeric plus broadcast_type
+    has special functionality and will use the results of isnumericplus
+    to determine what type to convert numeric strings to.
+
+    Args:
+        x: A list or Sequence.
+        type_func: A callable function to convert objects in the list.
+
+    Returns: The list or Sequence with each element replaced by the
+        result of calling type_func on it.
+
+    """
+    for i, val in enumerate(x):
+        if type_func == isnumericplus:
+            b, t = isnumericplus(val, '-v')
+        else:
+            t = type_func
+        x[i] = t(val)
+    return x
+
+
 def clean_whitespace(x) -> list:
     """
     When passed a string, removes leading and trailing whitespace from
