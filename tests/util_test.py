@@ -139,6 +139,7 @@ def test_gconvert():
     assert pd.isna(u.gconvert(nan, int))
     assert u.gconvert([1, 2, 3], str) == '[1, 2, 3]'
     assert u.gconvert(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
+    assert u.gconvert('0', float) == 0.0
 
 
 def test_gtype():
