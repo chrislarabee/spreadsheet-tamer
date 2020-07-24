@@ -1,5 +1,3 @@
-import os
-
 from .element import ZeroNumeric
 from .genius import GeniusAccessor
 from .io import odbc

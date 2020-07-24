@@ -48,7 +48,7 @@ def gather_custom_transmutations(cwd) -> dict:
                     g.append(line)
         # datagenius being here prevents the datagenius repo from
         # importing prebuilt transmutations twice.
-        g += ['.git', '__main__.py', 'datagenius']
+        g += ['.git', 'datagenius']
         dirs = _get_repository_dirs(cwd, g)
         mods = _get_modules(cwd, dirs, g)
         tms_by_stage = _collect_tms(mods)
@@ -129,6 +129,7 @@ def _get_modules(cwd: str, dirs: list, ignore: list):
                         m, ext = os.path.splitext(f)
                         if ('.' not in m
                                 and m not in ignore
+                                and m[0] != '_'
                                 and ext == '.py'):
                             results.add((package, m))
     return list(results)
