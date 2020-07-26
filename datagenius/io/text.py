@@ -55,32 +55,34 @@ class SheetsAPI:
         Returns: A string, the id of the newly created folder.
 
         """
+        kwargs = dict(parents=[drive_id]) if drive_id else dict()
         file_metadata = dict(
             name=folder_name,
-            mimeType=self.google_obj_types['folder']
+            mimeType=self.google_obj_types['folder'],
+            **kwargs
         )
         file = self.drive.files().create(
             body=file_metadata,
-            fields='id'
+            fields='id',
+            supportsAllDrives=True
         ).execute()
         return file.get('id')
 
-    def delete_object(
-            self,
-            object_id: str,
-            drive_id: str = None) -> None:
+    def delete_object(self, object_id: str) -> None:
         """
         Deletes the passed Google Object ID from the connected Google
         Drive.
 
         Args:
             object_id: A Google Object ID.
-            drive_id: The ID of the shared drive to target within.
 
         Returns: None
 
         """
-        self.drive.files().delete(fileId=object_id).execute()
+        self.drive.files().delete(
+            fileId=object_id,
+            supportsAllDrives=True
+        ).execute()
 
     def find_objects(
             self,
@@ -181,6 +183,7 @@ class SheetsAPI:
         """
         kwargs = dict()
         if drive_id:
+            kwargs['corpora'] = 'drive'
             kwargs['driveId'] = drive_id
             kwargs['includeItemsFromAllDrives'] = True
             kwargs['supportsAllDrives'] = True
