@@ -116,14 +116,15 @@ class SheetsAPI:
             response = self.drive.files().list(
                 q=query,
                 spaces='drive',
-                fields='nextPageToken, files(id, name)',
+                fields='nextPageToken, files(id, name, parents)',
                 pageToken=page_token,
                 **kwargs
             ).execute()
             for file in response.get('files', []):
                 results.append(dict(
                     name=file.get('name'),
-                    id=file.get('id')
+                    id=file.get('id'),
+                    parents=file.get('parents')
                     )
                 )
             page_token = response.get('nextPageToken', None)
