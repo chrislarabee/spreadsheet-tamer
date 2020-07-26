@@ -1,5 +1,31 @@
+import os
+import warnings
+
 import pytest
 from numpy import nan
+
+from datagenius.io.text import SheetsAPI
+
+
+@pytest.fixture(scope="module")
+def sheets_api(request):
+    if (os.path.exists('token.pickle')
+            or os.path.exists('credentials.json')):
+        s = SheetsAPI()
+        yield s
+        ids = getattr(request.module, 'created_ids', [])
+        print(
+            f'\nCleaning up google drive objects created for tests...')
+        print(ids)
+        for i in ids:
+            s.delete_object(i)
+    else:
+        warnings.warn(
+            f'No credentials.json or token.pickle found in '
+            f'{os.getcwd()}. The SheetsAPI is not being tested. '
+            f'To execute all tests properly download google api '
+            f'credentials as described in the README.')
+        yield None
 
 
 @pytest.fixture
