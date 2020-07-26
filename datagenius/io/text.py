@@ -39,26 +39,29 @@ class SheetsAPI:
         self._drive = self._connect_drive()
         self._sheets = self._connect_sheets()
 
-    def create_folder(
+    def create_object(
             self,
-            folder_name: str,
-            drive_id: str = None) -> str:
+            obj_name: str,
+            obj_type: str,
+            parent_id: str = None):
         """
-        Creates a folder of the passed name in the connected Google
-        Drive.
+        Creates a file or folder via the Google Drive connection.
 
         Args:
-            folder_name: The name of the folder to be created.
-            drive_id: The id of the shared drive to created the folder
-                within.
+            obj_name: A string, the desired name of the object to
+                create.
+            obj_type: A string, the type of object to create. Must be
+                one of the keys in SheetsAPI.google_obj_types.
+            parent_id: A string, the id of the folder or Shared Drive
+                to create the object in.
 
-        Returns: A string, the id of the newly created folder.
+        Returns:
 
         """
-        kwargs = dict(parents=[drive_id]) if drive_id else dict()
+        kwargs = dict(parents=[parent_id]) if parent_id else dict()
         file_metadata = dict(
-            name=folder_name,
-            mimeType=self.google_obj_types['folder'],
+            name=obj_name,
+            mimeType=self.google_obj_types[obj_type],
             **kwargs
         )
         file = self.drive.files().create(

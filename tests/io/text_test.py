@@ -17,7 +17,7 @@ class TestSheetsAPI:
             pytest.skip(self.no_creds_msg)
         global created_ids
         folder = 'data_genius_test_folder'
-        f_id = sheets_api.create_folder(folder)
+        f_id = sheets_api.create_object(folder, 'folder')
         created_ids.append(f_id)
         f = sheets_api.find_objects(folder, 'folder')
         assert len(f) > 0
