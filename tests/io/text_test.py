@@ -20,23 +20,23 @@ class TestSheetsAPI:
         folder = f'data_genius_test_folder {dt.now()}'
         f_id = sheets_api.create_object(folder, 'folder')
         created_ids.append(f_id)
-        f = sheets_api.find_objects(folder, 'folder')
+        f = sheets_api.find_object(folder, 'folder')
         assert len(f) > 0
         assert f[0].get('name') == folder
 
         # Create a file:
         sheet = f'data_genius_test_sheet {dt.now()}'
         s_id = sheets_api.create_object(sheet, 'sheet')
-        created_ids.append(s_id)
-        f = sheets_api.find_objects(sheet, 'sheet')
+        created_ids.insert(0, s_id)
+        f = sheets_api.find_object(sheet, 'sheet')
         assert len(f) > 0
         assert f[0].get('name') == sheet
 
         # Create a file IN the folder:
         sheet = f'data_genius_test_sheet_in_folder {dt.now()}'
         sf_id = sheets_api.create_object(sheet, 'sheet', f_id)
-        created_ids.append(sf_id)
-        f = sheets_api.find_objects(sheet, 'sheet')
+        created_ids.insert(0, sf_id)
+        f = sheets_api.find_object(sheet, 'sheet')
         assert len(f) > 0
         assert f[0].get('name') == sheet
         assert f[0].get('parents')[0] == f_id

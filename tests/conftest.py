@@ -15,10 +15,11 @@ def sheets_api(request):
         yield s
         ids = getattr(request.module, 'created_ids', [])
         print(
-            f'\nCleaning up google drive objects created for tests...')
-        print(ids)
+            f'\n-- Cleaning up google drive objects created for '
+            f'tests...')
         for i in ids:
             s.delete_object(i)
+        print(f'-- Successfully cleaned up {len(ids)} objects.')
     else:
         warnings.warn(
             f'No credentials.json or token.pickle found in '
