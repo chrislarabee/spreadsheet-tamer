@@ -2,7 +2,7 @@ import operator as o
 
 import pytest
 import pandas as pd
-from numpy import nan
+import numpy as np
 
 import datagenius.element as e
 
@@ -18,6 +18,14 @@ class TestZeroNumeric:
         z = e.ZeroNumeric(123)
         assert z.numeric == 123
         assert z.value == '123'
+        z = e.ZeroNumeric(np.int64(123))
+        assert z.numeric == 123
+        assert z.value == '123'
+        assert isinstance(z.numeric, int)
+        z = e.ZeroNumeric(np.float64(123.0))
+        assert z.numeric == 123.0
+        assert z.value == '123.0'
+        assert isinstance(z.numeric, float)
         z = e.ZeroNumeric('00124')
         assert z.numeric == 124
         assert z.value == '00124'
@@ -43,11 +51,13 @@ class TestZeroNumeric:
         with pytest.raises(
                 ValueError,
                 match='Cannot convert float NaN to ZeroNumeric'):
-            e.ZeroNumeric(nan)
+            e.ZeroNumeric(np.nan)
 
     def test_pad(self):
         assert e.ZeroNumeric('123').pad(3) == '123'
         assert e.ZeroNumeric('123').pad(6) == '000123'
+        assert e.ZeroNumeric(1).pad(2) == '01'
+        assert e.ZeroNumeric(np.int64(21)).pad(3) == '021'
 
     def test_split_zeros(self):
         assert e.ZeroNumeric.split_zeros('00123') == ('00', 123)
@@ -69,4 +79,4 @@ class TestZeroNumeric:
         assert z == 123.0
         assert isinstance(z.numeric, float)
 
-        assert pd.isna(e.ZeroNumeric.zn_int(nan))
+        assert pd.isna(e.ZeroNumeric.zn_int(np.nan))
