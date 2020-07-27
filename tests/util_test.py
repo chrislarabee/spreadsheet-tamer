@@ -203,6 +203,9 @@ def test_standardize_header():
         list(header)
     )
 
+    header = pd.RangeIndex(0, 2, 1)
+    assert u.standardize_header(header) == (['0', '1'], list(header))
+
 
 def test_translate_null():
     assert pd.isna(u.translate_null(None))

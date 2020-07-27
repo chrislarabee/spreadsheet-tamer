@@ -77,8 +77,11 @@ class ODBConnector:
         else:
             return False
 
-    def insert(self, table: str, df: pd.DataFrame,
-               schema=None) -> None:
+    def insert(
+            self,
+            table: str,
+            df: pd.DataFrame,
+            schema=None) -> None:
         """
         Takes the records in a DataFrame and inserts them into
         the connected db.
@@ -290,8 +293,11 @@ def quick_conn_setup(dir_path, db_name=None, db_conn=None):
     return db_conn
 
 
-def write_sqlite(odbc: ODBConnector, table_name: str, df: pd.DataFrame,
-                 schema: dict = None) -> None:
+def write_sqlite(
+        odbc: ODBConnector,
+        table_name: str,
+        df: pd.DataFrame,
+        schema: dict = None) -> None:
     """
     Simple function to write data to a sqlite db connected via an
     ODBConnector. Overwrites whatever data is in the existing table, if

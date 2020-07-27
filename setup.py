@@ -7,8 +7,11 @@ setup(
     author_email='chris.larabee9@gmail.com',
     packages=['datagenius', 'datagenius.io', 'datagenius.lib'],
     install_requires=[
-        'pandas>=1.0.4', 'xlrd', 'SQLalchemy', 'recordlinkage'],
-    version='0.3.4',
+        'pandas>=1.0.4', 'xlrd', 'SQLalchemy', 'recordlinkage'
+        'google-api-python-client', 'google-auth-httplib2',
+        'google-auth-oauthlib', 'oauth2client'
+    ],
+    version='0.4.0',
     license='GNU',
     description=('A suite of classes and functions that attempt to '
                  'generalize and automate the basic steps of exploring '

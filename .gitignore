@@ -5,3 +5,5 @@ venv
 !read_testing.db
 *.csv
 !csv
+*.json
+*.pickle
