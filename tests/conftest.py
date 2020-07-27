@@ -5,18 +5,19 @@ import pytest
 from numpy import nan
 
 from datagenius.io.text import SheetsAPI
+from tests import testing_tools
 
 
-@pytest.fixture(scope="module")
-def sheets_api(request):
+@pytest.fixture(scope="session")
+def sheets_api():
     if (os.path.exists('token.pickle')
             or os.path.exists('credentials.json')):
         s = SheetsAPI()
         yield s
-        ids = getattr(request.module, 'created_ids', [])
         print(
             f'\n-- Cleaning up google drive objects created for '
             f'tests...')
+        ids = testing_tools.created_ids
         for i in ids:
             s.delete_object(i)
         print(f'-- Successfully cleaned up {len(ids)} objects.')

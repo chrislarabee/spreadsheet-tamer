@@ -451,6 +451,7 @@ def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
     result = []
     for h in header:
         p = string.punctuation.replace('_', '')
+        h = str(h)
         h = re.sub(re.compile(r'[' + p + ']'), '', h)
         result.append(re.sub(' +', '_', h.strip()).lower())
     if len(set(result)) < len(result):

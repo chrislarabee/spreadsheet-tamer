@@ -7,7 +7,7 @@ import numpy as np
 import datagenius.lib as lib
 import datagenius.util as u
 import datagenius.metadata as md
-from datagenius.io import odbc
+from datagenius.io import odbc, text
 from datagenius.tms_registry import TMS
 
 
@@ -344,6 +344,9 @@ class GeniusAccessor:
         """
         Uses read_file to read in the passed file path.
 
+        To read a Google Sheet, add .sheet as an extension to the file
+        path.
+
         Args:
             file_path: The file path to the desired data file.
             incl_header: A boolean, indicates whether to include
@@ -362,6 +365,7 @@ class GeniusAccessor:
             '.xlsx': pd.read_excel,
             '.csv': pd.read_csv,
             '.json': pd.read_json,
+            '.sheet': text.from_gsheet,
             # file_paths with no extension are presumed to be dir_paths
             '': odbc.from_sqlite
         }
@@ -371,8 +375,9 @@ class GeniusAccessor:
         if ext in ('.xls', '.xlsx', '.csv'):
             kwargs['dtype'] = object
         if ext not in read_funcs.keys():
-            raise ValueError(f'read_file error: file extension must be '
-                             f'one of {read_funcs.keys()}')
+            raise ValueError(
+                f'read_file error: file extension must be one of '
+                f'{read_funcs.keys()}')
         else:
             df = u.purge_gap_rows(
                 pd.DataFrame(read_funcs[ext](file_path, **kwargs))
@@ -382,6 +387,36 @@ class GeniusAccessor:
                 return df, o_header
             else:
                 return df
+
+    def to_gsheet(self, sheet_name: str, **options):
+        """
+        Writes the DataFrame to a Google Sheet.
+        Args:
+            sheet_name: The desired name of the Google Sheet.
+            **options: Key-value options to alter to_sqlite's behavior.
+                Currently in use options:
+                    parent_folder: The name of the folder in Google
+                        Drive that you want to save the Google Sheet
+                        to.
+                    drive_id: The id of the Shared Drive you want to
+                        save the Google Sheet to.
+                    metadata: A GeniusMetadata object. If passed, its
+                        contents will be saved to a table appended with
+                        the names of its attributes.
+
+        Returns: The id of the newly created Google Sheet and its
+            shape (columns are included as a row).
+
+        """
+        m = options.get('metadata')
+        cols = m.output_header if m is not None else None
+        return text.write_gsheet(
+            sheet_name,
+            self.df,
+            columns=cols,
+            parent_folder=options.get('parent_folder'),
+            drive_id=options.get('drive_id')
+        )
 
     def to_sqlite(self, dir_path: str, table: str, **options):
         """

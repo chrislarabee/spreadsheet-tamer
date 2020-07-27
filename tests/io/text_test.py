@@ -1,44 +1,37 @@
 from datetime import datetime as dt
 
-import pytest
 import pandas as pd
 
 from datagenius.io import text
-
-no_creds_msg = 'No credentials set up for google api.'
-
-created_ids = []
+from tests import testing_tools
 
 
 def test_write_gsheet_and_from_gsheet(sheets_api):
-    if not sheets_api:
-        pytest.skip(no_creds_msg)
-    global created_ids
+    testing_tools.check_sheets_api_skip(sheets_api)
 
     sheet = f'data_genius_test_sheet {dt.now()}'
     df = pd.DataFrame([dict(a=1, b=2), dict(a=3, b=4)])
-    sheet_id, shape = text.write_gsheet(sheets_api, sheet, df)
-    created_ids.append(sheet_id)
+    sheet_id, shape = text.write_gsheet(sheet, df, sheets_api)
+    testing_tools.created_ids.append(sheet_id)
     expected = pd.DataFrame([
         ['a', 'b'],
         ['1', '2'],
         ['3', '4']
     ])
     assert shape == (3, 2)
-    read_df = text.from_gsheet(sheets_api, sheet)
+    read_df = text.from_gsheet(sheet + '.sheet', sheets_api)
+    print(read_df.columns)
     pd.testing.assert_frame_equal(read_df, expected)
 
 
 class TestSheetsAPI:
     def test_create_object(self, sheets_api):
-        if not sheets_api:
-            pytest.skip(no_creds_msg)
-        global created_ids
+        testing_tools.check_sheets_api_skip(sheets_api)
 
         # Create a folder:
         folder = f'data_genius_test_folder {dt.now()}'
         f_id = sheets_api.create_object(folder, 'folder')
-        created_ids.append(f_id)
+        testing_tools.created_ids.append(f_id)
         f = sheets_api.find_object(folder, 'folder')
         assert len(f) > 0
         assert f[0].get('name') == folder
@@ -46,7 +39,7 @@ class TestSheetsAPI:
         # Create a file:
         sheet = f'data_genius_test_sheet {dt.now()}'
         s_id = sheets_api.create_object(sheet, 'sheet')
-        created_ids.insert(0, s_id)
+        testing_tools.created_ids.insert(0, s_id)
         f = sheets_api.find_object(sheet, 'sheet')
         assert len(f) > 0
         assert f[0].get('name') == sheet
@@ -54,7 +47,7 @@ class TestSheetsAPI:
         # Create a file IN the folder:
         sheet = f'data_genius_test_sheet_in_folder {dt.now()}'
         sf_id = sheets_api.create_object(sheet, 'sheet', f_id)
-        created_ids.insert(0, sf_id)
+        testing_tools.created_ids.insert(0, sf_id)
         f = sheets_api.find_object(sheet, 'sheet')
         assert len(f) > 0
         assert f[0].get('name') == sheet

@@ -1,6 +1,7 @@
 import pickle
 import os
 import warnings
+import re
 
 import pandas as pd
 from googleapiclient.discovery import build
@@ -259,21 +260,24 @@ class SheetsAPI:
 
 
 def from_gsheet(
-        s_api: SheetsAPI,
         sheet_name: str,
+        s_api: SheetsAPI = None,
         drive_id: str = None) -> pd.DataFrame:
     """
     Creates a DataFrame from the first sheet of the passed Google Sheet
     name.
 
     Args:
-        s_api: A SheetsAPI object.
         sheet_name: The exact name of the Google Sheet to pull from.
+        s_api: A SheetsAPI object.
         drive_id: The id of the Shared Drive to search for the sheet in.
 
     Returns: A DataFrame.
 
     """
+    # GeniusAccessor.from_file will pass fake .sheet extension.
+    sheet_name = re.sub(r'\.sheet$', '', sheet_name)
+    s_api = SheetsAPI() if s_api is None else s_api
     search_res = s_api.find_object(sheet_name, 'sheet', drive_id)
     sheet_id = search_res[0].get('id')
     if len(search_res) > 1:
@@ -293,9 +297,9 @@ def from_gsheet(
 
 
 def write_gsheet(
-        s_api: SheetsAPI,
         sheet_name: str,
         df: pd.DataFrame,
+        s_api: SheetsAPI = None,
         columns: list = None,
         parent_folder: str = None,
         drive_id: str = None) -> tuple:
@@ -304,9 +308,9 @@ def write_gsheet(
     new Google Sheet.
 
     Args:
-        s_api: A SheetsAPI object.
         sheet_name: A string, the desired name of the new Google Sheet.
         df: A DataFrame.
+        s_api: A SheetsAPI object.
         columns: The columns to use in the Google Sheet. If none, will
             just use the columns of the DataFrame.
         parent_folder: A string, the name of the folder to save the new
@@ -318,6 +322,7 @@ def write_gsheet(
     Returns: The number of cells changed by the output.
 
     """
+    s_api = SheetsAPI() if s_api is None else s_api
     p_folder_id = None
     if parent_folder:
         search_res = s_api.find_object(
