@@ -1,19 +1,38 @@
 from datetime import datetime as dt
 
 import pytest
+import pandas as pd
 
 from datagenius.io import text
 
+no_creds_msg = 'No credentials set up for google api.'
 
 created_ids = []
 
 
-class TestSheetsAPI:
-    no_creds_msg = 'No credentials set up for google api.'
+def test_write_gsheet_and_from_gsheet(sheets_api):
+    if not sheets_api:
+        pytest.skip(no_creds_msg)
+    global created_ids
 
+    sheet = f'data_genius_test_sheet {dt.now()}'
+    df = pd.DataFrame([dict(a=1, b=2), dict(a=3, b=4)])
+    sheet_id, shape = text.write_gsheet(sheets_api, sheet, df)
+    created_ids.append(sheet_id)
+    expected = pd.DataFrame([
+        ['a', 'b'],
+        ['1', '2'],
+        ['3', '4']
+    ])
+    assert shape == (3, 2)
+    read_df = text.from_gsheet(sheets_api, sheet)
+    pd.testing.assert_frame_equal(read_df, expected)
+
+
+class TestSheetsAPI:
     def test_create_object(self, sheets_api):
         if not sheets_api:
-            pytest.skip(self.no_creds_msg)
+            pytest.skip(no_creds_msg)
         global created_ids
 
         # Create a folder:
