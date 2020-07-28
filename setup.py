@@ -11,7 +11,7 @@ setup(
         'google-api-python-client', 'google-auth-httplib2',
         'google-auth-oauthlib', 'oauth2client'
     ],
-    version='0.4.1',
+    version='0.4.2',
     license='GNU',
     description=('A suite of classes and functions that attempt to '
                  'generalize and automate the basic steps of exploring '

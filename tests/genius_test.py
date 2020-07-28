@@ -307,7 +307,7 @@ class TestGeniusAccessor:
         testing_tools.check_sheets_api_skip(sheets_api)
         df = pd.DataFrame([dict(a=1, b=2), dict(a=3, b=4)])
         name = f'data_genius_genius_test_sheet {dt.now()}'
-        sheet_id, shape = df.genius.to_gsheet(name)
+        sheet_id, shape = df.genius.to_gsheet(name, s_api=sheets_api)
         testing_tools.created_ids.append(sheet_id)
         expected = pd.DataFrame([
             ['a', 'b'],

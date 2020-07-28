@@ -395,14 +395,16 @@ class GeniusAccessor:
             sheet_name: The desired name of the Google Sheet.
             **options: Key-value options to alter to_sqlite's behavior.
                 Currently in use options:
+                    s_api: An open SheetsAPI connection. If none is
+                        passed, one will be created.
                     parent_folder: The name of the folder in Google
                         Drive that you want to save the Google Sheet
                         to.
                     drive_id: The id of the Shared Drive you want to
                         save the Google Sheet to.
                     metadata: A GeniusMetadata object. If passed, its
-                        contents will be saved to a table appended with
-                        the names of its attributes.
+                        output_header will be used as the column header
+                        in the output Google Sheet.
 
         Returns: The id of the newly created Google Sheet and its
             shape (columns are included as a row).
@@ -413,6 +415,8 @@ class GeniusAccessor:
         return text.write_gsheet(
             sheet_name,
             self.df,
+            sheet_title=options.get('sheet_title'),
+            s_api=options.get('s_api'),
             columns=cols,
             parent_folder=options.get('parent_folder'),
             drive_id=options.get('drive_id')

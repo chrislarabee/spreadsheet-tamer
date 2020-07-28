@@ -136,31 +136,111 @@ class SheetsAPI:
                 break
         return results
 
-    def get_sheet_metadata(self, sheet_id: str) -> dict:
+    def add_sheet(self, sheet_id: str, **sheet_properties):
+        """
+        Adds a new sheet to the Google Sheet at the passed id.
+
+        Args:
+            sheet_id: The id of a Google Sheet.
+            **sheet_properties: The desired properties of the new
+                sheet, such as:
+                    title: The title of the sheet.
+
+        Returns: The title and index position of the new sheet.
+
+        """
+        result = self.sheets.spreadsheets().batchUpdate(
+            spreadsheetId=sheet_id,
+            body={'requests': [{
+                'addSheet': {
+                    'properties': sheet_properties
+                }
+            }]}
+        ).execute()
+        r = result.get('replies')
+        if r:
+            r = r[0]['addSheet']['properties']
+            return r.get('title'), r.get('index')
+        else:
+            return None
+
+    def get_sheets(self, sheet_id: str) -> list:
+        """
+        Gets a list of sheets within the Google Sheet located at the
+        passed sheet_id.
+        Args:
+            sheet_id: A Google Sheet ID.
+
+        Returns: A list of dictionaries, each being the properties of a
+            sheet in the Google Sheet.
+
+        """
+        return self.sheets.spreadsheets().get(
+            spreadsheetId=sheet_id,
+            fields=(
+                'sheets(data/rowData/values/userEnteredValue,'
+                'properties(index,sheetId,title))')
+        ).execute().get('sheets', [])
+
+    def check_sheet_titles(
+            self,
+            sheet_title: str,
+            sheet_id: str = None,
+            sheets: list = None) -> (int, None):
+        """
+        Checks the sheets of the Google Sheet at the passed sheet_id,
+        or just the passed sheets, for a sheet with a title matching
+        that of sheet_title.
+
+        Args:
+            sheet_title: A string, the title of a sheet to search for.
+            sheet_id: A string, the id of a Google Sheet.
+            sheets: A list of sheet property dictionaries. Can be used
+                in place of sheet_id if another process has already
+                generated this list.
+
+        Returns: An integer, the index of the sheet if it is found in
+            the sheets of the Google Sheet, or None, if it is not.
+
+        """
+        if sheets is None and sheet_id is None:
+            raise ValueError(
+                'Must pass sheet_id or sheets to check_sheet_titles.')
+        sheets = self.get_sheets(sheet_id) if not sheets else sheets
+        idx = None
+        for s in sheets:
+            if s['properties']['title'] == sheet_title:
+                idx = s['properties']['index']
+        return idx
+
+    def get_sheet_metadata(
+            self,
+            sheet_id: str,
+            sheet_title: str = None) -> dict:
         """
         Retrieves metadata about the first sheet in the Google Sheet
         corresponding to the passed sheet_id.
 
         Args:
             sheet_id: A string, the id of a Google Sheet.
+            sheet_title: A string, the name of the sheet within the
+                Google Sheet to get metadata for. If none, metadata for
+                the first sheet will be used.
 
         Returns: A dictionary containing information about the data in
-            the first sheet.
+            the passed sheet.
 
         """
         results = dict()
-        raw = self.sheets.spreadsheets().get(
-            spreadsheetId=sheet_id,
-            fields=(
-                'sheets(data/rowData/values/userEnteredValue,'
-                'properties(index,sheetId,title))')
-        ).execute()
-        # TODO: Adjust this so it can handle multiple sheets.
-        results['title'] = raw['sheets'][0]['properties']['title']
-        last_row_idx = len(raw['sheets'][0]['data'][0]['rowData'])
-        last_col_idx = max(
-            [len(e['values'])
-             for e in raw['sheets'][0]['data'][0]['rowData'] if e])
+        raw = self.get_sheets(sheet_id)
+        s_idx = 0
+        if sheet_title is not None:
+            s_idx = self.check_sheet_titles(sheet_title, sheets=raw)
+        sheet = raw[s_idx]
+        results['title'] = sheet['properties']['title']
+        first_row = sheet['data'][0]['rowData']
+        last_row_idx = len(first_row)
+        last_col_idx = max([len(e['values']) for e in first_row if e])
         results['row_limit'] = last_row_idx
         results['col_limit'] = last_col_idx
         return results
@@ -262,6 +342,7 @@ class SheetsAPI:
 def from_gsheet(
         sheet_name: str,
         s_api: SheetsAPI = None,
+        sheet_title: str = None,
         drive_id: str = None) -> pd.DataFrame:
     """
     Creates a DataFrame from the first sheet of the passed Google Sheet
@@ -270,6 +351,8 @@ def from_gsheet(
     Args:
         sheet_name: The exact name of the Google Sheet to pull from.
         s_api: A SheetsAPI object.
+        sheet_title: A string, the name of the sheet within the Google
+            Sheet to pull data from.
         drive_id: The id of the Shared Drive to search for the sheet in.
 
     Returns: A DataFrame.
@@ -285,20 +368,22 @@ def from_gsheet(
             f'Cannot find single exact match for {sheet_name}. '
             f'Taking data from the first match.'
         )
-    sheet_md = s_api.get_sheet_metadata(sheet_id)
+    sheet_md = s_api.get_sheet_metadata(sheet_id, sheet_title)
+    r = sheet_title + '!' if sheet_title else ''
     last_col_alpha = u.gen_alpha_keys(sheet_md['col_limit'])
     col_letter = last_col_alpha[sheet_md['col_limit'] - 1]
     result = s_api.sheets.spreadsheets().values().get(
         spreadsheetId=sheet_id,
-        range=f"A1:{col_letter}{sheet_md['row_limit']}"
+        range=f"{r}A1:{col_letter}{sheet_md['row_limit']}"
     ).execute()
     rows = result.get('values', [])
     return pd.DataFrame(rows)
 
 
 def write_gsheet(
-        sheet_name: str,
+        gsheet_name: str,
         df: pd.DataFrame,
+        sheet_title: str = None,
         s_api: SheetsAPI = None,
         columns: list = None,
         parent_folder: str = None,
@@ -308,8 +393,12 @@ def write_gsheet(
     new Google Sheet.
 
     Args:
-        sheet_name: A string, the desired name of the new Google Sheet.
+        gsheet_name: A string, the desired name of the new Google
+            Sheet.
         df: A DataFrame.
+        sheet_title: A string, the name of the sheet within the Google
+            Sheet to save the data to. Default is the first sheet. If
+            the sheet does not exist, it will be created.
         s_api: A SheetsAPI object.
         columns: The columns to use in the Google Sheet. If none, will
             just use the columns of the DataFrame.
@@ -335,20 +424,43 @@ def write_gsheet(
         else:
             warnings.warn(
                 f'Cannot find single exact match for {parent_folder}. '
-                f'Saving {sheet_name} to root Drive.'
+                f'Saving {gsheet_name} to root Drive.'
             )
-    new_file_id = s_api.create_object(sheet_name, 'sheet', p_folder_id)
+    search_res = s_api.find_object(
+        gsheet_name,
+        'sheet',
+        drive_id
+    )
+    if len(search_res) > 1:
+        for result in search_res:
+            if result.get('parents')[0] == p_folder_id:
+                file_id = result.get('id')
+                break
+        else:
+            raise ValueError(
+                f'Cannot find {gsheet_name} in {parent_folder}')
+    elif len(search_res) == 1:
+        file_id = search_res[0].get('id')
+    else:
+        file_id = s_api.create_object(gsheet_name, 'sheet', p_folder_id)
     df_rows = df.values.tolist()
     columns = list(df.columns) if columns is None else columns
     df_rows.insert(0, columns)
+    if sheet_title is not None:
+        r = sheet_title + '!'
+        s = s_api.check_sheet_titles(sheet_title, sheet_id=file_id)
+        if s is None:
+            s_api.add_sheet(file_id, title=sheet_title)
+    else:
+        r = ''
     result = s_api.sheets.spreadsheets().values().update(
-        spreadsheetId=new_file_id,
-        range='A1',
+        spreadsheetId=file_id,
+        range=r + 'A1',
         valueInputOption='USER_ENTERED',
         body=dict(values=df_rows)
     ).execute()
-    return new_file_id, (result.get('updatedRows'),
-                         result.get('updatedColumns'))
+    return file_id, (result.get('updatedRows'),
+                     result.get('updatedColumns'))
 
 
 # def read_excel(file_name: str) -> dict:
