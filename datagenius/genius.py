@@ -395,6 +395,8 @@ class GeniusAccessor:
             sheet_name: The desired name of the Google Sheet.
             **options: Key-value options to alter to_sqlite's behavior.
                 Currently in use options:
+                    sheet_title: The name of a sheet within the Google
+                        Sheet to write to. Default is the first sheet.
                     s_api: An open SheetsAPI connection. If none is
                         passed, one will be created.
                     parent_folder: The name of the folder in Google
