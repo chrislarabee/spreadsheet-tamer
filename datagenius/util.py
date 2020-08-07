@@ -9,6 +9,7 @@ import pandas as pd
 from numpy import nan
 
 import datagenius.element as e
+from datagenius.tms_registry import TMS
 
 
 def transmutation(func=None, *, stage: str = None, priority: int = 10):
@@ -30,6 +31,8 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
     Returns: The passed function once decorated.
 
     """
+    stage = '_no_stage' if stage is None else stage
+
     # Allows transmutation functions to have special attributes:
     def decorator_transmutation(_func):
 
@@ -44,10 +47,14 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
 
         # Attributes of transmutation functions expected by other
         # objects:
-        wrapper_transmutation.stage = (
-            re.sub(r' +', '_', stage).lower()
-            if stage is not None else '_no_stage')
+        wrapper_transmutation.stage = (re.sub(r' +', '_', stage).lower())
         wrapper_transmutation.priority = priority
+
+        # Registers the transmutation in the tms_registry.
+        if stage not in TMS.keys():
+            TMS[stage] = []
+        TMS[stage].append(wrapper_transmutation)
+
         return wrapper_transmutation
 
     if not isinstance(func, Callable):
@@ -139,6 +146,30 @@ def broadcast_suffix(
 
     """
     return [i + suffix for i in list(x)]
+
+
+def broadcast_type(x: (list, tuple, pd.Series), type_func: Callable):
+    """
+    Applies the passed type conversion function to each element in the
+    passed list. Note that if you pass isnumeric plus broadcast_type
+    has special functionality and will use the results of isnumericplus
+    to determine what type to convert numeric strings to.
+
+    Args:
+        x: A list or Sequence.
+        type_func: A callable function to convert objects in the list.
+
+    Returns: The list or Sequence with each element replaced by the
+        result of calling type_func on it.
+
+    """
+    for i, val in enumerate(x):
+        if type_func == isnumericplus:
+            b, t = isnumericplus(val, '-v')
+        else:
+            t = type_func
+        x[i] = t(val)
+    return x
 
 
 def clean_whitespace(x) -> list:
@@ -293,7 +324,8 @@ def gconvert(obj, target_type):
     if (isinstance(obj, str)
             and target_type == float
             and isnumericplus(obj)):
-        point_ct = len(re.search(r'\.+', obj).group())
+        pts = re.search(r'\.+', obj)
+        point_ct = len(pts.group()) if pts else 0
         if point_ct > 1:
             obj = re.sub(r'\.+', '.', obj)
     return target_type(obj)
@@ -420,6 +452,7 @@ def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
     result = []
     for h in header:
         p = string.punctuation.replace('_', '')
+        h = str(h)
         h = re.sub(re.compile(r'[' + p + ']'), '', h)
         result.append(re.sub(' +', '_', h.strip()).lower())
     if len(set(result)) < len(result):

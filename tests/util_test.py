@@ -60,6 +60,12 @@ def test_broadcast_suffix():
         pd.Series(['x', 'y', 'z']), '_1') == ['x_1', 'y_1', 'z_1']
 
 
+def test_broadcast_type():
+    assert u.broadcast_type(['1', '2', '3'], int) == [1, 2, 3]
+    assert u.broadcast_type(
+        ['1', '0.5', '2'], u.isnumericplus) == [1, 0.5, 2]
+
+
 def test_clean_whitespace():
     assert u.clean_whitespace(1) == [False, 1]
     assert u.clean_whitespace(' a bad  string ') == [True, 'a bad string']
@@ -133,6 +139,8 @@ def test_gconvert():
     assert pd.isna(u.gconvert(nan, int))
     assert u.gconvert([1, 2, 3], str) == '[1, 2, 3]'
     assert u.gconvert(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
+    assert u.gconvert('0', float) == 0.0
+    assert u.gconvert('1', float) == 1.0
 
 
 def test_gtype():
@@ -194,6 +202,9 @@ def test_standardize_header():
         ['variant_sku', 'barcode_2', 'barcode_3', 'barcode_3_1'],
         list(header)
     )
+
+    header = pd.RangeIndex(0, 2, 1)
+    assert u.standardize_header(header) == (['0', '1'], list(header))
 
 
 def test_translate_null():

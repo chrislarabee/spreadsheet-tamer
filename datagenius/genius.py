@@ -7,7 +7,8 @@ import numpy as np
 import datagenius.lib as lib
 import datagenius.util as u
 import datagenius.metadata as md
-from datagenius.io import odbc
+from datagenius.io import odbc, text
+from datagenius.tms_registry import TMS
 
 
 @pd.api.extensions.register_dataframe_accessor('genius')
@@ -16,16 +17,6 @@ class GeniusAccessor:
     A custom pandas DataFrame accessor that adds a number of additional
     methods and properties that extend the DataFrame's functionality.
     """
-    @property
-    def preprocess_tms(self, header_func=lib.preprocess.detect_header):
-        pp_tms = [
-            lib.preprocess.normalize_whitespace,
-        ]
-        if self.df.columns[0] in ('Unnamed: 0', 0):
-            pp_tms.insert(0, lib.preprocess.purge_pre_header)
-            pp_tms.insert(0, header_func)
-        return pp_tms
-
     def __init__(self, df: pd.DataFrame):
         """
 
@@ -52,16 +43,13 @@ class GeniusAccessor:
 
         """
         pp_tms = [
-            lib.preprocess.normalize_whitespace,
+            *TMS['preprocess']
         ]
         if (u.gwithin(self.df.columns, r'[Uu]nnamed:*[ _]\d')
                 or isinstance(self.df.columns, pd.RangeIndex)):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
-        return self.transmute(
-            *pp_tms,
-            **options
-        )
+        return self.transmute(*pp_tms, **options)
     
     def explore(self, metadata: md.GeniusMetadata = None) -> tuple:
         """
@@ -74,13 +62,7 @@ class GeniusAccessor:
             results.
 
         """
-        ex_tms = [
-            lib.explore.count_values,
-            lib.explore.count_uniques,
-            lib.explore.count_nulls,
-            lib.explore.collect_data_types
-        ]
-        return self.transmute(*ex_tms, metadata=metadata)
+        return self.transmute(*TMS['explore'], metadata=metadata)
 
     def clean(
             self,
@@ -98,14 +80,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        all_cl_tms = [
-            lib.clean.complete_clusters,
-            lib.clean.reject_incomplete_rows,
-            lib.clean.reject_on_conditions,
-            lib.clean.reject_on_str_content,
-            lib.clean.cleanse_redundancies,
-        ]
-        cl_tms = self._align_tms_with_options(all_cl_tms, options)
+        cl_tms = self._align_tms_with_options(TMS['clean'], options)
         return self.transmute(*cl_tms, metadata=metadata, **options)
 
     def reformat(
@@ -125,11 +100,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        all_rf_tms = [
-            lib.reformat.reformat_df,
-            lib.reformat.fill_defaults,
-        ]
-        rf_tms = self._align_tms_with_options(all_rf_tms, options)
+        rf_tms = self._align_tms_with_options(TMS['reformat'], options)
         return self.transmute(*rf_tms, metadata=metadata, **options)
 
     def standardize(
@@ -149,13 +120,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        all_st_tms = [
-            lib.clean.cleanse_typos,
-            lib.clean.convert_types,
-            lib.clean.redistribute,
-            lib.clean.accrete
-        ]
-        st_tms = self._align_tms_with_options(all_st_tms, options)
+        st_tms = self._align_tms_with_options(TMS['standardize'], options)
         return self.transmute(*st_tms, metadata=metadata, **options)
 
     @staticmethod
@@ -379,6 +344,9 @@ class GeniusAccessor:
         """
         Uses read_file to read in the passed file path.
 
+        To read a Google Sheet, add .sheet as an extension to the file
+        path.
+
         Args:
             file_path: The file path to the desired data file.
             incl_header: A boolean, indicates whether to include
@@ -397,6 +365,7 @@ class GeniusAccessor:
             '.xlsx': pd.read_excel,
             '.csv': pd.read_csv,
             '.json': pd.read_json,
+            '.sheet': text.from_gsheet,
             # file_paths with no extension are presumed to be dir_paths
             '': odbc.from_sqlite
         }
@@ -406,8 +375,9 @@ class GeniusAccessor:
         if ext in ('.xls', '.xlsx', '.csv'):
             kwargs['dtype'] = object
         if ext not in read_funcs.keys():
-            raise ValueError(f'read_file error: file extension must be '
-                             f'one of {read_funcs.keys()}')
+            raise ValueError(
+                f'read_file error: file extension must be one of '
+                f'{read_funcs.keys()}')
         else:
             df = u.purge_gap_rows(
                 pd.DataFrame(read_funcs[ext](file_path, **kwargs))
@@ -417,6 +387,42 @@ class GeniusAccessor:
                 return df, o_header
             else:
                 return df
+
+    def to_gsheet(self, sheet_name: str, **options):
+        """
+        Writes the DataFrame to a Google Sheet.
+        Args:
+            sheet_name: The desired name of the Google Sheet.
+            **options: Key-value options to alter to_sqlite's behavior.
+                Currently in use options:
+                    sheet_title: The name of a sheet within the Google
+                        Sheet to write to. Default is the first sheet.
+                    s_api: An open SheetsAPI connection. If none is
+                        passed, one will be created.
+                    parent_folder: The name of the folder in Google
+                        Drive that you want to save the Google Sheet
+                        to.
+                    drive_id: The id of the Shared Drive you want to
+                        save the Google Sheet to.
+                    metadata: A GeniusMetadata object. If passed, its
+                        output_header will be used as the column header
+                        in the output Google Sheet.
+
+        Returns: The id of the newly created Google Sheet and its
+            shape (columns are included as a row).
+
+        """
+        m = options.get('metadata')
+        cols = m.output_header if m is not None else None
+        return text.write_gsheet(
+            sheet_name,
+            self.df,
+            sheet_title=options.get('sheet_title'),
+            s_api=options.get('s_api'),
+            columns=cols,
+            parent_folder=options.get('parent_folder'),
+            drive_id=options.get('drive_id')
+        )
 
     def to_sqlite(self, dir_path: str, table: str, **options):
         """

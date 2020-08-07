@@ -1,10 +1,12 @@
 import pandas as pd
 import pytest
 from numpy import nan
+from datetime import datetime as dt
 
 import datagenius.genius as ge
 import datagenius.util as u
 import datagenius.lib.guides as gd
+from tests import testing_tools
 
 
 class TestGeniusAccessor:
@@ -259,6 +261,64 @@ class TestGeniusAccessor:
                 ValueError, match='Must supply at least 2 columns.'):
             df = df.genius.fillna_shift('a')
 
+    def test_to_sqlite_metadata(self, gaps_totals):
+        df = pd.DataFrame(gaps_totals())
+        df, metadata = df.genius.preprocess()
+        df.genius.to_sqlite('tests/samples', 'sales',
+                            db_name='genius_test', metadata=metadata)
+        md_df = pd.DataFrame.genius.from_file(
+            'tests/samples', table='sales_metadata', db_name='genius_test'
+        )
+        expected = pd.DataFrame([
+            dict(stage='h_preprocess', transmutation='purge_pre_header',
+                 location=2.0, region=0.0, sales=0.0),
+            dict(stage='preprocess', transmutation='normalize_whitespace',
+                 location=0.0, region=0.0, sales=0.0),
+        ])
+        pd.testing.assert_frame_equal(md_df, expected)
+
+    def test_to_sqlite(self, products):
+        d = pd.DataFrame(**products)
+        d.genius.to_sqlite(
+            'tests/samples', 'products', db_name='genius_test')
+        d2 = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='products', db_name='genius_test')
+        pd.testing.assert_frame_equal(d, d2)
+
+    def test_to_sqlite_dates(self):
+        df = pd.DataFrame.genius.from_file(
+            'tests/samples/excel/dt_nonsense.xlsx')
+        df.genius.to_sqlite(
+            'tests/samples', 'dt_nonsense', db_name='genius_test'
+        )
+        expected = pd.DataFrame([
+            ['Eugene', '23', '2020-01-23 00:00:00', '2020-01-02 00:00:00',
+             '2020-01-02 00:00:00']
+        ], columns=[
+            'collect_by', 'num_collected', 'date', 'ratio',
+            'range']
+        )
+        df2 = pd.DataFrame.genius.from_file(
+            'tests/samples', table='dt_nonsense', db_name='genius_test'
+        )
+        pd.testing.assert_frame_equal(expected, df2)
+
+    def test_to_from_gsheet(self, sheets_api):
+        testing_tools.check_sheets_api_skip(sheets_api)
+        df = pd.DataFrame([dict(a=1, b=2), dict(a=3, b=4)])
+        name = f'data_genius_genius_test_sheet {dt.now()}'
+        sheet_id, shape = df.genius.to_gsheet(name, s_api=sheets_api)
+        testing_tools.created_ids.append(sheet_id)
+        expected = pd.DataFrame([
+            ['a', 'b'],
+            ['1', '2'],
+            ['3', '4']
+        ], columns=['0', '1'])
+        assert shape == (3, 2)
+        read_df = pd.DataFrame.genius.from_file(
+            name + '.sheet', s_api=sheets_api)
+        pd.testing.assert_frame_equal(read_df, expected)
+
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
             'tests/samples/csv/simple.csv')
@@ -289,48 +349,6 @@ class TestGeniusAccessor:
             df, pd.DataFrame(**customers())
         )
         assert isinstance(df, pd.DataFrame)
-
-    def test_to_sqlite_metadata(self, gaps_totals):
-        df = pd.DataFrame(gaps_totals())
-        df, metadata = df.genius.preprocess()
-        df.genius.to_sqlite('tests/samples', 'sales',
-                            db_name='genius_test', metadata=metadata)
-        md_df = pd.DataFrame.genius.from_file(
-            'tests/samples', table='sales_metadata', db_name='genius_test'
-        )
-        expected = pd.DataFrame([
-            dict(stage='preprocess', transmutation='purge_pre_header',
-                 location=2.0, region=0.0, sales=0.0),
-            dict(stage='preprocess', transmutation='normalize_whitespace',
-                 location=0.0, region=0.0, sales=0.0),
-        ])
-        pd.testing.assert_frame_equal(md_df, expected)
-        
-    def test_to_sqlite(self, products):
-        d = pd.DataFrame(**products)
-        d.genius.to_sqlite(
-            'tests/samples', 'products', db_name='genius_test')
-        d2 = pd.DataFrame.genius.from_file(
-            'tests/samples/', table='products', db_name='genius_test')
-        pd.testing.assert_frame_equal(d, d2)
-
-    def test_to_sqlite_dates(self):
-        df = pd.DataFrame.genius.from_file(
-            'tests/samples/excel/dt_nonsense.xlsx')
-        df.genius.to_sqlite(
-            'tests/samples', 'dt_nonsense', db_name='genius_test'
-        )
-        expected = pd.DataFrame([
-            ['Eugene', '23', '2020-01-23 00:00:00', '2020-01-02 00:00:00',
-             '2020-01-02 00:00:00']
-        ], columns=[
-            'collect_by', 'num_collected', 'date', 'ratio',
-            'range']
-        )
-        df2 = pd.DataFrame.genius.from_file(
-            'tests/samples', table='dt_nonsense', db_name='genius_test'
-        )
-        pd.testing.assert_frame_equal(expected, df2)
 
     def test_order_transmutations(self):
         x2 = u.transmutation(lambda x: x)

@@ -37,7 +37,8 @@ class ZeroNumeric:
             self._value = str(value)
             self._zeros = ''
             self._numeric = value
-        elif isinstance(value, str):
+        else:
+            value = str(value)
             value = re.sub(r"'+", '', value)
             if u.isnumericplus(value):
                 self._value = value
