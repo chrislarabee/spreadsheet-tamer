@@ -278,12 +278,25 @@ class TestGeniusAccessor:
         pd.testing.assert_frame_equal(md_df, expected)
 
     def test_to_sqlite(self, products):
-        d = pd.DataFrame(**products)
+        d = pd.DataFrame(
+            data=products['data'][:3], columns=products['columns']
+        )
         d.genius.to_sqlite(
             'tests/samples', 'products', db_name='genius_test')
         d2 = pd.DataFrame.genius.from_file(
             'tests/samples/', table='products', db_name='genius_test')
         pd.testing.assert_frame_equal(d, d2)
+
+        expected = pd.DataFrame(**products)
+        d3 = pd.DataFrame(
+            data=[products['data'][-1]], columns=products['columns']
+        )
+        d3.genius.to_sqlite(
+            'tests/samples', 'products', db_name='genius_test',
+            drop_first=False)
+        d4 = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='products', db_name='genius_test')
+        pd.testing.assert_frame_equal(d4, expected)
 
     def test_to_sqlite_dates(self):
         df = pd.DataFrame.genius.from_file(

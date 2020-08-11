@@ -441,21 +441,26 @@ class GeniusAccessor:
                     metadata: A GeniusMetadata object. If passed, its
                         contents will be saved to a table appended with
                         the names of its attributes.
+                    drop_first: A boolean, if True, the target table
+                        will be overwritten. True is the default.
 
         Returns: None
 
         """
+        drop = options.get('drop_first', True)
         conn = odbc.quick_conn_setup(
             dir_path,
             options.get('db_name'),
             options.get('db_conn')
         )
-        odbc.write_sqlite(conn, table, self.df)
+        odbc.write_sqlite(conn, table, self.df, drop_first=drop)
         m = options.get('metadata')
         if m is not None:
-            odbc.write_sqlite(conn, f'{table}_metadata', m.collected)
+            odbc.write_sqlite(
+                conn, f'{table}_metadata', m.collected, drop_first=drop)
             if m.reject_ct > 0:
-                odbc.write_sqlite(conn, f'{table}_rejects', m.rejects)
+                odbc.write_sqlite(
+                    conn, f'{table}_rejects', m.rejects, drop_first=drop)
 
     @staticmethod
     def _order_transmutations(tms: (list, tuple)):

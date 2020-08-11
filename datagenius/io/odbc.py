@@ -297,21 +297,24 @@ def write_sqlite(
         odbc: ODBConnector,
         table_name: str,
         df: pd.DataFrame,
-        schema: dict = None) -> None:
+        schema: dict = None,
+        drop_first: bool = True) -> None:
     """
     Simple function to write data to a sqlite db connected via an
-    ODBConnector. Overwrites whatever data is in the existing table, if
-    any.
+    ODBConnector.
 
     Args:
         odbc: An ODBConnector object.
         table_name: A string, the name of the table.
         df: A pandas DataFrame
         schema: A dictionary containing the schema of the table.
+        drop_first: A boolean, if True, the data in the existing table,
+            if any, will be deleted before writing to it.
 
     Returns:
 
     """
-    odbc.drop_tbl(table_name)
+    if drop_first:
+        odbc.drop_tbl(table_name)
     schema = gen_schema(df) if schema is None else schema
     odbc.insert(table_name, df, schema)
