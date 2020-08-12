@@ -75,6 +75,6 @@ class TestSheetsAPI:
 
 
 def test_build_template(customers):
-    t = text.get_output_template('tests/samples/csv/simple.csv')
+    t = text.get_output_template('tests/samples/csv/customers.csv')
     assert t == customers()['columns']
 

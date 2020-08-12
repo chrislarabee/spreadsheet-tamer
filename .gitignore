@@ -3,7 +3,5 @@ __pycache__
 venv
 *.db
 !read_testing.db
-*.csv
-!csv
 *.json
 *.pickle
