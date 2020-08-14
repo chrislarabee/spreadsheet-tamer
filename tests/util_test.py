@@ -239,3 +239,16 @@ def test_validate_attr():
     assert u.validate_attr(df, 'shape', (2, 3))
     assert u.validate_attr(df, 'shape')
     assert not u.validate_attr(df, 'gibberish', 'nonsense')
+
+
+def test_gsheet_range_formula():
+    df = pd.DataFrame([
+        dict(col1=20, col2=10),
+        dict(col1=100, col2=50),
+    ])
+    df = u.gsheet_range_formula(df)
+    expected = pd.DataFrame([
+        dict(col1=20, col2=10, sum='=SUM(A1:B1)'),
+        dict(col1=100, col2=50, sum='=SUM(A2:B2)'),
+    ])
+    pd.testing.assert_frame_equal(df, expected)

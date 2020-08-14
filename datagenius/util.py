@@ -550,3 +550,29 @@ def validate_attr(obj, attr: str, match=None) -> bool:
         elif getattr(obj, attr) == match:
             result = True
     return result
+
+
+def gsheet_range_formula(
+        df: pd.DataFrame,
+        f_range: (str, int, tuple) = None,
+        axis: int = 0,
+        idx_range: tuple = None,
+        new_col: str = None,
+        col_order=None):
+    col_order = list(col_order) if col_order else list(df.columns)
+    alpha_keys = gen_alpha_keys(len(col_order))
+    matrix = dict(zip(col_order, alpha_keys))
+    if axis == 0:
+        new_col = new_col if new_col else 'sum'
+        f_range = f_range if f_range else (col_order[0], col_order[-1])
+        c = tuplify(f_range)
+        c = (matrix[c[0]], matrix[c[-1]])
+        df[new_col] = [
+            f'=SUM({c[0]}{i + 1}:{c[1]}{i + 1})' for i in df.index
+        ]
+    return df
+
+
+
+
+
