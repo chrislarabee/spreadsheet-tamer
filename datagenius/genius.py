@@ -28,6 +28,7 @@ class GeniusAccessor:
     def preprocess(
             self,
             header_func: Callable = lib.preprocess.detect_header,
+            metadata: md.GeniusMetadata = None,
             **options) -> tuple:
         """
         A convenient way to run functions from lib.preprocess on
@@ -36,6 +37,7 @@ class GeniusAccessor:
         Args:
             header_func: A callable object that takes a Dataset object
                 and kwargs.
+            metadata: A GeniusMetadata object.
             **options: Keyword args. See the preprocess transmutations
                 for details on the arguments they take.
         Returns: self.df, modified by preprocess transmutations, and a
@@ -49,7 +51,7 @@ class GeniusAccessor:
                 or isinstance(self.df.columns, pd.RangeIndex)):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
-        return self.transmute(*pp_tms, **options)
+        return self.transmute(*pp_tms, metadata=metadata, **options)
     
     def explore(self, metadata: md.GeniusMetadata = None) -> tuple:
         """
