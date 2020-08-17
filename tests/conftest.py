@@ -245,3 +245,12 @@ def needs_cleanse_typos():
              'aluminum', 's', nan, nan, nan]
         ]
     )
+
+
+@pytest.fixture
+def df_for_formulas():
+    return [
+        dict(col1=20, col2=10, col3=30),
+        dict(col1=100, col2=50, col3=200),
+        dict(col1=1000, col2=200, col3=754),
+    ]

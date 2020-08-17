@@ -555,21 +555,88 @@ def validate_attr(obj, attr: str, match=None) -> bool:
 def gsheet_range_formula(
         df: pd.DataFrame,
         f_range: (str, int, tuple) = None,
+        f_func: str = 'sum',
         axis: int = 0,
-        idx_range: tuple = None,
-        new_col: str = None,
-        col_order=None):
+        label_range: tuple = None,
+        new_label: (str, int) = None,
+        col_order=None,
+        header_buffer: int = 1) -> pd.DataFrame:
+    """
+    Adds a row or column to a DataFrame, containing strings that will be
+    parsed by Google Sheets as formula functions. Formulas must be range
+    functions like SUM or AVERAGE, as the created string will be in the
+    format of '=FUNC(A2:C2)'.
+
+    Args with * = For columns, supply the columns with respect to the
+    current column order of df.
+
+    Args:
+        df: A DataFrame.
+        f_range:* The range of row or column labels to include in the
+            formula.
+        f_func: A string, the name of the Google Sheet range function to
+            use.
+        axis: 1 to create a new row, 0 to create a new column.
+        label_range:* The range of row or column labels to to add a
+            formula value to.
+        new_label: The label of the row or column to add the new row
+            or column under. If row, must be either 0 (for top of df) or
+            -1 (for bottom of df). For column, can be any valid column
+            label. Default for columns is f_func, default for rows is
+            -1.
+        col_order: An iterable that represents the OUTPUT order of
+            columns, if different from the current order of columns. Use
+            this to create formulas that will be correct on output,
+            regardless of reordered or dropped columns.
+        header_buffer: Number of rows that will be above the data on
+            OUTPUT, inclusive of a header row, if it will be output.
+
+    Returns: The DataFrame, with a formula row or column added.
+
+    """
     col_order = list(col_order) if col_order else list(df.columns)
-    alpha_keys = gen_alpha_keys(len(col_order))
-    matrix = dict(zip(col_order, alpha_keys))
+    # Translate columns into Google Sheet column names (i.e. A, B, C...)
+    alpha_cols = gen_alpha_keys(len(col_order))
+    mtrx = dict(zip(col_order, alpha_cols))
+    # Google sheets is 1-initial not 0-initial, and if there's a header
+    # row or rows that will add more rows to the top.
+    r = 1 + header_buffer
     if axis == 0:
-        new_col = new_col if new_col else 'sum'
+        new_label = new_label if new_label else f_func.lower()
         f_range = f_range if f_range else (col_order[0], col_order[-1])
-        c = tuplify(f_range)
-        c = (matrix[c[0]], matrix[c[-1]])
-        df[new_col] = [
-            f'=SUM({c[0]}{i + 1}:{c[1]}{i + 1})' for i in df.index
+        r1, r2 = label_range if label_range else (0, len(df) - 1)
+        fr = tuplify(f_range)
+        c1, c2 = (mtrx[fr[0]], mtrx[fr[-1]])
+        new_col = [
+            f'={f_func.upper()}({c1}{i + r}:{c2}{i + r})'
+            for i in df.index
+        ][r1:r2 + 1]
+        df.loc[r1:r2, new_label] = new_col
+    else:
+        if new_label not in (None, 0, -1):
+            raise ValueError(
+                f'Can only add formula row to beginning (new_label=0) '
+                f'or end (new_label=-1) of df. Passed value = {new_label}')
+        if new_label == 0:
+            row_idx = -1
+            r += 1
+        else:
+            row_idx = len(df)
+        f_range = f_range if f_range else (0, df.index[-1])
+        fr = tuplify(f_range)
+        r1, r2 = fr[0], fr[-1]
+        if not label_range:
+            label_range = (col_order[0], col_order[-1])
+        c1, c2 = label_range
+        form_cols = col_order[col_order.index(c1):col_order.index(c2) + 1]
+        new_row = [
+            f'={f_func.upper()}({mtrx[c]}{r1 + r}:{mtrx[c]}{r2 + r})'
+            if c in form_cols else nan for c in df.columns
         ]
+        df.loc[row_idx, :] = new_row
+        if new_label == 0:
+            df.index = df.index + 1
+            df.sort_index(inplace=True)
     return df
 
 

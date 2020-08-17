@@ -1,5 +1,6 @@
 pytest
 pandas>=1.0.4
+numpy
 xlrd
 SQLalchemy
 recordlinkage

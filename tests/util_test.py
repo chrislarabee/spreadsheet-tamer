@@ -241,14 +241,102 @@ def test_validate_attr():
     assert not u.validate_attr(df, 'gibberish', 'nonsense')
 
 
-def test_gsheet_range_formula():
-    df = pd.DataFrame([
-        dict(col1=20, col2=10),
-        dict(col1=100, col2=50),
-    ])
+def test_gsheet_range_formula_basic(df_for_formulas):
+    df = pd.DataFrame(df_for_formulas)
     df = u.gsheet_range_formula(df)
-    expected = pd.DataFrame([
-        dict(col1=20, col2=10, sum='=SUM(A1:B1)'),
-        dict(col1=100, col2=50, sum='=SUM(A2:B2)'),
-    ])
-    pd.testing.assert_frame_equal(df, expected)
+    expected = pd.Series([
+        '=SUM(A2:C2)', '=SUM(A3:C3)', '=SUM(A4:C4)'
+    ], name='sum')
+    pd.testing.assert_series_equal(df['sum'], expected)
+
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(df, axis=1)
+    expected = pd.Series([
+        '=SUM(A2:A4)', '=SUM(B2:B4)', '=SUM(C2:C4)'
+    ], name=3, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[3, :], expected)
+
+
+def test_gsheet_range_formula_label_range(df_for_formulas):
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(df, label_range=(1, 2))
+    expected = pd.Series([
+        nan, '=SUM(A3:C3)', '=SUM(A4:C4)'
+    ], name='sum')
+    pd.testing.assert_series_equal(df['sum'], expected)
+
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(df, axis=1, label_range=('col1', 'col2'))
+    expected = pd.Series([
+        '=SUM(A2:A4)', '=SUM(B2:B4)', nan
+    ], name=3, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[3, :], expected)
+
+
+def test_gsheet_range_formula_new_label(df_for_formulas):
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(df, new_label='total')
+    expected = pd.Series([
+        '=SUM(A2:C2)', '=SUM(A3:C3)', '=SUM(A4:C4)'
+    ], name='total')
+    pd.testing.assert_series_equal(df['total'], expected)
+
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(df, axis=1, new_label=0)
+    expected = pd.Series([
+        '=SUM(A3:A5)', '=SUM(B3:B5)', '=SUM(C3:C5)'
+    ], name=0, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[0, :], expected)
+
+
+def test_gsheet_range_formula_col_order(df_for_formulas):
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(
+        df, col_order=['col3', 'col1', 'col2'])
+    expected = pd.Series([
+        '=SUM(A2:C2)', '=SUM(A3:C3)', '=SUM(A4:C4)'
+    ], name='sum')
+    pd.testing.assert_series_equal(df['sum'], expected)
+
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(
+        df, axis=1,  col_order=['col3', 'col1', 'col2'])
+    expected = pd.Series([
+        '=SUM(B2:B4)', '=SUM(C2:C4)', '=SUM(A2:A4)'
+    ], name=3, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[3, :], expected)
+
+
+def test_gsheet_range_formula_f_range(df_for_formulas):
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(df, f_range=('col2', 'col3'))
+    expected = pd.Series([
+        '=SUM(B2:C2)', '=SUM(B3:C3)', '=SUM(B4:C4)'
+    ], name='sum')
+    pd.testing.assert_series_equal(df['sum'], expected)
+
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(
+        df, axis=1,  f_range=(1, 2))
+    expected = pd.Series([
+        '=SUM(A3:A4)', '=SUM(B3:B4)', '=SUM(C3:C4)'
+    ], name=3, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[3, :], expected)
+
+
+def test_gsheet_range_formula_col_order_f_range(df_for_formulas):
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(
+        df, f_range=('col1', 'col2'), col_order=['col3', 'col1', 'col2'])
+    expected = pd.Series([
+        '=SUM(B2:C2)', '=SUM(B3:C3)', '=SUM(B4:C4)'
+    ], name='sum')
+    pd.testing.assert_series_equal(df['sum'], expected)
+
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(
+        df, axis=1,  f_range=(1, 2), col_order=['col3', 'col1', 'col2'])
+    expected = pd.Series([
+        '=SUM(B3:B4)', '=SUM(C3:C4)', '=SUM(A3:A4)'
+    ], name=3, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[3, :], expected)

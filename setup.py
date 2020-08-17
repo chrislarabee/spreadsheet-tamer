@@ -9,9 +9,9 @@ setup(
     install_requires=[
         'pandas>=1.0.4', 'xlrd', 'SQLalchemy', 'recordlinkage',
         'google-api-python-client', 'google-auth-httplib2',
-        'google-auth-oauthlib', 'oauth2client'
+        'google-auth-oauthlib', 'oauth2client', 'numpy'
     ],
-    version='0.4.5',
+    version='0.4.6',
     license='GNU',
     description=('A suite of classes and functions that attempt to '
                  'generalize and automate the basic steps of exploring '
