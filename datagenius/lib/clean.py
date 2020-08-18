@@ -116,6 +116,8 @@ def reject_on_str_content(
         if isinstance(v, tuple):
             v = '|'.join(v)
         cond_results[k] = df[k].str.contains(v, case=False)
+    # Directly assign index in case the DataFrame is being chunked on read:
+    cond_results.index = df.index
     matches = cond_results.any(axis=1)
     rejects = df.iloc[matches[matches].index]
     df = df.drop(index=rejects.index)

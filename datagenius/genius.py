@@ -28,6 +28,7 @@ class GeniusAccessor:
     def preprocess(
             self,
             header_func: Callable = lib.preprocess.detect_header,
+            metadata: md.GeniusMetadata = None,
             **options) -> tuple:
         """
         A convenient way to run functions from lib.preprocess on
@@ -36,6 +37,7 @@ class GeniusAccessor:
         Args:
             header_func: A callable object that takes a Dataset object
                 and kwargs.
+            metadata: A GeniusMetadata object.
             **options: Keyword args. See the preprocess transmutations
                 for details on the arguments they take.
         Returns: self.df, modified by preprocess transmutations, and a
@@ -49,7 +51,7 @@ class GeniusAccessor:
                 or isinstance(self.df.columns, pd.RangeIndex)):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
-        return self.transmute(*pp_tms, **options)
+        return self.transmute(*pp_tms, metadata=metadata, **options)
     
     def explore(self, metadata: md.GeniusMetadata = None) -> tuple:
         """
@@ -441,21 +443,26 @@ class GeniusAccessor:
                     metadata: A GeniusMetadata object. If passed, its
                         contents will be saved to a table appended with
                         the names of its attributes.
+                    drop_first: A boolean, if True, the target table
+                        will be overwritten. True is the default.
 
         Returns: None
 
         """
+        drop = options.get('drop_first', True)
         conn = odbc.quick_conn_setup(
             dir_path,
             options.get('db_name'),
             options.get('db_conn')
         )
-        odbc.write_sqlite(conn, table, self.df)
+        odbc.write_sqlite(conn, table, self.df, drop_first=drop)
         m = options.get('metadata')
         if m is not None:
-            odbc.write_sqlite(conn, f'{table}_metadata', m.collected)
+            odbc.write_sqlite(
+                conn, f'{table}_metadata', m.collected, drop_first=drop)
             if m.reject_ct > 0:
-                odbc.write_sqlite(conn, f'{table}_rejects', m.rejects)
+                odbc.write_sqlite(
+                    conn, f'{table}_rejects', m.rejects, drop_first=drop)
 
     @staticmethod
     def _order_transmutations(tms: (list, tuple)):

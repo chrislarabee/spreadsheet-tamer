@@ -84,6 +84,35 @@ class GeniusMetadata(Callable):
                 self._output_header = o_header
         return result, kwargs
 
+    def combine(self, other):
+        """
+        Combines the data in this GeniusMetadata object with the data
+        from another GeniusMetadata object. Transmutations tracked by
+        both GeniusMetadata objects will have their totals aggregated.
+
+        Args:
+            other: A GeniusMetadata object.
+
+        Returns: None
+
+        """
+        if isinstance(other, GeniusMetadata):
+            self._collected = self._collected.append(other.collected)
+            self._collected = self._collected.groupby(
+                ['stage', 'transmutation']
+            ).sum().reset_index()
+            self._rejects = self._rejects.append(other.rejects)
+            new_columns = set(
+                self._output_header
+            ).difference(set(other._output_header))
+            self._output_header += list(new_columns)
+        else:
+            raise TypeError(
+                f'GeniusMetadata.combine method can only accept other '
+                f'GeniusMetadata objects. Passed object type = '
+                f'{type(other)}'
+            )
+
     def _intake(self, incoming: pd.DataFrame, attr: str) -> None:
         """
         Adds an incoming DataFrame to an attribute on GeniusMetadata

@@ -94,7 +94,8 @@ def normalize_whitespace(df: pd.DataFrame) -> tuple:
     md_df = u.gen_empty_md_df(df.columns)
     for c in df.columns:
         result = df[c].apply(u.clean_whitespace)
-        result = pd.DataFrame(result.to_list())
+        # Pass the index in case the DataFrame is being chunked on read:
+        result = pd.DataFrame(result.to_list(), index=df.index)
         df[c] = result[1]
         md_df[c] = result[0].sum()
     return df, {'metadata': md_df}

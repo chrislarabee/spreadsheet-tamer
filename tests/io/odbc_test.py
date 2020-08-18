@@ -54,3 +54,20 @@ def test_gen_schema():
     ])
     expected = dict(a=int, b=str, c=float)
     assert odbc.gen_schema(df) == expected
+
+
+def test_write_sqlite(products):
+    d = pd.DataFrame(
+        data=products['data'][:3], columns=products['columns']
+    )
+    odbc.write_sqlite(o, 'products', d)
+    d2 = pd.DataFrame(o.select('products'))
+    pd.testing.assert_frame_equal(d2, d)
+
+    expected = pd.DataFrame(**products)
+    d3 = pd.DataFrame(
+        data=[products['data'][-1]], columns=products['columns']
+    )
+    odbc.write_sqlite(o, 'products', d3, drop_first=False)
+    d4 = pd.DataFrame(o.select('products'))
+    pd.testing.assert_frame_equal(d4, expected)

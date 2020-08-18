@@ -21,7 +21,7 @@ class TestGeniusAccessor:
         g = gaps_totals(False, False)
         expected = pd.DataFrame(g[1:], columns=g[0])
         df = pd.DataFrame.genius.from_file(
-            'tests/samples/excel/gaps_totals.xlsx')
+            'tests/samples/excel/sales_report.xlsx')
         df, metadata = df.genius.preprocess()
         pd.testing.assert_frame_equal(df, expected)
 
@@ -278,12 +278,25 @@ class TestGeniusAccessor:
         pd.testing.assert_frame_equal(md_df, expected)
 
     def test_to_sqlite(self, products):
-        d = pd.DataFrame(**products)
+        d = pd.DataFrame(
+            data=products['data'][:3], columns=products['columns']
+        )
         d.genius.to_sqlite(
             'tests/samples', 'products', db_name='genius_test')
         d2 = pd.DataFrame.genius.from_file(
             'tests/samples/', table='products', db_name='genius_test')
         pd.testing.assert_frame_equal(d, d2)
+
+        expected = pd.DataFrame(**products)
+        d3 = pd.DataFrame(
+            data=[products['data'][-1]], columns=products['columns']
+        )
+        d3.genius.to_sqlite(
+            'tests/samples', 'products', db_name='genius_test',
+            drop_first=False)
+        d4 = pd.DataFrame.genius.from_file(
+            'tests/samples/', table='products', db_name='genius_test')
+        pd.testing.assert_frame_equal(d4, expected)
 
     def test_to_sqlite_dates(self):
         df = pd.DataFrame.genius.from_file(
@@ -321,7 +334,7 @@ class TestGeniusAccessor:
 
     def test_from_file(self, customers):
         df = pd.DataFrame.genius.from_file(
-            'tests/samples/csv/simple.csv')
+            'tests/samples/csv/customers.csv')
         pd.testing.assert_frame_equal(
             df, pd.DataFrame(**customers(), dtype='object')
         )
@@ -332,14 +345,14 @@ class TestGeniusAccessor:
         assert df.shape == (5, 4)
 
         df = pd.DataFrame.genius.from_file(
-            'tests/samples/excel/simple.xlsx')
+            'tests/samples/excel/customers.xlsx')
         pd.testing.assert_frame_equal(
             df, pd.DataFrame(**customers(int), dtype='object')
         )
 
         # Ensure null rows are being dropped from excel:
         df = pd.DataFrame.genius.from_file(
-            'tests/samples/excel/gaps_totals.xlsx')
+            'tests/samples/excel/sales_report.xlsx')
         assert df.shape == (8, 3)
 
         # Test pulling from sqlite db:
@@ -359,3 +372,22 @@ class TestGeniusAccessor:
 
         assert pd.DataFrame.genius._order_transmutations(
             [x2, x3, x1]) == expected
+
+
+class TestGeniusAccessorOnChunkedFiles:
+    def test_preprocess(self, sales):
+        expected = [
+            pd.DataFrame(
+                data=sales['data'][:2],
+                columns=sales['columns'],
+                index=[0, 1]),
+            pd.DataFrame(
+                data=sales['data'][2:],
+                columns=sales['columns'],
+                index=[2, 3]),
+        ]
+        for i, chunk in enumerate(pd.read_csv(
+                'tests/samples/csv/sales.csv', chunksize=2)):
+            pd.testing.assert_frame_equal(chunk, expected[i])
+            chunk, _ = chunk.genius.preprocess()
+            pd.testing.assert_frame_equal(chunk, expected[i])
