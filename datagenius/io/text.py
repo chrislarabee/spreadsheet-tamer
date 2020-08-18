@@ -339,6 +339,45 @@ class SheetsAPI:
         return build('sheets', 'v4', credentials=creds)
 
 
+class GSheetFormatting:
+    @property
+    def range_dict(self):
+        return dict(
+            sheetId=None,
+            dimension=None,
+            startIndex=None,
+            endIndex=None
+        )
+
+    @property
+    def auto_dim_size(self):
+        return dict(
+            autoResizeDimensions=dict(
+                dimensions=self.range_dict
+            )
+        )
+
+    @property
+    def delete_dim(self):
+        return dict(
+            deleteDimension=dict(
+                range=self.range_dict
+            )
+        )
+
+    @property
+    def insert_dims(self):
+        return dict(
+            insertDimension=dict(
+                range=self.range_dict,
+                inheritFromBefore=None
+            )
+        )
+
+    def __init__(self):
+        pass
+
+
 def from_gsheet(
         sheet_name: str,
         s_api: SheetsAPI = None,
