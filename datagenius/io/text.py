@@ -341,19 +341,10 @@ class SheetsAPI:
 
 class GSheetFormatting:
     @property
-    def range_dict(self):
-        return dict(
-            sheetId=None,
-            dimension=None,
-            startIndex=None,
-            endIndex=None
-        )
-
-    @property
     def auto_dim_size(self):
         return dict(
             autoResizeDimensions=dict(
-                dimensions=self.range_dict
+                dimensions=None
             )
         )
 
@@ -361,7 +352,7 @@ class GSheetFormatting:
     def delete_dim(self):
         return dict(
             deleteDimension=dict(
-                range=self.range_dict
+                range=None
             )
         )
 
@@ -369,13 +360,35 @@ class GSheetFormatting:
     def insert_dims(self):
         return dict(
             insertDimension=dict(
-                range=self.range_dict,
-                inheritFromBefore=None
+                range=dict(),
+                inheritFromBefore=False
             )
         )
 
-    def __init__(self):
-        pass
+    def __init__(self, file_id: str = None):
+        self.file_id: str = file_id
+        self.requests: list = []
+
+    def set_file(self, file_id: str):
+        self.file_id = file_id
+        return self
+
+    def insert_rows(self, num_rows: int, at_row: int = 1):
+        request = self.insert_dims
+        request['insertDimension']['range'] = self._build_dims_dict(
+            self.file_id, 'ROWS', at_row - 1, at_row - 1 + num_rows)
+        self.requests.append(request)
+        return self
+
+    @staticmethod
+    def _build_dims_dict(*vals):
+        d = dict(
+            sheetId=None,
+            dimension=None,
+            startIndex=None,
+            endIndex=None
+        )
+        return dict(zip(d.keys(), vals))
 
 
 def from_gsheet(

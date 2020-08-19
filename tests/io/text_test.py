@@ -74,6 +74,32 @@ class TestSheetsAPI:
         assert f[0].get('parents')[0] == f_id
 
 
+class TestGSheetFormatting:
+    def test_basics(self):
+        f = text.GSheetFormatting('fake_id')
+        d = f.auto_dim_size
+        d['autoResizeDimensions']['dimensions'] = dict(test=0)
+        assert f.auto_dim_size == dict(
+            autoResizeDimensions=dict(dimensions=None))
+
+    def test_insert_rows(self):
+        f = text.GSheetFormatting()
+        f.set_file('fake_id').insert_rows(3, 2)
+        assert f.requests == [
+            dict(
+                insertDimension=dict(
+                    range=dict(
+                        sheetId='fake_id',
+                        dimension='ROWS',
+                        startIndex=1,
+                        endIndex=4
+                    ),
+                    inheritFromBefore=False
+                )
+            )
+        ]
+
+
 def test_build_template(customers):
     t = text.get_output_template('tests/samples/csv/customers.csv')
     assert t == customers()['columns']
