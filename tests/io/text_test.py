@@ -73,28 +73,76 @@ class TestSheetsAPI:
         assert f[0].get('name') == sheet
         assert f[0].get('parents')[0] == f_id
 
+    def test_batch_update(self, sheets_api):
+        testing_tools.check_sheets_api_skip(sheets_api)
+
+        sheet = f'data_genius_test_sheet {dt.now()}'
+        s_id = sheets_api.create_object(sheet, 'sheet')
+        testing_tools.created_ids.insert(0, s_id)
+        values = [['a', 'b', 'c'], ['1', '2', '3'], ['4', '5', '6']]
+        result = sheets_api.write_values(
+            s_id, values)
+        assert result == (3, 3)
+        fmt = text.GSheetFormatting().insert_rows(2)
+        sheets_api.batch_update(s_id, fmt.requests)
+        rows = sheets_api.get_sheet_values(s_id)
+        expected = [[], [], *values]
+        assert rows == expected
+
 
 class TestGSheetFormatting:
     def test_basics(self):
-        f = text.GSheetFormatting('fake_id')
+        f = text.GSheetFormatting()
         d = f.auto_dim_size
         d['autoResizeDimensions']['dimensions'] = dict(test=0)
         assert f.auto_dim_size == dict(
-            autoResizeDimensions=dict(dimensions=None))
+            autoResizeDimensions=dict(dimensions=dict()))
+
+    def test_auto_column_width(self):
+        f = text.GSheetFormatting()
+        f.auto_column_width(0, 5)
+        assert f.requests == [
+            dict(
+                autoResizeDimensions=dict(
+                    dimensions=dict(
+                        sheetId=0,
+                        dimension='COLUMNS',
+                        startIndex=0,
+                        endIndex=5
+                    )
+                )
+            )
+        ]
 
     def test_insert_rows(self):
         f = text.GSheetFormatting()
-        f.set_file('fake_id').insert_rows(3, 2)
+        f.insert_rows(3, at_row=2)
         assert f.requests == [
             dict(
                 insertDimension=dict(
                     range=dict(
-                        sheetId='fake_id',
+                        sheetId=0,
                         dimension='ROWS',
-                        startIndex=1,
-                        endIndex=4
+                        startIndex=2,
+                        endIndex=5
                     ),
                     inheritFromBefore=False
+                )
+            )
+        ]
+
+    def test_delete_rows(self):
+        f = text.GSheetFormatting()
+        f.delete_rows(5, 10)
+        assert f.requests == [
+            dict(
+                deleteDimension=dict(
+                    range=dict(
+                        sheetId=0,
+                        dimension='ROWS',
+                        startIndex=5,
+                        endIndex=10
+                    )
                 )
             )
         ]

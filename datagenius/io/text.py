@@ -252,7 +252,7 @@ class SheetsAPI:
             sheet_title: str = '',
             start_cell: str = 'A1') -> tuple:
         """
-        Writes the passed data tot he passed Google Sheet.
+        Writes the passed data to the passed Google Sheet.
 
         Args:
             file_id: The file id of the Google Sheet.
@@ -280,6 +280,44 @@ class SheetsAPI:
             body=dict(values=data)
         ).execute()
         return result.get('updatedRows'), result.get('updatedColumns')
+
+    def get_sheet_values(self, file_id: str, sheet_title: str = None):
+        """
+        Gets all values from the passed Google Sheet id.
+
+        Args:
+            file_id: The id of the Google Sheet.
+            sheet_title: The title of the desired sheet within the
+                Google Sheet to pull values from. Default is the first
+                sheet.
+
+        Returns: A list of lists, the values from the sheet.
+
+        """
+        sheet_md = self.get_sheet_metadata(file_id, sheet_title)
+        r = sheet_title + '!' if sheet_title else ''
+        last_col_alpha = u.gen_alpha_keys(sheet_md['col_limit'])
+        col_letter = last_col_alpha[sheet_md['col_limit'] - 1]
+        result = self.sheets.spreadsheets().values().get(
+            spreadsheetId=file_id,
+            range=f"{r}A1:{col_letter}{sheet_md['row_limit']}"
+        ).execute()
+        return result.get('values', [])
+
+    def batch_update(self, file_id: str, requests: list):
+        """
+        Executes a list of requests on the passed spreadsheet file.
+        Args:
+            file_id: The id of the Google Sheet.
+            requests: A list of request dictionaries.
+
+        Returns: The results of the batchUpdate.
+
+        """
+        return self._sheets.spreadsheets().batchUpdate(
+            spreadsheetId=file_id,
+            body=dict(requests=requests)
+        ).execute()
 
     @staticmethod
     def _authenticate(scopes: list):
@@ -378,22 +416,38 @@ class SheetsAPI:
 class GSheetFormatting:
     @property
     def auto_dim_size(self):
+        """
+
+        Returns: Base dictionary for automatically sizing row or column
+            height/width.
+
+        """
         return dict(
             autoResizeDimensions=dict(
-                dimensions=None
+                dimensions=dict()
             )
         )
 
     @property
     def delete_dim(self):
+        """
+
+        Returns: Base dictionary for deleting rows or columns.
+
+        """
         return dict(
             deleteDimension=dict(
-                range=None
+                range=dict()
             )
         )
 
     @property
     def insert_dims(self):
+        """
+
+        Returns: Base dictionary for inserting rows or columns.
+
+        """
         return dict(
             insertDimension=dict(
                 range=dict(),
@@ -401,23 +455,96 @@ class GSheetFormatting:
             )
         )
 
-    def __init__(self, file_id: str = None):
-        self.file_id: str = file_id
+    def __init__(self):
+        """
+        This object contains methods for creating a list of formatting
+        requests and row/column operation requests that the SheetsAPI
+        object can process via the batch_update method.
+        """
         self.requests: list = []
 
-    def set_file(self, file_id: str):
-        self.file_id = file_id
+    def auto_column_width(
+            self,
+            start_col: int,
+            end_col: int,
+            sheet_id: int = 0):
+        """
+        Adds an autoResizeDimensions request to the GSheetFormatting
+            object's requests queue.
+
+        Args:
+            start_col: The 0-initial index of the first column to auto-
+                resize.
+            end_col: The 0-initial index of the last column to auto-
+                resize.
+            sheet_id: The index of the sheet to delete rows from,
+                default is 0, the first sheet.
+
+        Returns: self
+
+        """
+        request = self.auto_dim_size
+        request['autoResizeDimensions']['dimensions'] = self._build_dims_dict(
+            sheet_id, 'COLUMNS', start_col, end_col
+        )
+        self.requests.append(request)
         return self
 
-    def insert_rows(self, num_rows: int, at_row: int = 1):
+    def insert_rows(self, num_rows: int, sheet_id: int = 0, at_row: int = 0):
+        """
+        Adds an insertDimension request to the GSheetFormatting object's
+        requests queue.
+
+        Args:
+            num_rows: The # of rows to insert.
+            sheet_id: The index of the sheet to delete rows from,
+                default is 0, the first sheet.
+            at_row: The 0-initial index of the row to start inserting
+               at.
+
+        Returns: self.
+
+        """
         request = self.insert_dims
         request['insertDimension']['range'] = self._build_dims_dict(
-            self.file_id, 'ROWS', at_row - 1, at_row - 1 + num_rows)
+            sheet_id, 'ROWS', at_row , at_row + num_rows)
+        self.requests.append(request)
+        return self
+
+    def delete_rows(self, start_row: int, end_row: int, sheet_id: int = 0):
+        """
+        Adds a deleteDimension request to the GSheetFormatting object's
+        requests queue.
+
+        Args:
+            start_row: The 0-initial index of the first row to delete.
+            end_row: The 0-initial index of the last row to delete.
+            sheet_id: The index of the sheet to delete rows from,
+                default is 0, the first sheet.
+
+        Returns: self.
+
+        """
+        request = self.delete_dim
+        request['deleteDimension']['range'] = self._build_dims_dict(
+            sheet_id, 'ROWS', start_row, end_row
+        )
         self.requests.append(request)
         return self
 
     @staticmethod
-    def _build_dims_dict(*vals):
+    def _build_dims_dict(*vals) -> dict:
+        """
+        Quick method for building a range/dimensions dictionary for use
+        in a request dictionary wrapper.
+        Args:
+            *vals: One to 4 values, which will be slotted into the dict
+                below in the order passed.
+
+        Returns: A dictionary usable in a Google Sheets API request
+            dictionary as either the range or dimensions value.
+
+        """
         d = dict(
             sheetId=None,
             dimension=None,
@@ -456,15 +583,7 @@ def from_gsheet(
             f'Cannot find single exact match for {sheet_name}. '
             f'Taking data from the first match.'
         )
-    sheet_md = s_api.get_sheet_metadata(sheet_id, sheet_title)
-    r = sheet_title + '!' if sheet_title else ''
-    last_col_alpha = u.gen_alpha_keys(sheet_md['col_limit'])
-    col_letter = last_col_alpha[sheet_md['col_limit'] - 1]
-    result = s_api.sheets.spreadsheets().values().get(
-        spreadsheetId=sheet_id,
-        range=f"{r}A1:{col_letter}{sheet_md['row_limit']}"
-    ).execute()
-    rows = result.get('values', [])
+    rows = s_api.get_sheet_values(sheet_id, sheet_title)
     return pd.DataFrame(rows)
 
 
