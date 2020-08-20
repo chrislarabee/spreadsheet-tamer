@@ -245,6 +245,42 @@ class SheetsAPI:
         results['col_limit'] = last_col_idx
         return results
 
+    def write_values(
+            self,
+            file_id: str,
+            data: list,
+            sheet_title: str = '',
+            start_cell: str = 'A1') -> tuple:
+        """
+        Writes the passed data tot he passed Google Sheet.
+
+        Args:
+            file_id: The file id of the Google Sheet.
+            data: A list of lists, the data to write.
+            sheet_title: The title of the sheet within the Google Sheet
+                to write to. Default is the first sheet.
+            start_cell: The starting cell to write to. Values will be
+                written from left to write and top to bottom from
+                this cell, overwriting any existing values.
+
+        Returns: A tuple containing the # of rows and columns updated.
+
+        """
+        if sheet_title is not None:
+            r = sheet_title + '!'
+            s = self.check_sheet_titles(sheet_title, sheet_id=file_id)
+            if s is None:
+                self.add_sheet(file_id, title=sheet_title)
+        else:
+            r = ''
+        result = self.sheets.spreadsheets().values().update(
+            spreadsheetId=file_id,
+            range=r + start_cell,
+            valueInputOption='USER_ENTERED',
+            body=dict(values=data)
+        ).execute()
+        return result.get('updatedRows'), result.get('updatedColumns')
+
     @staticmethod
     def _authenticate(scopes: list):
         """
@@ -495,24 +531,11 @@ def write_gsheet(
         file_id = search_res[0].get('id')
     else:
         file_id = s_api.create_object(gsheet_name, 'sheet', p_folder_id)
-    df_rows = df.values.tolist()
+    df_rows = [*df.values.tolist()]
     columns = list(df.columns) if columns is None else columns
     df_rows.insert(0, columns)
-    if sheet_title is not None:
-        r = sheet_title + '!'
-        s = s_api.check_sheet_titles(sheet_title, sheet_id=file_id)
-        if s is None:
-            s_api.add_sheet(file_id, title=sheet_title)
-    else:
-        r = ''
-    result = s_api.sheets.spreadsheets().values().update(
-        spreadsheetId=file_id,
-        range=r + 'A1',
-        valueInputOption='USER_ENTERED',
-        body=dict(values=df_rows)
-    ).execute()
-    return file_id, (result.get('updatedRows'),
-                     result.get('updatedColumns'))
+    result = s_api.write_values(file_id, df_rows, sheet_title)
+    return file_id, result
 
 
 # def read_excel(file_name: str) -> dict:
