@@ -442,18 +442,12 @@ class GSheetFormatting:
         )
 
     @property
-    def insert_dims(self):
-        """
+    def number_fmt(self):
+        return
 
-        Returns: Base dictionary for inserting rows or columns.
-
-        """
-        return dict(
-            insertDimension=dict(
-                range=dict(),
-                inheritFromBefore=False
-            )
-        )
+    @property
+    def acct_fmt(self):
+        return '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
 
     def __init__(self):
         """
@@ -492,8 +486,8 @@ class GSheetFormatting:
 
     def insert_rows(self, num_rows: int, sheet_id: int = 0, at_row: int = 0):
         """
-        Adds an insertDimension request to the GSheetFormatting object's
-        requests queue.
+        Adds an insertDimension request to add more rows to the
+            GSheetFormatting object's requests queue.
 
         Args:
             num_rows: The # of rows to insert.
@@ -505,9 +499,8 @@ class GSheetFormatting:
         Returns: self.
 
         """
-        request = self.insert_dims
-        request['insertDimension']['range'] = self._build_dims_dict(
-            sheet_id, 'ROWS', at_row , at_row + num_rows)
+        request = self._insert_dims(
+            sheet_id, 'ROWS', at_row, at_row + num_rows)
         self.requests.append(request)
         return self
 
@@ -531,6 +524,26 @@ class GSheetFormatting:
         )
         self.requests.append(request)
         return self
+
+    def _insert_dims(self, *vals, inherit: bool = False) -> dict:
+        """
+        Creates an insertDimensions request.
+
+        Args:
+            *vals:  Values to be passed to _build_dims_dict.
+            inherit: Indicates whether the inserted rows should inherit
+                formatting from the rows before them.
+
+        Returns: A dictionary request to insert new dimensions into a
+            Google Sheet.
+
+        """
+        return dict(
+            insertDimension=dict(
+                range=self._build_dims_dict(*vals),
+                inheritFromBefore=inherit
+            )
+        )
 
     @staticmethod
     def _build_dims_dict(*vals) -> dict:
