@@ -1,6 +1,7 @@
 from datetime import datetime as dt
 
 import pandas as pd
+import pytest
 
 from datagenius.io import text
 from tests import testing_tools
@@ -170,6 +171,60 @@ class TestGSheetFormatting:
                 fields='userEnteredFormat(textFormat)'
             )
         ]
+
+    def test_apply_nbr_format(self):
+        f = text.GSheetFormatting()
+        f.apply_nbr_format(f.acct_fmt, (0, 4))
+        assert f.requests == [
+            dict(
+                repeatCell=dict(
+                    range=dict(
+                        sheetId=0,
+                        startRowIndex=0,
+                        endRowIndex=4
+                    )
+                ),
+                cell=dict(
+                    userEnteredFormat=dict(
+                        numberFormat=dict(
+                            type='NUMBER',
+                            pattern='_($* #,##0.00_);_($* (#,##0.00);'
+                                    '_($* "-"??_);_(@_)'
+                        )
+                    )
+                ),
+                fields='userEnteredFormat.numberFormat'
+            )
+        ]
+
+    def test_user_entered_fmt(self):
+        assert text.GSheetFormatting._user_entered_fmt(
+            {'numberFormat': {'type': 'x', 'pattern': 'y'}},
+            (0, 5),
+            (0, 2)
+        ) == dict(
+            repeatCell=dict(
+                range=dict(
+                    sheetId=0,
+                    startRowIndex=0,
+                    endRowIndex=5,
+                    startColumnIndex=0,
+                    endColumnIndex=2
+                )
+            ),
+            cell=dict(
+                userEnteredFormat=dict(
+                    numberFormat=dict(
+                        type='x',
+                        pattern='y'
+                    )
+                )
+            )
+        )
+
+        with pytest.raises(ValueError, match='Must pass one or both of'):
+            text.GSheetFormatting._user_entered_fmt(
+                {'type': 'x', 'pattern': 'y'})
 
     def test_build_repeat_cell_dict(self):
         assert text.GSheetFormatting._build_repeat_cell_dict(0, 0, 4) == dict(

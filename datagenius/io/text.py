@@ -447,7 +447,7 @@ class GSheetFormatting:
 
     @property
     def acct_fmt(self):
-        return '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
+        return 'NUMBER', '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
 
     def __init__(self):
         """
@@ -601,23 +601,94 @@ class GSheetFormatting:
             style = u.tuplify(style)
             for s in style:
                 text_format[s] = True
+        request = self._user_entered_fmt(
+            dict(textFormat=text_format),
+            row_idxs,
+            col_idxs,
+            sheet_id
+        )
+        request['fields'] = 'userEnteredFormat(textFormat)'
+        self.requests.append(request)
+        return self
+
+    def apply_nbr_format(
+            self,
+            fmt_property: tuple,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            sheet_id: int = 0):
+        """
+        Adds a numberFormat request to the GSheetFormatting object's
+        request queue.
+
+        Args:
+            fmt_property: A _fmt property from this object (like
+                acct_fmt)
+            row_idxs: A tuple of the start and end rows to apply number
+                formatting to.
+            col_idxs: A tuple of the start and end columns to apply
+                number formatting to.
+            sheet_id: The index of the sheet to change cells in,
+                default is 0, the first sheet.
+
+        Returns: self.
+
+        """
+        t, p = fmt_property
+        nbr_format = dict(type=t, pattern=p)
+
+        request = self._user_entered_fmt(
+            dict(numberFormat=nbr_format),
+            row_idxs,
+            col_idxs,
+            sheet_id
+        )
+        request['fields'] = 'userEnteredFormat.numberFormat'
+        self.requests.append(request)
+        return self
+
+    @classmethod
+    def _user_entered_fmt(
+            cls,
+            fmt_dict: dict,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            sheet_id: int = 0) -> dict:
+        """
+        Quick method for creating a userEnteredFormat request
+        dictionary.
+
+        Args:
+            fmt_dict: A dictionary containing a format key and any
+                desired formatting information.
+            row_idxs: A tuple of the start and end rows to apply
+                formatting to.
+            col_idxs: A tuple of the start and end columns to apply
+                formatting to.
+            sheet_id: The index of the sheet to change cells in,
+                default is 0, the first sheet.
+
+        Returns: A dictionary request to alter formatting of a Google
+            Sheet.
+
+        """
         range_ = (*row_idxs, *col_idxs)
-        if len(range_) < 2:
-            raise ValueError('Must pass one or both of row_idxs, col_idxs.')
+        non_nulls = 0
+        for r in range_:
+            non_nulls += 1 if r is not None else 0
+        if non_nulls < 2:
+            raise ValueError(
+                'Must pass one or both of row_idxs, col_idxs.')
 
         request = dict(
-            **self._build_repeat_cell_dict(
+            **cls._build_repeat_cell_dict(
                 sheet_id, *range_
             ),
             cell=dict(
-                userEnteredFormat=dict(
-                    textFormat=text_format
-                )
-            ),
-            fields='userEnteredFormat(textFormat)'
+                userEnteredFormat=dict(**fmt_dict)
+            )
         )
-        self.requests.append(request)
-        return self
+        return request
 
     @staticmethod
     def _build_repeat_cell_dict(
