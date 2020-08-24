@@ -147,6 +147,38 @@ class TestGSheetFormatting:
             )
         ]
 
+    def test_apply_font(self):
+        f = text.GSheetFormatting()
+        f.apply_font((0, 4), size=12, style='bold')
+        assert f.requests == [
+            dict(
+                repeatCell=dict(
+                    range=dict(
+                        sheetId=0,
+                        startRowIndex=0,
+                        endRowIndex=4
+                    )
+                ),
+                cell=dict(
+                    userEnteredFormat=dict(
+                        textFormat=dict(
+                            fontSize=12,
+                            bold=True
+                        )
+                    )
+                ),
+                fields='userEnteredFormat(textFormat)'
+            )
+        ]
+
+    def test_build_repeat_cell_dict(self):
+        assert text.GSheetFormatting._build_repeat_cell_dict(0, 0, 4) == dict(
+            repeatCell=dict(range=dict(
+                sheetId=0,
+                startRowIndex=0,
+                endRowIndex=4))
+        )
+
 
 def test_build_template(customers):
     t = text.get_output_template('tests/samples/csv/customers.csv')

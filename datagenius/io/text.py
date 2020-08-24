@@ -549,7 +549,10 @@ class GSheetFormatting:
     def _build_dims_dict(*vals) -> dict:
         """
         Quick method for building a range/dimensions dictionary for use
-        in a request dictionary wrapper.
+        in a request dictionary wrapper intended to change Sheet
+        dimensions (like inserting/deleting rows/columns or changing
+        row/column widths).
+
         Args:
             *vals: One to 4 values, which will be slotted into the dict
                 below in the order passed.
@@ -565,6 +568,97 @@ class GSheetFormatting:
             endIndex=None
         )
         return dict(zip(d.keys(), vals))
+
+    def apply_font(
+            self,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            size: int = None,
+            style: (str, tuple) = None,
+            sheet_id: int = 0):
+        """
+        Adds a textFormat request to the GSheetFormatting object's
+        request queue.
+
+        Args:
+            row_idxs: A tuple of the start and end rows to apply font
+                formatting to.
+            col_idxs: A tuple of the start and end columns to apply font
+                formatting to.
+            size: Font size formatting.
+            style: Font style formatting (bold, italic?, underline?).
+                Bold is the only current style tested.
+            sheet_id: The index of the sheet to change cells in,
+                default is 0, the first sheet.
+
+        Returns: self.
+
+        """
+        text_format = dict()
+        if size:
+            text_format['fontSize'] = size
+        if style:
+            style = u.tuplify(style)
+            for s in style:
+                text_format[s] = True
+        range_ = (*row_idxs, *col_idxs)
+        if len(range_) < 2:
+            raise ValueError('Must pass one or both of row_idxs, col_idxs.')
+
+        request = dict(
+            **self._build_repeat_cell_dict(
+                sheet_id, *range_
+            ),
+            cell=dict(
+                userEnteredFormat=dict(
+                    textFormat=text_format
+                )
+            ),
+            fields='userEnteredFormat(textFormat)'
+        )
+        self.requests.append(request)
+        return self
+
+    @staticmethod
+    def _build_repeat_cell_dict(
+            sheet_id: int = 0,
+            start_row_idx: int = None,
+            end_row_idx: int = None,
+            start_col_idx: int = None,
+            end_col_idx: int = None) -> dict:
+        """
+        Quick method for building a range dictionary for use in a
+        request dictionary wrapper intended to change cell formatting or
+        contents (like changing font, borders, background, contents,
+        etc).
+
+        Args:
+            sheet_id: The index of the sheet to build a range for,
+                default is 0, the first sheet.
+            start_row_idx: The 0-initial index of the first row to
+                target for formatting.
+            end_row_idx: The 0-initial index of the last row to target
+                for formatting.
+            start_col_idx: The 0-initial index of the first column to
+                target for formatting.
+            end_col_idx: The 0-initial index of the last column to
+                target for formatting.
+
+        Returns: A dictionary ready to be slotted into a format request
+            generating function.
+
+        """
+        range_ = dict(sheetId=sheet_id)
+        # Must specify is not None because python interprets 0 as false.
+        if start_row_idx is not None:
+            range_['startRowIndex'] = start_row_idx
+        if end_row_idx is not None:
+            range_['endRowIndex'] = end_row_idx
+        if start_col_idx is not None:
+            range_['startColumnIndex'] = start_col_idx
+        if end_col_idx is not None:
+            range_['endColumnIndex'] = end_col_idx
+        return dict(repeatCell=dict(range=range_))
 
 
 def from_gsheet(
