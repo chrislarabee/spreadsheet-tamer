@@ -1,6 +1,7 @@
 from datetime import datetime as dt
 
 import pandas as pd
+import pytest
 
 from datagenius.io import text
 from tests import testing_tools
@@ -72,6 +73,166 @@ class TestSheetsAPI:
         assert len(f) > 0
         assert f[0].get('name') == sheet
         assert f[0].get('parents')[0] == f_id
+
+    def test_batch_update(self, sheets_api):
+        testing_tools.check_sheets_api_skip(sheets_api)
+
+        sheet = f'data_genius_test_sheet {dt.now()}'
+        s_id = sheets_api.create_object(sheet, 'sheet')
+        testing_tools.created_ids.insert(0, s_id)
+        values = [['a', 'b', 'c'], ['1', '2', '3'], ['4', '5', '6']]
+        result = sheets_api.write_values(
+            s_id, values)
+        assert result == (3, 3)
+        fmt = text.GSheetFormatting().insert_rows(2)
+        sheets_api.batch_update(s_id, fmt.requests)
+        rows = sheets_api.get_sheet_values(s_id)
+        expected = [[], [], *values]
+        assert rows == expected
+
+
+class TestGSheetFormatting:
+    def test_basics(self):
+        f = text.GSheetFormatting()
+        d = f.auto_dim_size
+        d['autoResizeDimensions']['dimensions'] = dict(test=0)
+        assert f.auto_dim_size == dict(
+            autoResizeDimensions=dict(dimensions=dict()))
+
+    def test_auto_column_width(self):
+        f = text.GSheetFormatting()
+        f.auto_column_width(0, 5)
+        assert f.requests == [
+            dict(
+                autoResizeDimensions=dict(
+                    dimensions=dict(
+                        sheetId=0,
+                        dimension='COLUMNS',
+                        startIndex=0,
+                        endIndex=5
+                    )
+                )
+            )
+        ]
+
+    def test_insert_rows(self):
+        f = text.GSheetFormatting()
+        f.insert_rows(3, at_row=2)
+        assert f.requests == [
+            dict(
+                insertDimension=dict(
+                    range=dict(
+                        sheetId=0,
+                        dimension='ROWS',
+                        startIndex=2,
+                        endIndex=5
+                    ),
+                    inheritFromBefore=False
+                )
+            )
+        ]
+
+    def test_delete_rows(self):
+        f = text.GSheetFormatting()
+        f.delete_rows(5, 10)
+        assert f.requests == [
+            dict(
+                deleteDimension=dict(
+                    range=dict(
+                        sheetId=0,
+                        dimension='ROWS',
+                        startIndex=5,
+                        endIndex=10
+                    )
+                )
+            )
+        ]
+
+    def test_apply_font(self):
+        f = text.GSheetFormatting()
+        f.apply_font((0, 4), size=12, style='bold')
+        assert f.requests == [
+            dict(
+                repeatCell=dict(
+                    range=dict(
+                        sheetId=0,
+                        startRowIndex=0,
+                        endRowIndex=4
+                    )
+                ),
+                cell=dict(
+                    userEnteredFormat=dict(
+                        textFormat=dict(
+                            fontSize=12,
+                            bold=True
+                        )
+                    )
+                ),
+                fields='userEnteredFormat(textFormat)'
+            )
+        ]
+
+    def test_apply_nbr_format(self):
+        f = text.GSheetFormatting()
+        f.apply_nbr_format(f.acct_fmt, (0, 4))
+        assert f.requests == [
+            dict(
+                repeatCell=dict(
+                    range=dict(
+                        sheetId=0,
+                        startRowIndex=0,
+                        endRowIndex=4
+                    )
+                ),
+                cell=dict(
+                    userEnteredFormat=dict(
+                        numberFormat=dict(
+                            type='NUMBER',
+                            pattern='_($* #,##0.00_);_($* (#,##0.00);'
+                                    '_($* "-"??_);_(@_)'
+                        )
+                    )
+                ),
+                fields='userEnteredFormat.numberFormat'
+            )
+        ]
+
+    def test_user_entered_fmt(self):
+        assert text.GSheetFormatting._user_entered_fmt(
+            {'numberFormat': {'type': 'x', 'pattern': 'y'}},
+            (0, 5),
+            (0, 2)
+        ) == dict(
+            repeatCell=dict(
+                range=dict(
+                    sheetId=0,
+                    startRowIndex=0,
+                    endRowIndex=5,
+                    startColumnIndex=0,
+                    endColumnIndex=2
+                )
+            ),
+            cell=dict(
+                userEnteredFormat=dict(
+                    numberFormat=dict(
+                        type='x',
+                        pattern='y'
+                    )
+                )
+            )
+        )
+
+        with pytest.raises(ValueError, match='Must pass one or both of'):
+            text.GSheetFormatting._user_entered_fmt(
+                {'type': 'x', 'pattern': 'y'})
+
+    def test_build_repeat_cell_dict(self):
+        assert text.GSheetFormatting._build_repeat_cell_dict(0, 0, 4) == dict(
+            repeatCell=dict(range=dict(
+                sheetId=0,
+                startRowIndex=0,
+                endRowIndex=4))
+        )
 
 
 def test_build_template(customers):

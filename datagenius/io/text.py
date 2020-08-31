@@ -245,6 +245,80 @@ class SheetsAPI:
         results['col_limit'] = last_col_idx
         return results
 
+    def write_values(
+            self,
+            file_id: str,
+            data: list,
+            sheet_title: str = '',
+            start_cell: str = 'A1') -> tuple:
+        """
+        Writes the passed data to the passed Google Sheet.
+
+        Args:
+            file_id: The file id of the Google Sheet.
+            data: A list of lists, the data to write.
+            sheet_title: The title of the sheet within the Google Sheet
+                to write to. Default is the first sheet.
+            start_cell: The starting cell to write to. Values will be
+                written from left to write and top to bottom from
+                this cell, overwriting any existing values.
+
+        Returns: A tuple containing the # of rows and columns updated.
+
+        """
+        if sheet_title is not None:
+            r = sheet_title + '!'
+            s = self.check_sheet_titles(sheet_title, sheet_id=file_id)
+            if s is None:
+                self.add_sheet(file_id, title=sheet_title)
+        else:
+            r = ''
+        result = self.sheets.spreadsheets().values().update(
+            spreadsheetId=file_id,
+            range=r + start_cell,
+            valueInputOption='USER_ENTERED',
+            body=dict(values=data)
+        ).execute()
+        return result.get('updatedRows'), result.get('updatedColumns')
+
+    def get_sheet_values(self, file_id: str, sheet_title: str = None):
+        """
+        Gets all values from the passed Google Sheet id.
+
+        Args:
+            file_id: The id of the Google Sheet.
+            sheet_title: The title of the desired sheet within the
+                Google Sheet to pull values from. Default is the first
+                sheet.
+
+        Returns: A list of lists, the values from the sheet.
+
+        """
+        sheet_md = self.get_sheet_metadata(file_id, sheet_title)
+        r = sheet_title + '!' if sheet_title else ''
+        last_col_alpha = u.gen_alpha_keys(sheet_md['col_limit'])
+        col_letter = last_col_alpha[sheet_md['col_limit'] - 1]
+        result = self.sheets.spreadsheets().values().get(
+            spreadsheetId=file_id,
+            range=f"{r}A1:{col_letter}{sheet_md['row_limit']}"
+        ).execute()
+        return result.get('values', [])
+
+    def batch_update(self, file_id: str, requests: list):
+        """
+        Executes a list of requests on the passed spreadsheet file.
+        Args:
+            file_id: The id of the Google Sheet.
+            requests: A list of request dictionaries.
+
+        Returns: The results of the batchUpdate.
+
+        """
+        return self._sheets.spreadsheets().batchUpdate(
+            spreadsheetId=file_id,
+            body=dict(requests=requests)
+        ).execute()
+
     @staticmethod
     def _authenticate(scopes: list):
         """
@@ -339,6 +413,325 @@ class SheetsAPI:
         return build('sheets', 'v4', credentials=creds)
 
 
+class GSheetFormatting:
+    @property
+    def auto_dim_size(self):
+        """
+
+        Returns: Base dictionary for automatically sizing row or column
+            height/width.
+
+        """
+        return dict(
+            autoResizeDimensions=dict(
+                dimensions=dict()
+            )
+        )
+
+    @property
+    def delete_dim(self):
+        """
+
+        Returns: Base dictionary for deleting rows or columns.
+
+        """
+        return dict(
+            deleteDimension=dict(
+                range=dict()
+            )
+        )
+
+    @property
+    def number_fmt(self):
+        return
+
+    @property
+    def acct_fmt(self):
+        return 'NUMBER', '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
+
+    def __init__(self):
+        """
+        This object contains methods for creating a list of formatting
+        requests and row/column operation requests that the SheetsAPI
+        object can process via the batch_update method.
+        """
+        self.requests: list = []
+
+    def auto_column_width(
+            self,
+            start_col: int,
+            end_col: int,
+            sheet_id: int = 0):
+        """
+        Adds an autoResizeDimensions request to the GSheetFormatting
+            object's requests queue.
+
+        Args:
+            start_col: The 0-initial index of the first column to auto-
+                resize.
+            end_col: The 0-initial index of the last column to auto-
+                resize.
+            sheet_id: The index of the sheet to delete rows from,
+                default is 0, the first sheet.
+
+        Returns: self
+
+        """
+        request = self.auto_dim_size
+        request['autoResizeDimensions']['dimensions'] = self._build_dims_dict(
+            sheet_id, 'COLUMNS', start_col, end_col
+        )
+        self.requests.append(request)
+        return self
+
+    def insert_rows(self, num_rows: int, sheet_id: int = 0, at_row: int = 0):
+        """
+        Adds an insertDimension request to add more rows to the
+            GSheetFormatting object's requests queue.
+
+        Args:
+            num_rows: The # of rows to insert.
+            sheet_id: The index of the sheet to delete rows from,
+                default is 0, the first sheet.
+            at_row: The 0-initial index of the row to start inserting
+               at.
+
+        Returns: self.
+
+        """
+        request = self._insert_dims(
+            sheet_id, 'ROWS', at_row, at_row + num_rows)
+        self.requests.append(request)
+        return self
+
+    def delete_rows(self, start_row: int, end_row: int, sheet_id: int = 0):
+        """
+        Adds a deleteDimension request to the GSheetFormatting object's
+        requests queue.
+
+        Args:
+            start_row: The 0-initial index of the first row to delete.
+            end_row: The 0-initial index of the last row to delete.
+            sheet_id: The index of the sheet to delete rows from,
+                default is 0, the first sheet.
+
+        Returns: self.
+
+        """
+        request = self.delete_dim
+        request['deleteDimension']['range'] = self._build_dims_dict(
+            sheet_id, 'ROWS', start_row, end_row
+        )
+        self.requests.append(request)
+        return self
+
+    def _insert_dims(self, *vals, inherit: bool = False) -> dict:
+        """
+        Creates an insertDimensions request.
+
+        Args:
+            *vals:  Values to be passed to _build_dims_dict.
+            inherit: Indicates whether the inserted rows should inherit
+                formatting from the rows before them.
+
+        Returns: A dictionary request to insert new dimensions into a
+            Google Sheet.
+
+        """
+        return dict(
+            insertDimension=dict(
+                range=self._build_dims_dict(*vals),
+                inheritFromBefore=inherit
+            )
+        )
+
+    @staticmethod
+    def _build_dims_dict(*vals) -> dict:
+        """
+        Quick method for building a range/dimensions dictionary for use
+        in a request dictionary wrapper intended to change Sheet
+        dimensions (like inserting/deleting rows/columns or changing
+        row/column widths).
+
+        Args:
+            *vals: One to 4 values, which will be slotted into the dict
+                below in the order passed.
+
+        Returns: A dictionary usable in a Google Sheets API request
+            dictionary as either the range or dimensions value.
+
+        """
+        d = dict(
+            sheetId=None,
+            dimension=None,
+            startIndex=None,
+            endIndex=None
+        )
+        return dict(zip(d.keys(), vals))
+
+    def apply_font(
+            self,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            size: int = None,
+            style: (str, tuple) = None,
+            sheet_id: int = 0):
+        """
+        Adds a textFormat request to the GSheetFormatting object's
+        request queue.
+
+        Args:
+            row_idxs: A tuple of the start and end rows to apply font
+                formatting to.
+            col_idxs: A tuple of the start and end columns to apply font
+                formatting to.
+            size: Font size formatting.
+            style: Font style formatting (bold, italic?, underline?).
+                Bold is the only current style tested.
+            sheet_id: The index of the sheet to change cells in,
+                default is 0, the first sheet.
+
+        Returns: self.
+
+        """
+        text_format = dict()
+        if size:
+            text_format['fontSize'] = size
+        if style:
+            style = u.tuplify(style)
+            for s in style:
+                text_format[s] = True
+        request = self._user_entered_fmt(
+            dict(textFormat=text_format),
+            row_idxs,
+            col_idxs,
+            sheet_id
+        )
+        request['fields'] = 'userEnteredFormat(textFormat)'
+        self.requests.append(request)
+        return self
+
+    def apply_nbr_format(
+            self,
+            fmt_property: tuple,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            sheet_id: int = 0):
+        """
+        Adds a numberFormat request to the GSheetFormatting object's
+        request queue.
+
+        Args:
+            fmt_property: A _fmt property from this object (like
+                acct_fmt)
+            row_idxs: A tuple of the start and end rows to apply number
+                formatting to.
+            col_idxs: A tuple of the start and end columns to apply
+                number formatting to.
+            sheet_id: The index of the sheet to change cells in,
+                default is 0, the first sheet.
+
+        Returns: self.
+
+        """
+        t, p = fmt_property
+        nbr_format = dict(type=t, pattern=p)
+
+        request = self._user_entered_fmt(
+            dict(numberFormat=nbr_format),
+            row_idxs,
+            col_idxs,
+            sheet_id
+        )
+        request['fields'] = 'userEnteredFormat.numberFormat'
+        self.requests.append(request)
+        return self
+
+    @classmethod
+    def _user_entered_fmt(
+            cls,
+            fmt_dict: dict,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            sheet_id: int = 0) -> dict:
+        """
+        Quick method for creating a userEnteredFormat request
+        dictionary.
+
+        Args:
+            fmt_dict: A dictionary containing a format key and any
+                desired formatting information.
+            row_idxs: A tuple of the start and end rows to apply
+                formatting to.
+            col_idxs: A tuple of the start and end columns to apply
+                formatting to.
+            sheet_id: The index of the sheet to change cells in,
+                default is 0, the first sheet.
+
+        Returns: A dictionary request to alter formatting of a Google
+            Sheet.
+
+        """
+        range_ = (*row_idxs, *col_idxs)
+        non_nulls = 0
+        for r in range_:
+            non_nulls += 1 if r is not None else 0
+        if non_nulls < 2:
+            raise ValueError(
+                'Must pass one or both of row_idxs, col_idxs.')
+
+        request = dict(
+            **cls._build_repeat_cell_dict(
+                sheet_id, *range_
+            ),
+            cell=dict(
+                userEnteredFormat=dict(**fmt_dict)
+            )
+        )
+        return request
+
+    @staticmethod
+    def _build_repeat_cell_dict(
+            sheet_id: int = 0,
+            start_row_idx: int = None,
+            end_row_idx: int = None,
+            start_col_idx: int = None,
+            end_col_idx: int = None) -> dict:
+        """
+        Quick method for building a range dictionary for use in a
+        request dictionary wrapper intended to change cell formatting or
+        contents (like changing font, borders, background, contents,
+        etc).
+
+        Args:
+            sheet_id: The index of the sheet to build a range for,
+                default is 0, the first sheet.
+            start_row_idx: The 0-initial index of the first row to
+                target for formatting.
+            end_row_idx: The 0-initial index of the last row to target
+                for formatting.
+            start_col_idx: The 0-initial index of the first column to
+                target for formatting.
+            end_col_idx: The 0-initial index of the last column to
+                target for formatting.
+
+        Returns: A dictionary ready to be slotted into a format request
+            generating function.
+
+        """
+        range_ = dict(sheetId=sheet_id)
+        # Must specify is not None because python interprets 0 as false.
+        if start_row_idx is not None:
+            range_['startRowIndex'] = start_row_idx
+        if end_row_idx is not None:
+            range_['endRowIndex'] = end_row_idx
+        if start_col_idx is not None:
+            range_['startColumnIndex'] = start_col_idx
+        if end_col_idx is not None:
+            range_['endColumnIndex'] = end_col_idx
+        return dict(repeatCell=dict(range=range_))
+
+
 def from_gsheet(
         sheet_name: str,
         s_api: SheetsAPI = None,
@@ -368,15 +761,7 @@ def from_gsheet(
             f'Cannot find single exact match for {sheet_name}. '
             f'Taking data from the first match.'
         )
-    sheet_md = s_api.get_sheet_metadata(sheet_id, sheet_title)
-    r = sheet_title + '!' if sheet_title else ''
-    last_col_alpha = u.gen_alpha_keys(sheet_md['col_limit'])
-    col_letter = last_col_alpha[sheet_md['col_limit'] - 1]
-    result = s_api.sheets.spreadsheets().values().get(
-        spreadsheetId=sheet_id,
-        range=f"{r}A1:{col_letter}{sheet_md['row_limit']}"
-    ).execute()
-    rows = result.get('values', [])
+    rows = s_api.get_sheet_values(sheet_id, sheet_title)
     return pd.DataFrame(rows)
 
 
@@ -443,24 +828,11 @@ def write_gsheet(
         file_id = search_res[0].get('id')
     else:
         file_id = s_api.create_object(gsheet_name, 'sheet', p_folder_id)
-    df_rows = df.values.tolist()
+    df_rows = [*df.values.tolist()]
     columns = list(df.columns) if columns is None else columns
     df_rows.insert(0, columns)
-    if sheet_title is not None:
-        r = sheet_title + '!'
-        s = s_api.check_sheet_titles(sheet_title, sheet_id=file_id)
-        if s is None:
-            s_api.add_sheet(file_id, title=sheet_title)
-    else:
-        r = ''
-    result = s_api.sheets.spreadsheets().values().update(
-        spreadsheetId=file_id,
-        range=r + 'A1',
-        valueInputOption='USER_ENTERED',
-        body=dict(values=df_rows)
-    ).execute()
-    return file_id, (result.get('updatedRows'),
-                     result.get('updatedColumns'))
+    result = s_api.write_values(file_id, df_rows, sheet_title)
+    return file_id, result
 
 
 # def read_excel(file_name: str) -> dict:
