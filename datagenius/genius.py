@@ -281,7 +281,10 @@ class GeniusAccessor:
             )
         return self.df
 
-    def multiapply(self, func: Callable, *columns, **kwargs):
+    def multiapply(
+            self, func: Callable,
+            *columns,
+            **kwargs) -> pd.DataFrame:
         """
         Convenience method for running the same function on one or more
         columns of the DataFrame with the same arguments. Avoids having
@@ -304,7 +307,7 @@ class GeniusAccessor:
                 self.df[c] = self.df[c].apply(func)
         return self.df
 
-    def fillna_shift(self, *columns):
+    def fillna_shift(self, *columns) -> pd.DataFrame:
         """
         Takes at least two columns in the DataFrame shifts all their
         values "leftward", replacing nan values. Basically, a given
