@@ -395,7 +395,7 @@ class GeniusAccessor:
         Writes the DataFrame to a Google Sheet.
         Args:
             sheet_name: The desired name of the Google Sheet.
-            **options: Key-value options to alter to_sqlite's behavior.
+            **options: Key-value options to alter to_gsheet's behavior.
                 Currently in use options:
                     sheet_title: The name of a sheet within the Google
                         Sheet to write to. Default is the first sheet.

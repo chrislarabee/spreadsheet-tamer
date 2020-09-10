@@ -179,8 +179,7 @@ def id_clustering_violations(
     # row_ct in core df no longer necessary:
     df = df.drop(columns='row_ct')
     # Get the count of each unique value in the ungrouped columns:
-    nu = df.groupby(cluster_group_by).nunique().drop(
-        columns=cluster_group_by).reset_index()
+    nu = df.groupby(cluster_group_by).nunique().reset_index()
     # Get the count of each value in the ungrouped columns:
     ct = df.groupby(cluster_group_by).count().reset_index()
     # Combine row_cts, unique counts, and counts into core df:
