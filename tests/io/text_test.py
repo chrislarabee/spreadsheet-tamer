@@ -158,13 +158,13 @@ class TestGSheetFormatting:
                         sheetId=0,
                         startRowIndex=0,
                         endRowIndex=4
-                    )
-                ),
-                cell=dict(
-                    userEnteredFormat=dict(
-                        textFormat=dict(
-                            fontSize=12,
-                            bold=True
+                    ),
+                    cell=dict(
+                        userEnteredFormat=dict(
+                            textFormat=dict(
+                                fontSize=12,
+                                bold=True
+                            )
                         )
                     )
                 ),
@@ -182,14 +182,14 @@ class TestGSheetFormatting:
                         sheetId=0,
                         startRowIndex=0,
                         endRowIndex=4
-                    )
-                ),
-                cell=dict(
-                    userEnteredFormat=dict(
-                        numberFormat=dict(
-                            type='NUMBER',
-                            pattern='_($* #,##0.00_);_($* (#,##0.00);'
-                                    '_($* "-"??_);_(@_)'
+                    ),
+                    cell=dict(
+                        userEnteredFormat=dict(
+                            numberFormat=dict(
+                                type='NUMBER',
+                                pattern='_($* #,##0.00_);_($* (#,##0.00);'
+                                        '_($* "-"??_);_(@_)'
+                            )
                         )
                     )
                 ),
@@ -197,20 +197,18 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_user_entered_fmt(self):
-        assert text.GSheetFormatting._user_entered_fmt(
+    def test_build_repeat_cell_dict(self):
+        assert text.GSheetFormatting._build_repeat_cell_dict(
             {'numberFormat': {'type': 'x', 'pattern': 'y'}},
-            (0, 5),
-            (0, 2)
+            row_idxs=(0, 5),
+            col_idxs=(0, 2)
         ) == dict(
-            repeatCell=dict(
-                range=dict(
-                    sheetId=0,
-                    startRowIndex=0,
-                    endRowIndex=5,
-                    startColumnIndex=0,
-                    endColumnIndex=2
-                )
+            range=dict(
+                sheetId=0,
+                startRowIndex=0,
+                endRowIndex=5,
+                startColumnIndex=0,
+                endColumnIndex=2
             ),
             cell=dict(
                 userEnteredFormat=dict(
@@ -223,19 +221,17 @@ class TestGSheetFormatting:
         )
 
         with pytest.raises(ValueError, match='Must pass one or both of'):
-            text.GSheetFormatting._user_entered_fmt(
+            text.GSheetFormatting._build_repeat_cell_dict(
                 {'type': 'x', 'pattern': 'y'})
 
-    def test_build_repeat_cell_dict(self):
-        assert text.GSheetFormatting._build_repeat_cell_dict(0, 0, 4) == dict(
-            repeatCell=dict(range=dict(
-                sheetId=0,
-                startRowIndex=0,
-                endRowIndex=4))
+    def test_build_range_dict(self):
+        assert text.GSheetFormatting._build_range_dict(0, 0, 4) == dict(
+            sheetId=0,
+            startRowIndex=0,
+            endRowIndex=4
         )
 
 
 def test_build_template(customers):
     t = text.get_output_template('tests/samples/csv/customers.csv')
     assert t == customers()['columns']
-

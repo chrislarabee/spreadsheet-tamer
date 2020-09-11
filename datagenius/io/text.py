@@ -601,13 +601,16 @@ class GSheetFormatting:
             style = u.tuplify(style)
             for s in style:
                 text_format[s] = True
-        request = self._user_entered_fmt(
+        repeat_cell = self._build_repeat_cell_dict(
             dict(textFormat=text_format),
             row_idxs,
             col_idxs,
             sheet_id
         )
-        request['fields'] = 'userEnteredFormat(textFormat)'
+        request = dict(
+            repeatCell=repeat_cell,
+            fields='userEnteredFormat(textFormat)'
+        )
         self.requests.append(request)
         return self
 
@@ -637,39 +640,41 @@ class GSheetFormatting:
         t, p = fmt_property
         nbr_format = dict(type=t, pattern=p)
 
-        request = self._user_entered_fmt(
+        repeat_cell = self._build_repeat_cell_dict(
             dict(numberFormat=nbr_format),
             row_idxs,
             col_idxs,
             sheet_id
         )
-        request['fields'] = 'userEnteredFormat.numberFormat'
+        request = dict(
+            repeatCell=repeat_cell,
+            fields='userEnteredFormat.numberFormat'
+        )
         self.requests.append(request)
         return self
 
     @classmethod
-    def _user_entered_fmt(
+    def _build_repeat_cell_dict(
             cls,
             fmt_dict: dict,
             row_idxs: tuple = (None, None),
             col_idxs: tuple = (None, None),
-            sheet_id: int = 0) -> dict:
+            sheet_id: int = 0,) -> dict:
         """
-        Quick method for creating a userEnteredFormat request
-        dictionary.
+        Quick method for building a repeatCell dictionary for use in a
+        request dictionary wrapper intended to change cell formatting or
+        contents (like changing font, borders, background, contents,
+        etc).
 
         Args:
-            fmt_dict: A dictionary containing a format key and any
-                desired formatting information.
-            row_idxs: A tuple of the start and end rows to apply
-                formatting to.
-            col_idxs: A tuple of the start and end columns to apply
-                formatting to.
-            sheet_id: The index of the sheet to change cells in,
-                default is 0, the first sheet.
+            fmt_dict: A formatting dictionary.
+            row_idxs: A tuple of the start and stop row indexes.
+            col_idxs: A tuple of the start and stop column indexes.
+            sheet_id: The index of the sheet to apply the formatting to.
+                Default is 0.
 
-        Returns: A dictionary request to alter formatting of a Google
-            Sheet.
+        Returns: A dictionary ready to be slotted in at the repeatCell
+            key in a request.
 
         """
         range_ = (*row_idxs, *col_idxs)
@@ -680,18 +685,15 @@ class GSheetFormatting:
             raise ValueError(
                 'Must pass one or both of row_idxs, col_idxs.')
 
-        request = dict(
-            **cls._build_repeat_cell_dict(
-                sheet_id, *range_
-            ),
+        return dict(
+            range=cls._build_range_dict(sheet_id, *range_),
             cell=dict(
-                userEnteredFormat=dict(**fmt_dict)
+                userEnteredFormat=fmt_dict
             )
         )
-        return request
 
     @staticmethod
-    def _build_repeat_cell_dict(
+    def _build_range_dict(
             sheet_id: int = 0,
             start_row_idx: int = None,
             end_row_idx: int = None,
@@ -729,7 +731,7 @@ class GSheetFormatting:
             range_['startColumnIndex'] = start_col_idx
         if end_col_idx is not None:
             range_['endColumnIndex'] = end_col_idx
-        return dict(repeatCell=dict(range=range_))
+        return range_
 
 
 def from_gsheet(
