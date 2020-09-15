@@ -412,6 +412,8 @@ class GeniusAccessor:
                     metadata: A GeniusMetadata object. If passed, its
                         output_header will be used as the column header
                         in the output Google Sheet.
+                    append: Set to True if you want to append values to
+                        the end of an existing Google Sheet.
 
         Returns: The id of the newly created Google Sheet and its
             shape (columns are included as a row).

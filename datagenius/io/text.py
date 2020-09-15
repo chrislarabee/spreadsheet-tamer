@@ -767,7 +767,7 @@ def write_gsheet(
         columns: list = None,
         parent_folder: str = None,
         drive_id: str = None,
-        start_row: int = 0) -> tuple:
+        append: bool = False) -> tuple:
     """
     Uses the passed SheetsAPI object to write the passed DataFrame to a
     new Google Sheet.
@@ -787,9 +787,9 @@ def write_gsheet(
             were a local file path.
         drive_id: The id of the Shared Drive to search for the folder
             path and to save to.
-        start_row: The index of the row to start writing at. Default is
-            0 to fill the first row of the sheet and onward. Set it
-            higher to append to an existing sheet.
+        append: If True and an existing google sheet is found, will
+            write rows starting with the first blank row at the bottom
+            of any existing rows.
 
     Returns: The number of cells changed by the output.
 
@@ -814,6 +814,7 @@ def write_gsheet(
         'sheet',
         drive_id
     )
+    new_file = False
     if len(search_res) > 1:
         for result in search_res:
             if result.get('parents')[0] == p_folder_id:
@@ -825,10 +826,14 @@ def write_gsheet(
     elif len(search_res) == 1:
         file_id = search_res[0].get('id')
     else:
+        new_file = True
         file_id = s_api.create_object(gsheet_name, 'sheet', p_folder_id)
     df_rows = [*df.values.tolist()]
-    start_row += 1  # Google Sheets uses 1-initial idxs for writing.
-    if start_row == 1:
+    if not new_file and append:
+        file_md = s_api.get_sheet_metadata(file_id, sheet_title)
+        start_row = file_md['row_limit'] + 1
+    else:
+        start_row = 1
         columns = list(df.columns) if columns is None else columns
         df_rows.insert(0, columns)
     result = s_api.write_values(file_id, df_rows, sheet_title, f'A{start_row}')

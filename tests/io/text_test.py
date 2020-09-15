@@ -39,8 +39,8 @@ def test_write_gsheet_and_from_gsheet(sheets_api):
 
     # Append to the sheet:
     df = pd.DataFrame([dict(c=9, d=10), dict(c=11, d=12)])
-    sheet_id2, shape = text.write_gsheet(
-        sheet, df, sheet_title='test_sheet', s_api=sheets_api, start_row=3
+    text.write_gsheet(
+        sheet, df, sheet_title='test_sheet', s_api=sheets_api, append=True
     )
     expected = expected.append(
         pd.DataFrame([['9', '10'], ['11', '12']])).reset_index(drop=True)
