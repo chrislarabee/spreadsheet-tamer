@@ -414,6 +414,9 @@ class SheetsAPI:
 
 
 class GSheetFormatting:
+    number_fmt = ''
+    acct_fmt = ('NUMBER', '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)')
+
     @property
     def auto_dim_size(self):
         """
@@ -440,14 +443,6 @@ class GSheetFormatting:
                 range=dict()
             )
         )
-
-    @property
-    def number_fmt(self):
-        return
-
-    @property
-    def acct_fmt(self):
-        return 'NUMBER', '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
 
     def __init__(self):
         """
