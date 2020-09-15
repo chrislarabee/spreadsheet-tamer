@@ -2,6 +2,7 @@ import pickle
 import os
 import warnings
 import re
+from typing import List, Dict
 
 import pandas as pd
 from googleapiclient.discovery import build
@@ -164,7 +165,7 @@ class SheetsAPI:
         else:
             return None
 
-    def get_sheets(self, sheet_id: str) -> list:
+    def get_sheets(self, sheet_id: str) -> List[Dict[str, dict]]:
         """
         Gets a list of sheets within the Google Sheet located at the
         passed sheet_id.
@@ -765,7 +766,8 @@ def write_gsheet(
         s_api: SheetsAPI = None,
         columns: list = None,
         parent_folder: str = None,
-        drive_id: str = None) -> tuple:
+        drive_id: str = None,
+        start_row: int = 0) -> tuple:
     """
     Uses the passed SheetsAPI object to write the passed DataFrame to a
     new Google Sheet.
@@ -785,6 +787,9 @@ def write_gsheet(
             were a local file path.
         drive_id: The id of the Shared Drive to search for the folder
             path and to save to.
+        start_row: The index of the row to start writing at. Default is
+            0 to fill the first row of the sheet and onward. Set it
+            higher to append to an existing sheet.
 
     Returns: The number of cells changed by the output.
 
@@ -822,9 +827,11 @@ def write_gsheet(
     else:
         file_id = s_api.create_object(gsheet_name, 'sheet', p_folder_id)
     df_rows = [*df.values.tolist()]
-    columns = list(df.columns) if columns is None else columns
-    df_rows.insert(0, columns)
-    result = s_api.write_values(file_id, df_rows, sheet_title)
+    start_row += 1  # Google Sheets uses 1-initial idxs for writing.
+    if start_row == 1:
+        columns = list(df.columns) if columns is None else columns
+        df_rows.insert(0, columns)
+    result = s_api.write_values(file_id, df_rows, sheet_title, f'A{start_row}')
     return file_id, result
 
 
