@@ -166,9 +166,9 @@ class TestGSheetFormatting:
                                 bold=True
                             )
                         )
-                    )
-                ),
-                fields='userEnteredFormat(textFormat)'
+                    ),
+                    fields='userEnteredFormat(textFormat)'
+                )
             )
         ]
 
@@ -191,9 +191,9 @@ class TestGSheetFormatting:
                                         '_($* "-"??_);_(@_)'
                             )
                         )
-                    )
-                ),
-                fields='userEnteredFormat.numberFormat'
+                    ),
+                    fields='userEnteredFormat.numberFormat'
+                )
             )
         ]
 

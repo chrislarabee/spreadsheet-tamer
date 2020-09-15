@@ -607,10 +607,8 @@ class GSheetFormatting:
             col_idxs,
             sheet_id
         )
-        request = dict(
-            repeatCell=repeat_cell,
-            fields='userEnteredFormat(textFormat)'
-        )
+        repeat_cell['fields'] = 'userEnteredFormat(textFormat)'
+        request = dict(repeatCell=repeat_cell)
         self.requests.append(request)
         return self
 
@@ -646,10 +644,8 @@ class GSheetFormatting:
             col_idxs,
             sheet_id
         )
-        request = dict(
-            repeatCell=repeat_cell,
-            fields='userEnteredFormat.numberFormat'
-        )
+        repeat_cell['fields'] = 'userEnteredFormat.numberFormat'
+        request = dict(repeatCell=repeat_cell)
         self.requests.append(request)
         return self
 
