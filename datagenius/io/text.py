@@ -2,7 +2,7 @@ import pickle
 import os
 import warnings
 import re
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import pandas as pd
 from googleapiclient.discovery import build
@@ -136,6 +136,65 @@ class SheetsAPI:
             if page_token is None:
                 break
         return results
+
+    def create_find(
+            self,
+            obj_name: str,
+            obj_type: str,
+            parent_folder: str = None,
+            drive_id: str = None) -> Tuple[str, bool]:
+        """
+        Convenience method for checking if an object exists and creating
+        it if it does not.
+
+        Args:
+            obj_name: The name of the object.
+            obj_type: The type of the object. Must be one of the keys in
+                SheetsAPI.google_obj_types.
+            parent_folder: The name of the folder to save the new object
+                to. Separate nested folders with /, as if it were a
+                local file path.
+            drive_id: The id of the Shared Drive to search for the folder
+                path and to save to.
+
+        Returns: A tuple containing the id of the object, and a boolean
+            indicating whether the object is new or not.
+
+        """
+        p_folder_id = None
+        if parent_folder:
+            search_res = self.find_object(
+                parent_folder,
+                'folder',
+                drive_id
+            )
+            if len(search_res) == 1:
+                p_folder_id = search_res[0].get('id')
+            else:
+                warnings.warn(
+                    f'Cannot find single exact match for {parent_folder}. '
+                    f'Saving {obj_name} to root Drive.'
+                )
+        search_res = self.find_object(
+            obj_name,
+            obj_type,
+            drive_id
+        )
+        new_obj = False
+        if len(search_res) > 1:
+            for result in search_res:
+                if result.get('parents')[0] == p_folder_id:
+                    file_id = result.get('id')
+                    break
+            else:
+                raise ValueError(
+                    f'Cannot find {obj_name} in {parent_folder}')
+        elif len(search_res) == 1:
+            file_id = search_res[0].get('id')
+        else:
+            new_obj = True
+            file_id = self.create_object(obj_name, obj_type, p_folder_id)
+        return file_id, new_obj
 
     def add_sheet(self, sheet_id: str, **sheet_properties):
         """
@@ -795,39 +854,12 @@ def write_gsheet(
 
     """
     s_api = SheetsAPI() if s_api is None else s_api
-    p_folder_id = None
-    if parent_folder:
-        search_res = s_api.find_object(
-            parent_folder,
-            'folder',
-            drive_id
-        )
-        if len(search_res) == 1:
-            p_folder_id = search_res[0].get('id')
-        else:
-            warnings.warn(
-                f'Cannot find single exact match for {parent_folder}. '
-                f'Saving {gsheet_name} to root Drive.'
-            )
-    search_res = s_api.find_object(
+    file_id, new_file = s_api.create_find(
         gsheet_name,
         'sheet',
+        parent_folder,
         drive_id
     )
-    new_file = False
-    if len(search_res) > 1:
-        for result in search_res:
-            if result.get('parents')[0] == p_folder_id:
-                file_id = result.get('id')
-                break
-        else:
-            raise ValueError(
-                f'Cannot find {gsheet_name} in {parent_folder}')
-    elif len(search_res) == 1:
-        file_id = search_res[0].get('id')
-    else:
-        new_file = True
-        file_id = s_api.create_object(gsheet_name, 'sheet', p_folder_id)
     df_rows = [*df.values.tolist()]
     if not new_file and append:
         file_md = s_api.get_sheet_metadata(file_id, sheet_title)
