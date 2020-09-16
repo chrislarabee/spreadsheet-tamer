@@ -428,7 +428,8 @@ class GeniusAccessor:
             s_api=options.get('s_api'),
             columns=cols,
             parent_folder=options.get('parent_folder'),
-            drive_id=options.get('drive_id')
+            drive_id=options.get('drive_id'),
+            append=options.get('append', False)
         )
 
     def to_sqlite(self, dir_path: str, table: str, **options):
