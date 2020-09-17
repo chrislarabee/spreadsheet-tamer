@@ -298,9 +298,14 @@ class SheetsAPI:
             s_idx = self.check_sheet_titles(sheet_title, sheets=raw)
         sheet = raw[s_idx]
         results['title'] = sheet['properties']['title']
-        first_row = sheet['data'][0]['rowData']
-        last_row_idx = len(first_row)
-        last_col_idx = max([len(e['values']) for e in first_row if e])
+        # Newly created Google Sheets have no rowData.
+        row_data = sheet['data'][0].get('rowData')
+        if row_data:
+            last_row_idx = len(row_data)
+            last_col_idx = max([len(e['values']) for e in row_data if e])
+        else:
+            last_row_idx = 0
+            last_col_idx = 0
         results['row_limit'] = last_row_idx
         results['col_limit'] = last_col_idx
         return results
