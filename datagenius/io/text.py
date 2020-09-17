@@ -291,13 +291,11 @@ class SheetsAPI:
             the passed sheet.
 
         """
-        results = dict()
         raw = self.get_sheets(sheet_id)
         s_idx = 0
         if sheet_title is not None:
             s_idx = self.check_sheet_titles(sheet_title, sheets=raw)
         sheet = raw[s_idx]
-        results['title'] = sheet['properties']['title']
         # Newly created Google Sheets have no rowData.
         row_data = sheet['data'][0].get('rowData')
         if row_data:
@@ -306,9 +304,12 @@ class SheetsAPI:
         else:
             last_row_idx = 0
             last_col_idx = 0
-        results['row_limit'] = last_row_idx
-        results['col_limit'] = last_col_idx
-        return results
+        return dict(
+            index=s_idx,
+            title=sheet['properties']['title'],
+            row_limit=last_row_idx,
+            col_limit=last_col_idx,
+        )
 
     def write_values(
             self,
