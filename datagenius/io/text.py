@@ -276,7 +276,7 @@ class SheetsAPI:
     def get_sheet_metadata(
             self,
             sheet_id: str,
-            sheet_title: str = None) -> dict:
+            sheet_title: str = None) -> (dict, None):
         """
         Retrieves metadata about the first sheet in the Google Sheet
         corresponding to the passed sheet_id.
@@ -288,28 +288,30 @@ class SheetsAPI:
                 the first sheet will be used.
 
         Returns: A dictionary containing information about the data in
-            the passed sheet.
+            the passed sheet, or None if the passed sheet does not
+            exist.
 
         """
         raw = self.get_sheets(sheet_id)
         s_idx = 0
         if sheet_title is not None:
             s_idx = self.check_sheet_titles(sheet_title, sheets=raw)
-        sheet = raw[s_idx]
-        # Newly created Google Sheets have no rowData.
-        row_data = sheet['data'][0].get('rowData')
-        if row_data:
-            last_row_idx = len(row_data)
-            last_col_idx = max([len(e['values']) for e in row_data if e])
-        else:
-            last_row_idx = 0
-            last_col_idx = 0
-        return dict(
-            index=s_idx,
-            title=sheet['properties']['title'],
-            row_limit=last_row_idx,
-            col_limit=last_col_idx,
-        )
+        if s_idx is not None:
+            sheet = raw[s_idx]
+            # Newly created Google Sheets have no rowData.
+            row_data = sheet['data'][0].get('rowData')
+            if row_data:
+                last_row_idx = len(row_data)
+                last_col_idx = max([len(e['values']) for e in row_data if e])
+            else:
+                last_row_idx = 0
+                last_col_idx = 0
+            return dict(
+                index=s_idx,
+                title=sheet['properties']['title'],
+                row_limit=last_row_idx,
+                col_limit=last_col_idx,
+            )
 
     def write_values(
             self,
@@ -867,9 +869,9 @@ def write_gsheet(
         drive_id
     )
     df_rows = [*df.values.tolist()]
-    if not new_file and append:
-        file_md = s_api.get_sheet_metadata(file_id, sheet_title)
-        start_row = file_md['row_limit'] + 1
+    sheet_md = s_api.get_sheet_metadata(file_id, sheet_title)
+    if not new_file and append and sheet_md:
+        start_row = sheet_md['row_limit'] + 1
     else:
         start_row = 1
         columns = list(df.columns) if columns is None else columns
