@@ -547,10 +547,35 @@ class GSheetFormatting:
         self.requests.append(request)
         return self
 
+    def append_rows(self, num_rows: int, sheet_id: int = 0):
+        """
+        Adds the specified number of rows to the end of a Google Sheet.
+
+        Args:
+            num_rows: The number of rows to add.
+            sheet_id: The index of the sheet to add rows to, defaults to
+                0, the first sheet.
+
+        Returns: self
+
+        """
+        request = dict(
+            appendDimension=dict(
+                sheetId=sheet_id,
+                dimension='ROWS',
+                length=num_rows
+            )
+        )
+        self.requests.append(request)
+        return self
+
     def insert_rows(self, num_rows: int, sheet_id: int = 0, at_row: int = 0):
         """
         Adds an insertDimension request to add more rows to the
-            GSheetFormatting object's requests queue.
+        GSheetFormatting object's requests queue.
+
+        WARNING: Do NOT use this method to add rows to the end of a
+        Google Sheet. It will not work. Use append_rows instead.
 
         Args:
             num_rows: The # of rows to insert.

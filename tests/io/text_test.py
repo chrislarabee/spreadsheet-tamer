@@ -142,6 +142,18 @@ class TestGSheetFormatting:
             )
         ]
 
+    def test_append_rows(self):
+        f = text.GSheetFormatting().append_rows(5)
+        assert f.requests == [
+            dict(
+                appendDimension=dict(
+                    sheetId=0,
+                    dimension='ROWS',
+                    length=5
+                )
+            )
+        ]
+
     def test_insert_rows(self):
         f = text.GSheetFormatting()
         f.insert_rows(3, at_row=2)
