@@ -111,7 +111,7 @@ class TestSheetsAPI:
         result = sheets_api.write_values(
             s_id, values)
         assert result == (3, 3)
-        fmt = text.GSheetFormatting().insert_rows(2)
+        fmt = sheets_api.format_sheet(s_id).insert_rows(2)
         sheets_api.batch_update(s_id, fmt.requests)
         rows = sheets_api.get_sheet_values(s_id)
         expected = [[], [], *values]
@@ -119,15 +119,8 @@ class TestSheetsAPI:
 
 
 class TestGSheetFormatting:
-    def test_basics(self):
-        f = text.GSheetFormatting()
-        d = f.auto_dim_size
-        d['autoResizeDimensions']['dimensions'] = dict(test=0)
-        assert f.auto_dim_size == dict(
-            autoResizeDimensions=dict(dimensions=dict()))
-
-    def test_auto_column_width(self):
-        f = text.GSheetFormatting()
+    def test_auto_column_width(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
         f.auto_column_width(0, 5)
         assert f.requests == [
             dict(
@@ -142,8 +135,9 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_append_rows(self):
-        f = text.GSheetFormatting().append_rows(5)
+    def test_append_rows(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
+        f.append_rows(5)
         assert f.requests == [
             dict(
                 appendDimension=dict(
@@ -154,9 +148,9 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_insert_rows(self):
-        f = text.GSheetFormatting()
-        f.insert_rows(3, at_row=2)
+    def test_insert_rows(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
+        f.insert_rows(3, 2)
         assert f.requests == [
             dict(
                 insertDimension=dict(
@@ -171,8 +165,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_delete_rows(self):
-        f = text.GSheetFormatting()
+    def test_delete_rows(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
         f.delete_rows(5, 10)
         assert f.requests == [
             dict(
@@ -187,8 +181,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_apply_font(self):
-        f = text.GSheetFormatting()
+    def test_apply_font(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
         f.apply_font((0, 4), size=12, style='bold')
         assert f.requests == [
             dict(
@@ -211,9 +205,9 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_apply_nbr_format(self):
-        f = text.GSheetFormatting()
-        f.apply_nbr_format(f.acct_fmt, (0, 4))
+    def test_apply_nbr_format(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
+        f.apply_nbr_format('accounting', (0, 4))
         assert f.requests == [
             dict(
                 repeatCell=dict(

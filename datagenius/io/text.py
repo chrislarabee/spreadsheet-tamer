@@ -307,6 +307,7 @@ class SheetsAPI:
                 last_row_idx = 0
                 last_col_idx = 0
             return dict(
+                id=sheet['properties']['sheetId'],
                 index=s_idx,
                 title=sheet['properties']['title'],
                 row_limit=last_row_idx,
@@ -386,6 +387,25 @@ class SheetsAPI:
             spreadsheetId=file_id,
             body=dict(requests=requests)
         ).execute()
+
+    def format_sheet(self, file_id: str, sheet_title: str = None):
+        """
+        Instantiates a GSheetFormatting object for the passed Google
+        Sheet and sheet title, which provides a variety of methods
+        for specifying all the formatting changes you want.
+
+        Args:
+            file_id: The id of the Google Sheet.
+            sheet_title: The name of a sheet in the Google Sheet,
+                defaults to the first sheet.
+
+        Returns: A GSheetFormatting object, which can be chained into
+            its formatting methods and ended with a call to .execute()
+            to apply the formatting, or used for other purposes.
+
+        """
+        sheet_id = self.get_sheet_metadata(file_id, sheet_title)['id']
+        return GSheetFormatting(file_id, sheet_id, self)
 
     @staticmethod
     def _authenticate(scopes: list):
@@ -483,48 +503,43 @@ class SheetsAPI:
 
 class GSheetFormatting:
     number_fmt = ''
-    acct_fmt = ('NUMBER', '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)')
+    accounting_fmt = (
+        'NUMBER',
+        '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
+    )
 
-    @property
-    def auto_dim_size(self):
-        """
-
-        Returns: Base dictionary for automatically sizing row or column
-            height/width.
-
-        """
-        return dict(
-            autoResizeDimensions=dict(
-                dimensions=dict()
-            )
-        )
-
-    @property
-    def delete_dim(self):
-        """
-
-        Returns: Base dictionary for deleting rows or columns.
-
-        """
-        return dict(
-            deleteDimension=dict(
-                range=dict()
-            )
-        )
-
-    def __init__(self):
+    def __init__(
+            self,
+            file_id: str,
+            sheet_id: int = 0,
+            parent: SheetsAPI = None):
         """
         This object contains methods for creating a list of formatting
-        requests and row/column operation requests that the SheetsAPI
-        object can process via the batch_update method.
+        requests and row/column operation requests that can then be
+        processed with the execute() method.
+
+        Args:
+            file_id: The id of the Google Sheet to apply formatting to.
+            sheet_id: The id of the sheet within the Google Sheet to
+                apply formatting to.
+            parent: The SheetsAPI object that generated this formatting.
         """
+        self.parent: SheetsAPI = parent
+        self.file_id: str = file_id
+        self.sheet_id: int = sheet_id
         self.requests: list = []
 
-    def auto_column_width(
-            self,
-            start_col: int,
-            end_col: int,
-            sheet_id: int = 0):
+    def execute(self) -> None:
+        """
+        Executes the amassed requests on this GSheetFormatting object.
+
+        Returns: None
+
+        """
+        if self.parent:
+            self.parent.batch_update(self.file_id, self.requests)
+
+    def auto_column_width(self, start_col: int, end_col: int):
         """
         Adds an autoResizeDimensions request to the GSheetFormatting
             object's requests queue.
@@ -534,34 +549,33 @@ class GSheetFormatting:
                 resize.
             end_col: The 0-initial index of the last column to auto-
                 resize.
-            sheet_id: The index of the sheet to delete rows from,
-                default is 0, the first sheet.
 
         Returns: self
 
         """
-        request = self.auto_dim_size
-        request['autoResizeDimensions']['dimensions'] = self._build_dims_dict(
-            sheet_id, 'COLUMNS', start_col, end_col
+        request = dict(
+            autoResizeDimensions=dict(
+                dimensions=self._build_dims_dict(
+                    self.sheet_id, 'COLUMNS', start_col, end_col
+                )
+            )
         )
         self.requests.append(request)
         return self
 
-    def append_rows(self, num_rows: int, sheet_id: int = 0):
+    def append_rows(self, num_rows: int):
         """
         Adds the specified number of rows to the end of a Google Sheet.
 
         Args:
             num_rows: The number of rows to add.
-            sheet_id: The index of the sheet to add rows to, defaults to
-                0, the first sheet.
 
         Returns: self
 
         """
         request = dict(
             appendDimension=dict(
-                sheetId=sheet_id,
+                sheetId=self.sheet_id,
                 dimension='ROWS',
                 length=num_rows
             )
@@ -569,7 +583,7 @@ class GSheetFormatting:
         self.requests.append(request)
         return self
 
-    def insert_rows(self, num_rows: int, sheet_id: int = 0, at_row: int = 0):
+    def insert_rows(self, num_rows: int, at_row: int = 0):
         """
         Adds an insertDimension request to add more rows to the
         GSheetFormatting object's requests queue.
@@ -579,8 +593,6 @@ class GSheetFormatting:
 
         Args:
             num_rows: The # of rows to insert.
-            sheet_id: The index of the sheet to delete rows from,
-                default is 0, the first sheet.
             at_row: The 0-initial index of the row to start inserting
                at.
 
@@ -588,11 +600,11 @@ class GSheetFormatting:
 
         """
         request = self._insert_dims(
-            sheet_id, 'ROWS', at_row, at_row + num_rows)
+            self.sheet_id, 'ROWS', at_row, at_row + num_rows)
         self.requests.append(request)
         return self
 
-    def delete_rows(self, start_row: int, end_row: int, sheet_id: int = 0):
+    def delete_rows(self, start_row: int, end_row: int):
         """
         Adds a deleteDimension request to the GSheetFormatting object's
         requests queue.
@@ -600,18 +612,21 @@ class GSheetFormatting:
         Args:
             start_row: The 0-initial index of the first row to delete.
             end_row: The 0-initial index of the last row to delete.
-            sheet_id: The index of the sheet to delete rows from,
-                default is 0, the first sheet.
 
         Returns: self.
 
         """
-        request = self.delete_dim
-        request['deleteDimension']['range'] = self._build_dims_dict(
-            sheet_id, 'ROWS', start_row, end_row
-        )
+        request = self._delete_dims(
+            self.sheet_id, 'ROWS', start_row, end_row)
         self.requests.append(request)
         return self
+
+    def _delete_dims(self, *vals) -> dict:
+        return dict(
+            deleteDimension=dict(
+                range=self._build_dims_dict(*vals)
+            )
+        )
 
     def _insert_dims(self, *vals, inherit: bool = False) -> dict:
         """
@@ -662,8 +677,7 @@ class GSheetFormatting:
             row_idxs: tuple = (None, None),
             col_idxs: tuple = (None, None),
             size: int = None,
-            style: (str, tuple) = None,
-            sheet_id: int = 0):
+            style: (str, tuple) = None):
         """
         Adds a textFormat request to the GSheetFormatting object's
         request queue.
@@ -676,8 +690,6 @@ class GSheetFormatting:
             size: Font size formatting.
             style: Font style formatting (bold, italic?, underline?).
                 Bold is the only current style tested.
-            sheet_id: The index of the sheet to change cells in,
-                default is 0, the first sheet.
 
         Returns: self.
 
@@ -693,7 +705,7 @@ class GSheetFormatting:
             dict(textFormat=text_format),
             row_idxs,
             col_idxs,
-            sheet_id
+            self.sheet_id
         )
         repeat_cell['fields'] = 'userEnteredFormat(textFormat)'
         request = dict(repeatCell=repeat_cell)
@@ -702,35 +714,33 @@ class GSheetFormatting:
 
     def apply_nbr_format(
             self,
-            fmt_property: tuple,
+            fmt: str,
             row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None),
-            sheet_id: int = 0):
+            col_idxs: tuple = (None, None)):
         """
         Adds a numberFormat request to the GSheetFormatting object's
         request queue.
 
         Args:
-            fmt_property: A _fmt property from this object (like
-                acct_fmt)
+            fmt: A _fmt property from this object (like
+                accounting_fmt) with or without the _fmt suffix.
             row_idxs: A tuple of the start and end rows to apply number
                 formatting to.
             col_idxs: A tuple of the start and end columns to apply
                 number formatting to.
-            sheet_id: The index of the sheet to change cells in,
-                default is 0, the first sheet.
 
         Returns: self.
 
         """
-        t, p = fmt_property
+        fmt += '_fmt' if fmt[-4:] != '_fmt' else ''
+        t, p = getattr(self, fmt)
         nbr_format = dict(type=t, pattern=p)
 
         repeat_cell = self._build_repeat_cell_dict(
             dict(numberFormat=nbr_format),
             row_idxs,
             col_idxs,
-            sheet_id
+            self.sheet_id
         )
         repeat_cell['fields'] = 'userEnteredFormat.numberFormat'
         request = dict(repeatCell=repeat_cell)
@@ -754,7 +764,7 @@ class GSheetFormatting:
             fmt_dict: A formatting dictionary.
             row_idxs: A tuple of the start and stop row indexes.
             col_idxs: A tuple of the start and stop column indexes.
-            sheet_id: The index of the sheet to apply the formatting to.
+            sheet_id: The id of the sheet to apply the formatting to.
                 Default is 0.
 
         Returns: A dictionary ready to be slotted in at the repeatCell
@@ -790,7 +800,7 @@ class GSheetFormatting:
         etc).
 
         Args:
-            sheet_id: The index of the sheet to build a range for,
+            sheet_id: The id of the sheet to build a range for,
                 default is 0, the first sheet.
             start_row_idx: The 0-initial index of the first row to
                 target for formatting.
