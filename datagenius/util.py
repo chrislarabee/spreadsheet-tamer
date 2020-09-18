@@ -574,7 +574,9 @@ def gsheet_range_formula(
     Args:
         df: A DataFrame.
         f_range:* The range of row or column labels to include in the
-            formula.
+            formula. For row labels, you can provide -1, '', or None as
+            the second label to create a formula that always goes to
+            the end of the Google Sheet (e.g. SUM(A1:A).
         f_func: A string, the name of the Google Sheet range function to
             use.
         axis: 1 to create a new row, 0 to create a new column.
@@ -626,12 +628,13 @@ def gsheet_range_formula(
         f_range = f_range if f_range else (0, df.index[-1])
         fr = tuplify(f_range)
         r1, r2 = fr[0], fr[-1]
+        r2 = '' if r2 in (None, '', -1) else r2 + r
         if not label_range:
             label_range = (col_order[0], col_order[-1])
         c1, c2 = label_range
         form_cols = col_order[col_order.index(c1):col_order.index(c2) + 1]
         new_row = [
-            f'={f_func.upper()}({mtrx[c]}{r1 + r}:{mtrx[c]}{r2 + r})'
+            f'={f_func.upper()}({mtrx[c]}{r1 + r}:{mtrx[c]}{r2})'
             if c in form_cols else nan for c in df.columns
         ]
         df.loc[row_idx, :] = new_row

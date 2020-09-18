@@ -323,6 +323,14 @@ def test_gsheet_range_formula_f_range(df_for_formulas):
     ], name=3, index=['col1', 'col2', 'col3'])
     pd.testing.assert_series_equal(df.loc[3, :], expected)
 
+    df = pd.DataFrame(df_for_formulas)
+    df = u.gsheet_range_formula(
+        df, axis=1, f_range=(1, None))
+    expected = pd.Series([
+        '=SUM(A3:A)', '=SUM(B3:B)', '=SUM(C3:C)'
+    ], name=3, index=['col1', 'col2', 'col3'])
+    pd.testing.assert_series_equal(df.loc[3, :], expected)
+
 
 def test_gsheet_range_formula_col_order_f_range(df_for_formulas):
     df = pd.DataFrame(df_for_formulas)
