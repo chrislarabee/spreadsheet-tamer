@@ -230,6 +230,69 @@ class TestGSheetFormatting:
             )
         ]
 
+    def test_freeze(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
+        f.freeze(1).freeze(2, 4)
+        assert f.requests == [
+            dict(
+                updateSheetProperties=dict(
+                    properties=dict(
+                        sheetId=0,
+                        gridProperties=dict(
+                            frozenRowCount=1
+                        )
+                    )
+                )
+            ),
+            dict(
+                updateSheetProperties=dict(
+                    properties=dict(
+                        sheetId=0,
+                        gridProperties=dict(
+                            frozenRowCount=2,
+                            frozenColumnCount=4
+                        )
+                    )
+                )
+            )
+        ]
+
+    def test_alternate_row_background(self, sheets_api):
+        f = text.GSheetFormatting('', parent=sheets_api)
+        f.alternate_row_background((1, 5), (0, 10), 0.2, 0.3)
+        assert f.requests == [
+            dict(
+                addConditionalFormatRule=dict(
+                    rule=dict(
+                        ranges=[
+                            dict(
+                                sheetId=0,
+                                startRowIndex=1,
+                                endRowIndex=5,
+                                startColumnIndex=0,
+                                endColumnIndex=10
+                            )
+                        ],
+                        booleanRule=dict(
+                            condition=dict(
+                                type='CUSTOM_FORMULA',
+                                values=[
+                                    dict(userEneteredValue="=MOD(ROW(), 2)")
+                                ]
+                            ),
+                            format=dict(
+                                backgroundColor=dict(
+                                    red=0.2,
+                                    green=0.3,
+                                    blue=0
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        ]
+
     def test_build_repeat_cell_dict(self):
         assert text.GSheetFormatting._build_repeat_cell_dict(
             {'numberFormat': {'type': 'x', 'pattern': 'y'}},
@@ -253,16 +316,22 @@ class TestGSheetFormatting:
             )
         )
 
-        with pytest.raises(ValueError, match='Must pass one or both of'):
-            text.GSheetFormatting._build_repeat_cell_dict(
-                {'type': 'x', 'pattern': 'y'})
-
     def test_build_range_dict(self):
-        assert text.GSheetFormatting._build_range_dict(0, 0, 4) == dict(
+        assert text.GSheetFormatting._build_range_dict(0, (0, 4)) == dict(
             sheetId=0,
             startRowIndex=0,
             endRowIndex=4
         )
+
+        with pytest.raises(ValueError, match='Must pass one or both of'):
+            text.GSheetFormatting._build_range_dict()
+
+    def test_build_color_dict(self):
+        assert text.GSheetFormatting._build_color_dict(0, 1) == dict(
+            red=0, green=1, blue=0
+        )
+        assert text.GSheetFormatting._build_color_dict(
+            0.2, 0.4, 0.6, 0.8) == dict(red=0.2, green=0.4, blue=0.6)
 
 
 def test_build_template(customers):

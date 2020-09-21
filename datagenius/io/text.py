@@ -747,6 +747,79 @@ class GSheetFormatting:
         self.requests.append(request)
         return self
 
+    def freeze(self, rows: int = None, columns: int = None):
+        """
+        Adds a freeze rows and/or columns request to the
+        GSheetFormatting object's request queue.
+
+        Args:
+            rows: Number of rows to freeze.
+            columns: Number of columns to freeze.
+
+        Returns: self.
+
+        """
+        grid_prop = dict()
+        if not rows and not columns:
+            raise ValueError('One of rows or columns must not be None.')
+        if rows:
+            grid_prop['frozenRowCount'] = rows
+        if columns:
+            grid_prop['frozenColumnCount'] = columns
+        request = dict(
+            updateSheetProperties=dict(
+                properties=dict(
+                    sheetId=self.sheet_id,
+                    gridProperties=grid_prop
+                )
+            )
+        )
+        self.requests.append(request)
+        return self
+
+    def alternate_row_background(
+            self,
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None),
+            *rgb_vals: float):
+        """
+        Adds a background of the specified color to every other row in
+        the passed range.
+
+        Args:
+            row_idxs: A tuple of the start and stop row indexes.
+            col_idxs: A tuple of the start and stop column indexes.
+            *rgb_vals: Red, green, and blue values, in order. More than
+                3 values will be ignored, default value is 0, so you
+                only need to specify up to the last non-zero value.
+
+        Returns: self.
+
+        """
+        request = dict(
+            addConditionalFormatRule=dict(
+                rule=dict(
+                    ranges=[
+                        self._build_range_dict(
+                            self.sheet_id, row_idxs, col_idxs)
+                    ],
+                    booleanRule=dict(
+                        condition=dict(
+                            type='CUSTOM_FORMULA',
+                            values=[
+                                dict(userEneteredValue="=MOD(ROW(), 2)")
+                            ]
+                        ),
+                        format=dict(
+                            backgroundColor=self._build_color_dict(*rgb_vals)
+                        )
+                    )
+                )
+            )
+        )
+        self.requests.append(request)
+        return self
+
     @classmethod
     def _build_repeat_cell_dict(
             cls,
@@ -771,16 +844,8 @@ class GSheetFormatting:
             key in a request.
 
         """
-        range_ = (*row_idxs, *col_idxs)
-        non_nulls = 0
-        for r in range_:
-            non_nulls += 1 if r is not None else 0
-        if non_nulls < 2:
-            raise ValueError(
-                'Must pass one or both of row_idxs, col_idxs.')
-
         return dict(
-            range=cls._build_range_dict(sheet_id, *range_),
+            range=cls._build_range_dict(sheet_id, row_idxs, col_idxs),
             cell=dict(
                 userEnteredFormat=fmt_dict
             )
@@ -789,10 +854,8 @@ class GSheetFormatting:
     @staticmethod
     def _build_range_dict(
             sheet_id: int = 0,
-            start_row_idx: int = None,
-            end_row_idx: int = None,
-            start_col_idx: int = None,
-            end_col_idx: int = None) -> dict:
+            row_idxs: tuple = (None, None),
+            col_idxs: tuple = (None, None)) -> dict:
         """
         Quick method for building a range dictionary for use in a
         request dictionary wrapper intended to change cell formatting or
@@ -802,30 +865,56 @@ class GSheetFormatting:
         Args:
             sheet_id: The id of the sheet to build a range for,
                 default is 0, the first sheet.
-            start_row_idx: The 0-initial index of the first row to
-                target for formatting.
-            end_row_idx: The 0-initial index of the last row to target
-                for formatting.
-            start_col_idx: The 0-initial index of the first column to
-                target for formatting.
-            end_col_idx: The 0-initial index of the last column to
-                target for formatting.
+            row_idxs: A tuple of the start and stop row indexes.
+            col_idxs: A tuple of the start and stop column indexes.
 
         Returns: A dictionary ready to be slotted into a format request
             generating function.
 
         """
-        range_ = dict(sheetId=sheet_id)
+        range_dict = dict(sheetId=sheet_id)
+
+        range_ = (*row_idxs, *col_idxs)
+        non_nulls = 0
+        for r in range_:
+            non_nulls += 1 if r is not None else 0
+        if non_nulls < 2:
+            raise ValueError(
+                'Must pass one or both of row_idxs, col_idxs.')
+
+        start_row_idx, end_row_idx = row_idxs
+        start_col_idx, end_col_idx = col_idxs
         # Must specify is not None because python interprets 0 as false.
         if start_row_idx is not None:
-            range_['startRowIndex'] = start_row_idx
+            range_dict['startRowIndex'] = start_row_idx
         if end_row_idx is not None:
-            range_['endRowIndex'] = end_row_idx
+            range_dict['endRowIndex'] = end_row_idx
         if start_col_idx is not None:
-            range_['startColumnIndex'] = start_col_idx
+            range_dict['startColumnIndex'] = start_col_idx
         if end_col_idx is not None:
-            range_['endColumnIndex'] = end_col_idx
-        return range_
+            range_dict['endColumnIndex'] = end_col_idx
+        return range_dict
+
+    @staticmethod
+    def _build_color_dict(*rgb_vals) -> Dict[str, float]:
+        """
+        Quick method for building a color dictionary for use in a
+        foreground, background, or font color dictionary.
+
+        Args:
+            *rgb_vals: Red, green, and blue values, in order. More than
+                3 values will be ignored, default value is 0, so you
+                only need to specify up to the last non-zero value.
+
+        Returns: A dictionary containing RGB color names and values.
+
+        """
+        rgb_vals = list(rgb_vals)
+        rgb = ['red', 'green', 'blue']
+        rgb_vals += [0] * (3 - len(rgb_vals))
+        return {
+            k: v for k, v in dict(zip(rgb, rgb_vals)).items()
+        }
 
 
 def from_gsheet(
