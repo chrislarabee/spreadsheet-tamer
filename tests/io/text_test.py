@@ -261,7 +261,7 @@ class TestGSheetFormatting:
 
     def test_alternate_row_background(self, sheets_api):
         f = text.GSheetFormatting('', parent=sheets_api)
-        f.alternate_row_background((1, 5), (0, 10), 0.2, 0.3)
+        f.alternate_row_background(0.2, 0.3, row_idxs=(1, 5), col_idxs=(0, 10))
         assert f.requests == [
             dict(
                 addConditionalFormatRule=dict(

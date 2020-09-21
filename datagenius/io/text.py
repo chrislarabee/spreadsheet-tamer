@@ -780,9 +780,9 @@ class GSheetFormatting:
 
     def alternate_row_background(
             self,
+            *rgb_vals,
             row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None),
-            *rgb_vals: float):
+            col_idxs: tuple = (None, None)):
         """
         Adds a background of the specified color to every other row in
         the passed range.
