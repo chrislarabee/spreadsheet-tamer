@@ -808,7 +808,7 @@ class GSheetFormatting:
                         condition=dict(
                             type='CUSTOM_FORMULA',
                             values=[
-                                dict(userEneteredValue="=MOD(ROW(), 2)")
+                                dict(userEnteredValue="=MOD(ROW(), 2)")
                             ]
                         ),
                         format=dict(
