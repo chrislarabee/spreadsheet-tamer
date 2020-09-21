@@ -771,7 +771,8 @@ class GSheetFormatting:
                 properties=dict(
                     sheetId=self.sheet_id,
                     gridProperties=grid_prop
-                )
+                ),
+                fields='gridProperties(frozenRowCount, frozenColumnCount)'
             )
         )
         self.requests.append(request)
@@ -814,7 +815,8 @@ class GSheetFormatting:
                             backgroundColor=self._build_color_dict(*rgb_vals)
                         )
                     )
-                )
+                ),
+                index=0
             )
         )
         self.requests.append(request)

@@ -241,8 +241,9 @@ class TestGSheetFormatting:
                         gridProperties=dict(
                             frozenRowCount=1
                         )
-                    )
-                )
+                    ),
+                    fields='gridProperties(frozenRowCount, frozenColumnCount)'
+                ),
             ),
             dict(
                 updateSheetProperties=dict(
@@ -252,7 +253,8 @@ class TestGSheetFormatting:
                             frozenRowCount=2,
                             frozenColumnCount=4
                         )
-                    )
+                    ),
+                    fields='gridProperties(frozenRowCount, frozenColumnCount)'
                 )
             )
         ]
@@ -288,7 +290,8 @@ class TestGSheetFormatting:
                                 )
                             )
                         )
-                    )
+                    ),
+                    index=0
                 )
             )
         ]
