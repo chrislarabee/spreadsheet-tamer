@@ -195,13 +195,21 @@ def test_purge_gap_rows(gaps, gaps_totals):
 
 
 def test_standardize_header():
-    header = pd.Index(
-        ['Variant SKU', ' Barcode  2 ', 'Barcode  #3', 'Barcode 3']
-    )
-    assert u.standardize_header(header) == (
-        ['variant_sku', 'barcode_2', 'barcode_3', 'barcode_3_1'],
-        list(header)
-    )
+    header = pd.Index([
+        'Variant SKU', 
+        ' Barcode  2 ', 
+        'Barcode  #3', 
+        'Barcode 3',
+        '$ cost',
+    ])
+    expected = [
+        'variant_sku',
+        'barcode_2',
+        'barcode_3',
+        'barcode_3_1',
+        'cost',
+    ]
+    assert u.standardize_header(header) == (expected, list(header))
 
     header = pd.RangeIndex(0, 2, 1)
     assert u.standardize_header(header) == (['0', '1'], list(header))
