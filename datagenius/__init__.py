@@ -7,7 +7,7 @@ from .lib import CleaningGuide, SupplementGuide, RedistributionGuide
 from .util import (
     transmutation, nullable, gsheet_range_formula, tuplify,
     tuplify_iterable, isnumericplus, gtype, gconvert, gen_empty_md_df,
-    broadcast_suffix, broadcast_type
+    broadcast_suffix, broadcast_type, standardize_header
 )
 
 
@@ -17,5 +17,5 @@ __all__ = [
     'get_output_template', 'SheetsAPI', 'GeniusMetadata',
     'gsheet_range_formula', 'tuplify', 'tuplify_iterable', 'isnumericplus',
     'gtype', 'gconvert', 'gen_empty_md_df', 'broadcast_suffix',
-    'broadcast_type',
+    'broadcast_type', 'standardize_header'
 ]
