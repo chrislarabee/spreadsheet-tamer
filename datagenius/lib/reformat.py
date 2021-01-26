@@ -3,11 +3,10 @@ import pandas as pd
 import datagenius.util as u
 
 
-@u.transmutation(stage='reformat', priority=15)
+@u.transmutation(stage="reformat", priority=15)
 def reformat_df(
-        df: pd.DataFrame,
-        reformat_template: (list, pd.Index),
-        reformat_mapping: dict) -> tuple:
+    df: pd.DataFrame, reformat_template: (list, pd.Index), reformat_mapping: dict
+) -> tuple:
     """
     Maps the passed DataFrame into a DataFrame matching the passed
     template based on the passed mapping dictionary. Unlike with basic
@@ -35,16 +34,16 @@ def reformat_df(
             result[to] = df[from_]
             md[from_] = to
         else:
-            md[from_] = ''
+            md[from_] = ""
             for i, t in enumerate(to):
                 result[t] = df[from_]
-                sep = ',' if i > 0 else ''
+                sep = "," if i > 0 else ""
                 md[from_] = md[from_] + sep + t
     result.columns, _ = u.standardize_header(result.columns)
-    return result, {'metadata': md, 'orig_header': reformat_template}
+    return result, {"metadata": md, "orig_header": reformat_template}
 
 
-@u.transmutation(stage='reformat')
+@u.transmutation(stage="reformat")
 def fill_defaults(df: pd.DataFrame, defaults_mapping: dict) -> tuple:
     """
     Fills each column specified in defaults_mapping with the values
@@ -65,4 +64,4 @@ def fill_defaults(df: pd.DataFrame, defaults_mapping: dict) -> tuple:
     for k, v in defaults_mapping.items():
         md[k] = df[k].isna().sum()
         df[k] = df[k].fillna(v)
-    return df, {'metadata': md}
+    return df, {"metadata": md}

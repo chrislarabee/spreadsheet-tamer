@@ -11,6 +11,7 @@ class ZeroNumeric:
     Numeric strings that need to have one or more zeros on their left
     side.
     """
+
     @property
     def zeros(self):
         return self._zeros
@@ -29,24 +30,25 @@ class ZeroNumeric:
         Args:
             value: A string that could be converted to a numeric value.
         """
-        self._zeros: str = ''
+        self._zeros: str = ""
         self._numeric: (int, float, None) = None
         if pd.isna(value):
-            raise ValueError('Cannot convert float NaN to ZeroNumeric')
+            raise ValueError("Cannot convert float NaN to ZeroNumeric")
         elif isinstance(value, (float, int)):
             self._value = str(value)
-            self._zeros = ''
+            self._zeros = ""
             self._numeric = value
         else:
             value = str(value)
-            value = re.sub(r"'+", '', value)
+            value = re.sub(r"'+", "", value)
             if u.isnumericplus(value):
                 self._value = value
                 self._zeros, self._numeric = self.split_zeros(value)
             else:
                 raise ValueError(
-                    f'ZeroNumeric must be a numeric string or value. '
-                    f'Invalid value={value}')
+                    f"ZeroNumeric must be a numeric string or value. "
+                    f"Invalid value={value}"
+                )
 
     def pad(self, length: int = None):
         """
@@ -62,9 +64,7 @@ class ZeroNumeric:
             are necessary for len(self) == length.
 
         """
-        return ZeroNumeric(
-            '0' * max(length - len(self), 0) + str(self._numeric)
-        )
+        return ZeroNumeric("0" * max(length - len(self), 0) + str(self._numeric))
 
     @staticmethod
     def split_zeros(value: str) -> tuple:
@@ -80,8 +80,8 @@ class ZeroNumeric:
             value.
 
         """
-        pieces = re.findall(r'(^0*)([1-9]+\d*\.*\d*)', value)[0]
-        _, conv_type = u.isnumericplus(pieces[1], '-v')
+        pieces = re.findall(r"(^0*)([1-9]+\d*\.*\d*)", value)[0]
+        _, conv_type = u.isnumericplus(pieces[1], "-v")
         return pieces[0], u.gconvert(pieces[1], conv_type)
 
     def do_op(self, op, other):
@@ -164,9 +164,7 @@ class ZeroNumeric:
         if new_val is 0:
             return 0
         else:
-            return ZeroNumeric(
-                self._zeros + str(new_val)
-            )
+            return ZeroNumeric(self._zeros + str(new_val))
 
     def __add__(self, other):
         return self._mod(self.do_op(o.add, other))

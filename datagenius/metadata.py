@@ -30,18 +30,13 @@ class GeniusMetadata(Callable):
     When coupled with Genius transmutations, tracks their activity and
     provides methods for reporting out on it.
     """
+
     def __init__(self):
         self._rejects: pd.DataFrame = pd.DataFrame()
-        self._collected: pd.DataFrame = pd.DataFrame(
-            columns=['stage', 'transmutation']
-        )
+        self._collected: pd.DataFrame = pd.DataFrame(columns=["stage", "transmutation"])
         self._output_header = []
 
-    def track(
-            self,
-            transmutation: Callable,
-            df: pd.DataFrame,
-            **kwargs) -> tuple:
+    def track(self, transmutation: Callable, df: pd.DataFrame, **kwargs) -> tuple:
         """
         Runs the passed transmutation on the passed DataFrame with the
         passed kwargs. Collects any metadata spit out by the function
@@ -59,25 +54,25 @@ class GeniusMetadata(Callable):
         Returns: The passed DataFrame, as modified by the transmutation.
 
         """
-        t_kwargs = u.align_args(transmutation, kwargs, 'df')
-        print(f'[DATAGENIUS]: Applying {transmutation.__name__}...')
+        t_kwargs = u.align_args(transmutation, kwargs, "df")
+        print(f"[DATAGENIUS]: Applying {transmutation.__name__}...")
         result = transmutation(df, **t_kwargs)
         if isinstance(result, tuple):
             meta_result = result[1]
             result = result[0]
-            metadata = meta_result.get('metadata')
-            rejects = meta_result.get('rejects')
-            new_kwargs = meta_result.get('new_kwargs')
-            o_header = meta_result.get('orig_header')
+            metadata = meta_result.get("metadata")
+            rejects = meta_result.get("rejects")
+            new_kwargs = meta_result.get("new_kwargs")
+            o_header = meta_result.get("orig_header")
             if metadata is not None:
-                metadata['transmutation'] = transmutation.__name__
-                stage = getattr(transmutation, 'stage', '_no_stage')
-                metadata['stage'] = stage
-                self._intake(metadata, '_collected')
-                meta_result.pop('metadata')
+                metadata["transmutation"] = transmutation.__name__
+                stage = getattr(transmutation, "stage", "_no_stage")
+                metadata["stage"] = stage
+                self._intake(metadata, "_collected")
+                meta_result.pop("metadata")
             if rejects is not None:
-                self._intake(rejects, '_rejects')
-                meta_result.pop('rejects')
+                self._intake(rejects, "_rejects")
+                meta_result.pop("rejects")
             if new_kwargs is not None:
                 kwargs = {**kwargs, **new_kwargs}
             if o_header is not None:
@@ -98,19 +93,17 @@ class GeniusMetadata(Callable):
         """
         if isinstance(other, GeniusMetadata):
             self._collected = self._collected.append(other.collected)
-            self._collected = self._collected.groupby(
-                ['stage', 'transmutation']
-            ).sum().reset_index()
+            self._collected = (
+                self._collected.groupby(["stage", "transmutation"]).sum().reset_index()
+            )
             self._rejects = self._rejects.append(other.rejects)
-            new_columns = set(
-                self._output_header
-            ).difference(set(other._output_header))
+            new_columns = set(self._output_header).difference(set(other._output_header))
             self._output_header += list(new_columns)
         else:
             raise TypeError(
-                f'GeniusMetadata.combine method can only accept other '
-                f'GeniusMetadata objects. Passed object type = '
-                f'{type(other)}'
+                f"GeniusMetadata.combine method can only accept other "
+                f"GeniusMetadata objects. Passed object type = "
+                f"{type(other)}"
             )
 
     def _intake(self, incoming: pd.DataFrame, attr: str) -> None:
@@ -127,8 +120,11 @@ class GeniusMetadata(Callable):
 
         """
         if isinstance(incoming, pd.DataFrame):
-            setattr(self, attr, pd.concat(
-                (getattr(self, attr), incoming)).reset_index(drop=True))
+            setattr(
+                self,
+                attr,
+                pd.concat((getattr(self, attr), incoming)).reset_index(drop=True),
+            )
 
     def __call__(self, df, *transmutations, **options) -> pd.DataFrame:
         """
@@ -147,4 +143,3 @@ class GeniusMetadata(Callable):
         for tm in transmutations:
             df, options = self.track(tm, df, **options)
         return df
-

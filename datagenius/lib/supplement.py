@@ -7,8 +7,9 @@ import datagenius.util as u
 import datagenius.lib.guides as gd
 
 
-def do_exact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
-             rsuffix: str = '_s') -> pd.DataFrame:
+def do_exact(
+    df1: pd.DataFrame, df2: pd.DataFrame, on: tuple, rsuffix: str = "_s"
+) -> pd.DataFrame:
     """
     Merges two DataFrames with overlapping columns based on exact
     matches in those columns.
@@ -27,17 +28,17 @@ def do_exact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
         with any matched rows from df2.
 
     """
-    return df1.merge(
-        df2,
-        'left',
-        on=on,
-        suffixes=('', rsuffix)
-    )
+    return df1.merge(df2, "left", on=on, suffixes=("", rsuffix))
 
 
-def do_inexact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
-               thresholds: tuple, block: tuple = None,
-               rsuffix: str = '_s') -> pd.DataFrame:
+def do_inexact(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    on: tuple,
+    thresholds: tuple,
+    block: tuple = None,
+    rsuffix: str = "_s",
+) -> pd.DataFrame:
     """
     Merges two DataFrames with overlapping columns based on inexact
     matches in those columns.
@@ -70,8 +71,8 @@ def do_inexact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
     # to deprecate eventually. Nothing we can do about that so just
     # suppress it:
     warnings.filterwarnings(
-        'ignore', message="the name 'jaro_winkler'",
-        category=DeprecationWarning)
+        "ignore", message="the name 'jaro_winkler'", category=DeprecationWarning
+    )
     idxr = link.Index()
     idxr.block(block) if block is not None else idxr.full()
     candidate_links = idxr.index(df1, df2)
@@ -81,20 +82,19 @@ def do_inexact(df1: pd.DataFrame, df2: pd.DataFrame, on: tuple,
     frames = (df1.copy(), df2.copy())
 
     for i, o in enumerate(on):
-        compare.string(
-            o, o, method='jarowinkler', threshold=thresholds[i])
+        compare.string(o, o, method="jarowinkler", threshold=thresholds[i])
         # Any columns containing strings should be lowercase to
         # improve matching:
         for f in frames:
-            if f.dtypes[o] == 'O':
+            if f.dtypes[o] == "O":
                 f[o] = f[o].astype(str).str.lower()
 
     features = compare.compute(candidate_links, *frames)
     matches = features[features.sum(axis=1) == len(on)].reset_index()
 
-    a = matches.join(df1, on='level_0', how='outer', rsuffix='')
-    b = a.join(df2, on='level_1', how='left', rsuffix=rsuffix)
-    drop_cols = ['level_0', 'level_1', *[i for i in range(len(on))]]
+    a = matches.join(df1, on="level_0", how="outer", rsuffix="")
+    b = a.join(df2, on="level_1", how="left", rsuffix=rsuffix)
+    drop_cols = ["level_0", "level_1", *[i for i in range(len(on))]]
     b.drop(columns=drop_cols, inplace=True)
     return b
 
@@ -120,7 +120,7 @@ def chunk_dframes(plan: tuple, *frames) -> tuple:
     df1 = frames[0]
     for i, df in enumerate(frames):
         for p in plan:
-            conditions = p.output('conditions')
+            conditions = p.output("conditions")
             match, result = slice_dframe(df, conditions)
             p.append(match)
             if result:
@@ -154,8 +154,7 @@ def slice_dframe(df: pd.DataFrame, conditions: dict) -> tuple:
             no_conditions = False
             df = df[df[k].isin(v)]
     new_ct = df.shape[0]
-    result = True if (row_ct >= new_ct != 0
-                      or no_conditions) else False
+    result = True if (row_ct >= new_ct != 0 or no_conditions) else False
     return df, result
 
 
@@ -189,9 +188,9 @@ def build_plan(on: tuple) -> tuple:
                     pair[0] = u.tuplify(oi)
                 else:
                     raise ValueError(
-                        f'tuple ons must have a dict as one of '
-                        f'their arguments and a str/tuple as the '
-                        f'other Invalid tuple={o}'
+                        f"tuple ons must have a dict as one of "
+                        f"their arguments and a str/tuple as the "
+                        f"other Invalid tuple={o}"
                     )
             sg = gd.SupplementGuide(*pair[0], conditions=pair[1])
             complex_ons.append(sg)
@@ -235,12 +234,13 @@ def prep_suffixes(suffixes: (str, tuple), frame_ct: int) -> tuple:
 
     """
     if suffixes is None:
-        suffixes = tuple(
-            ['_' + a for a in u.gen_alpha_keys(frame_ct)])
+        suffixes = tuple(["_" + a for a in u.gen_alpha_keys(frame_ct)])
     else:
         suffixes = u.tuplify(suffixes)
     if len(suffixes) != frame_ct:
-        raise ValueError(f'Length of suffixes must be equal to the '
-                         f'number of other frames. Suffix len='
-                         f'{len(suffixes)}, suffixes={suffixes}')
+        raise ValueError(
+            f"Length of suffixes must be equal to the "
+            f"number of other frames. Suffix len="
+            f"{len(suffixes)}, suffixes={suffixes}"
+        )
     return suffixes

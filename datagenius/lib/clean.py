@@ -7,10 +7,8 @@ import datagenius.util as u
 import datagenius.lib.guides as gd
 
 
-@u.transmutation(stage='clean', priority=15)
-def complete_clusters(
-        df: pd.DataFrame,
-        clustered_columns: Sequence) -> tuple:
+@u.transmutation(stage="clean", priority=15)
+def complete_clusters(df: pd.DataFrame, clustered_columns: Sequence) -> tuple:
     """
     Forward propagates values in the given columns into nan values that
     follow non-nan values. Useful when you have a report-like dataset
@@ -29,16 +27,14 @@ def complete_clusters(
     md_df = u.gen_empty_md_df(clustered_columns)
     for c in clustered_columns:
         before_ct = df[c].count()
-        df[c] = df[c].fillna(method='ffill')
+        df[c] = df[c].fillna(method="ffill")
         after_ct = df[c].count()
         md_df[c] = after_ct - before_ct
-    return df, {'metadata': md_df}
+    return df, {"metadata": md_df}
 
 
-@u.transmutation(stage='clean')
-def reject_incomplete_rows(
-        df: pd.DataFrame,
-        required_cols: list) -> tuple:
+@u.transmutation(stage="clean")
+def reject_incomplete_rows(df: pd.DataFrame, required_cols: list) -> tuple:
     """
     Rejects any rows in a DataFrame that have nan values in the passed
     list of required columns.
@@ -53,19 +49,18 @@ def reject_incomplete_rows(
 
     """
     nulls = df.isna()
-    nulls['count'] = nulls.apply(
-        lambda row: row[required_cols].sum(), axis=1)
-    incomplete_rows = nulls[nulls['count'] > 0].index
+    nulls["count"] = nulls.apply(lambda row: row[required_cols].sum(), axis=1)
+    incomplete_rows = nulls[nulls["count"] > 0].index
     rejects = df.iloc[incomplete_rows]
     df = df.drop(index=incomplete_rows)
     df = df.reset_index(drop=True)
     return df, u.package_rejects_metadata(rejects)
 
 
-@u.transmutation(stage='clean')
+@u.transmutation(stage="clean")
 def reject_on_conditions(
-        df: pd.DataFrame,
-        reject_conditions: (str, list, tuple)) -> tuple:
+    df: pd.DataFrame, reject_conditions: (str, list, tuple)
+) -> tuple:
     """
     Takes a string or list/tuple of strings and uses them as a query to
     find matching rows in the passed DataFrame. The matching rows are
@@ -81,17 +76,15 @@ def reject_on_conditions(
 
     """
     if not isinstance(reject_conditions, str):
-        reject_conditions = ' & '.join(reject_conditions)
+        reject_conditions = " & ".join(reject_conditions)
     rejects = df.query(reject_conditions)
     df = df.drop(index=rejects.index)
     df = df.reset_index(drop=True)
     return df, u.package_rejects_metadata(rejects)
 
 
-@u.transmutation(stage='clean')
-def reject_on_str_content(
-        df: pd.DataFrame,
-        reject_str_content: dict) -> tuple:
+@u.transmutation(stage="clean")
+def reject_on_str_content(df: pd.DataFrame, reject_str_content: dict) -> tuple:
     """
     Takes a dictionary of column keys and search values and rejects
     any row in the passed DataFrame that has that search value in the
@@ -114,7 +107,7 @@ def reject_on_str_content(
     cond_results = pd.DataFrame()
     for k, v in reject_str_content.items():
         if isinstance(v, tuple):
-            v = '|'.join(v)
+            v = "|".join(v)
         cond_results[k] = df[k].str.contains(v, case=False)
     # Directly assign index in case the DataFrame is being chunked on read:
     cond_results.index = df.index
@@ -125,9 +118,8 @@ def reject_on_str_content(
     return df, u.package_rejects_metadata(rejects)
 
 
-@u.transmutation(stage='clean', priority=9)
-def cleanse_redundancies(
-        df: pd.DataFrame, redundancy_map: dict) -> tuple:
+@u.transmutation(stage="clean", priority=9)
+def cleanse_redundancies(df: pd.DataFrame, redundancy_map: dict) -> tuple:
     """
     For each row in the DataFrame, if a key in redundancy_map contains
     the same value as the column(s) in the paired value, replaces the
@@ -151,15 +143,14 @@ def cleanse_redundancies(
     for master, extras in redundancy_map.items():
         for e in extras:
             result = df.apply(
-                lambda row: nan if row[master] == row[e] else row[e],
-                axis=1
+                lambda row: nan if row[master] == row[e] else row[e], axis=1
             )
             md[e] = df[e].count() - result.count()
             df[e] = result
-    return df, {'metadata': md}
+    return df, {"metadata": md}
 
 
-@u.transmutation(stage='standardize')
+@u.transmutation(stage="standardize")
 def cleanse_typos(df: pd.DataFrame, cleaning_guides: dict):
     """
     Corrects typos in the passed DataFrame based on keyword args where
@@ -186,10 +177,10 @@ def cleanse_typos(df: pd.DataFrame, cleaning_guides: dict):
         results[k] = (df[k] != new).sum() - df[k].isna().sum()
         df[k] = new
 
-    return df, {'metadata': results}
+    return df, {"metadata": results}
 
 
-@u.transmutation(stage='standardize')
+@u.transmutation(stage="standardize")
 def convert_types(df: pd.DataFrame, type_mapping: dict) -> tuple:
     """
     Uses the passed type_mapping dictionary to convert the indicated
@@ -214,12 +205,11 @@ def convert_types(df: pd.DataFrame, type_mapping: dict) -> tuple:
         md[col] = (result.apply(type) != df[col].apply(type)).sum()
         df[col] = result
 
-    return df, {'metadata': md}
+    return df, {"metadata": md}
 
 
-@u.transmutation(stage='standardize', priority=9)
-def redistribute(
-        df: pd.DataFrame, redistribution_guides: dict) -> tuple:
+@u.transmutation(stage="standardize", priority=9)
+def redistribute(df: pd.DataFrame, redistribution_guides: dict) -> tuple:
     """
     Uses the passed redistribution_guides to find matching values in
     the specified columns and move them to the destination columns.
@@ -240,17 +230,17 @@ def redistribute(
         for rd_guide in rd_guides:
             result = df[k].apply(rd_guide)
             c = rd_guide.destination
-            if rd_guide.mode == 'overwrite':
+            if rd_guide.mode == "overwrite":
                 rd_val_ct = result.count()
                 df[c] = result.fillna(df[c])
-            elif rd_guide.mode == 'append':
+            elif rd_guide.mode == "append":
                 # To properly append, need both result and destination
                 # to be strings:
                 df[c] = df[c].apply(u.gconvert, target_type=str)
                 result = result.apply(u.gconvert, target_type=str)
                 rd_val_ct = result.count()
-                spaces = result.notna().replace([True, False], [' ', ''])
-                df[c] = df[c] + spaces + result.fillna('')
+                spaces = result.notna().replace([True, False], [" ", ""])
+                df[c] = df[c] + spaces + result.fillna("")
                 df[c] = df[c].fillna(result)
             else:
                 df[c] = df[c].fillna(result)
@@ -259,15 +249,16 @@ def redistribute(
             df.loc[result[result.notna()].index, k] = nan
             md[k] += result.count()
             md[c] += rd_val_ct
-    return df, {'metadata': md}
+    return df, {"metadata": md}
 
 
-@u.transmutation(stage='standardize')
+@u.transmutation(stage="standardize")
 def accrete(
-        df: pd.DataFrame,
-        accrete_group_by: list,
-        accretion_cols: (str, tuple),
-        accretion_sep: str = ' ') -> tuple:
+    df: pd.DataFrame,
+    accrete_group_by: list,
+    accretion_cols: (str, tuple),
+    accretion_sep: str = " ",
+) -> tuple:
     """
     Groups the dataframe by the passed group_by values and then
     combines text values in the accretion columns.
@@ -286,13 +277,11 @@ def accrete(
     accretion_cols = u.tuplify(accretion_cols)
     md = u.gen_empty_md_df(df.columns)
     for c in accretion_cols:
-        df[c] = df[c].fillna('')
+        df[c] = df[c].fillna("")
         df[c] = df[c].astype(str)
-        result = df.groupby(
-            accrete_group_by)[c].apply(
-            accretion_sep.join).reset_index()
-        df = df.merge(result, on=accrete_group_by, suffixes=('', '_x'))
-        cx = c + '_x'
+        result = df.groupby(accrete_group_by)[c].apply(accretion_sep.join).reset_index()
+        df = df.merge(result, on=accrete_group_by, suffixes=("", "_x"))
+        cx = c + "_x"
         md[c] = (df[c] != df[cx]).sum()
         df[c] = df[cx]
         df.drop(columns=cx, inplace=True)
@@ -300,5 +289,5 @@ def accrete(
         df[c] = df[c].apply(
             lambda x: x if len(x) > 0 and x[-1] != accretion_sep else x[:-1]
         )
-        df[c] = df[c].replace('', nan)
-    return df, {'metadata': md}
+        df[c] = df[c].replace("", nan)
+    return df, {"metadata": md}
