@@ -7,6 +7,7 @@ from datagenius.io import text
 from tests import testing_tools
 
 
+@pytest.mark.sheets_api
 def test_write_gsheet_and_from_gsheet(sheets_api):
     testing_tools.check_sheets_api_skip(sheets_api)
 
@@ -62,6 +63,7 @@ def test_write_gsheet_and_from_gsheet(sheets_api):
     pd.testing.assert_frame_equal(read_df, expected)
 
 
+@pytest.mark.sheets_api
 class TestSheetsAPI:
     def test_basics(self, sheets_api):
         testing_tools.check_sheets_api_skip(sheets_api)

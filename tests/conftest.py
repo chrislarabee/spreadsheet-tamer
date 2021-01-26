@@ -8,6 +8,34 @@ from datagenius.io.text import SheetsAPI
 from tests import testing_tools
 
 
+# SheetsAPI test marker
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-sheets-tests",
+        action="store_true",
+        default=False,
+        help="Include SheetsAPI-based tests in the test session."
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", 
+        "sheets_api: mark test as a SheetsAPI-based test"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--run-sheets-tests"):
+        return
+    skip_sheets_tests = pytest.mark.skip(
+        reason="need --run-sheets-tests option to run"
+    )
+    for item in items:
+        if "sheets_api" in item.keywords:
+            item.add_marker(skip_sheets_tests)
+
+
 @pytest.fixture(scope="session")
 def sheets_api():
     if (os.path.exists('token.pickle')

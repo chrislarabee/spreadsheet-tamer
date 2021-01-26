@@ -316,6 +316,7 @@ class TestGeniusAccessor:
         )
         pd.testing.assert_frame_equal(expected, df2)
 
+    @pytest.mark.sheets_api
     def test_to_from_gsheet(self, sheets_api):
         testing_tools.check_sheets_api_skip(sheets_api)
         df = pd.DataFrame([dict(a=1, b=2), dict(a=3, b=4)])
