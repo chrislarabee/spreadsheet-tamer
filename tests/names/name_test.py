@@ -6,7 +6,6 @@ import pytest
 from datagenius.names.name import Name
 
 
-@pytest.mark.skip(reason='Name not yet fully implemented.')
 class TestName:
     def test_allocate(self):
         n = Name('William Cyrus Jehosephat')

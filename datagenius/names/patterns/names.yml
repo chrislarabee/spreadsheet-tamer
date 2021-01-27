@@ -18,3 +18,14 @@ lname_particles:
   - st
   - o 
   - los
+
+invalid_words:
+  - the
+  - family
+  - subscriber
+  - cpa
+  - dds
+  - usmc
+  - esq
+  - international
+  - college 
