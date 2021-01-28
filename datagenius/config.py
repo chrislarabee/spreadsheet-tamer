@@ -1,10 +1,10 @@
 from typing import Optional
 from pathlib import Path
 
-import datagenius.names.util as name_utils
+from datagenius.names.patterns import Patterns
 
 
-patterns = name_utils.Patterns()
+patterns = Patterns()
 
 def configure(
     *,
