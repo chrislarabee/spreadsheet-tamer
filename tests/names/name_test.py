@@ -1,5 +1,6 @@
 import re
 import numpy as np
+import pandas as pd
 
 from datagenius.names import Name
 
@@ -147,7 +148,7 @@ class TestName:
             "eaddress": "bobksmith@gmail.com",
         }
 
-        n.populate(record_dict)
+        n.to_dict(record_dict)
 
         expected = {
             "original_name": "Bob Kevin Smith",
@@ -173,7 +174,7 @@ class TestName:
             "eaddress": "bobksmith@gmail.com",
         }
 
-        n.populate(record_dict)
+        n.to_dict(record_dict)
 
         expected = {
             "original_name": ["Bob", "Kevin", "Smith"],
@@ -186,6 +187,10 @@ class TestName:
         }
 
         assert record_dict == expected
+
+    def test_to_list(self):
+        n = Name('Bob Kevin Smith')
+        assert n.to_list() == [None, 'Bob', 'Kevin', 'Smith', None]
 
     def test_search_and_split(self):
         n = Name.search_and_split("mary jo", " ")

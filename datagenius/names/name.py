@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional, List, Callable, Union, Dict, Any
 import re
 import pandas as pd
@@ -42,6 +44,7 @@ class Name:
         self.lname = None
         self.suffix = None
         # Name 2 info:
+        self.name2 = None
         self.prefix2 = None
         self.fname2 = None
         self.mname2 = None
@@ -237,7 +240,7 @@ class Name:
         s = cls.standardize_caps(s)
         return s
 
-    def populate(self, record_dict: Dict[str, Any]) -> None:
+    def to_dict(self, record_dict: Dict[str, Any]) -> None:
         """
         Takes a dictionary and assigns the Name object's attributes to
         matching keys from the dictionary
@@ -252,6 +255,20 @@ class Name:
             attr = getattr(self, key, None)
             if attr is not None:
                 record_dict[key] = attr
+
+    def to_list(self) -> List[Optional[str]]:
+        """
+        Generates a list of the name's components.
+        -
+        Returns:
+            List[Optional[str]]: A list consisting of the name's prefix, first 
+                name, middle name, last name, and suffix.
+        """
+        self._allocate()
+        self._validate(True)
+        return [
+            self.prefix, self.fname, self.mname, self.lname, self.suffix
+        ]
 
     @staticmethod
     def search_and_split(s: str, search_char: str) -> str:
