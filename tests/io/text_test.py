@@ -121,8 +121,8 @@ class TestSheetsAPI:
 
 
 class TestGSheetFormatting:
-    def test_auto_column_width(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_auto_column_width(self):
+        f = text.GSheetFormatting('')
         f.auto_column_width(0, 5)
         assert f.requests == [
             dict(
@@ -137,8 +137,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_append_rows(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_append_rows(self):
+        f = text.GSheetFormatting('')
         f.append_rows(5)
         assert f.requests == [
             dict(
@@ -150,8 +150,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_insert_rows(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_insert_rows(self):
+        f = text.GSheetFormatting('')
         f.insert_rows(3, 2)
         assert f.requests == [
             dict(
@@ -167,8 +167,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_delete_rows(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_delete_rows(self):
+        f = text.GSheetFormatting('')
         f.delete_rows(5, 10)
         assert f.requests == [
             dict(
@@ -183,8 +183,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_apply_font(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_apply_font(self):
+        f = text.GSheetFormatting('')
         f.apply_font((0, 4), size=12, style='bold')
         assert f.requests == [
             dict(
@@ -207,8 +207,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_apply_nbr_format(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_apply_nbr_format(self):
+        f = text.GSheetFormatting('')
         f.apply_nbr_format('accounting', (0, 4))
         assert f.requests == [
             dict(
@@ -232,8 +232,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_freeze(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_freeze(self):
+        f = text.GSheetFormatting('')
         f.freeze(1).freeze(2, 4)
         assert f.requests == [
             dict(
@@ -261,8 +261,8 @@ class TestGSheetFormatting:
             )
         ]
 
-    def test_alternate_row_background(self, sheets_api):
-        f = text.GSheetFormatting('', parent=sheets_api)
+    def test_alternate_row_background(self):
+        f = text.GSheetFormatting('')
         f.alternate_row_background(0.2, 0.3, row_idxs=(1, 5), col_idxs=(0, 10))
         assert f.requests == [
             dict(
