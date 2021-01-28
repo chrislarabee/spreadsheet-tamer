@@ -9,13 +9,13 @@ import yaml
 class Patterns:
     def __init__(self) -> None:
         raw = self.load_patterns()
-        self._compound_fnames = raw.get('compound_fnames', [])
-        self._lname_particles = raw.get('lname_particles', [])
-        self._ampersands = raw.get('ampersands', [])
-        self._camelcase_particles = raw.get('camelcase_particles', [])
-        self._prefixes = raw.get('prefixes', [])
-        self._suffixes = raw.get('suffixes', [])
-        self._invalid_words = raw.get('invalid_words', [])
+        self._compound_fnames = raw.get("compound_fnames", [])
+        self._lname_particles = raw.get("lname_particles", [])
+        self._ampersands = raw.get("ampersands", [])
+        self._camelcase_particles = raw.get("camelcase_particles", [])
+        self._prefixes = raw.get("prefixes", [])
+        self._suffixes = raw.get("suffixes", [])
+        self._invalid_words = raw.get("invalid_words", [])
         self._invalid_chars = self._get_invalid_chars()
 
     @property
@@ -24,8 +24,8 @@ class Patterns:
 
     @property
     def lname_particles(self) -> List[str]:
-        return self._lname_particles 
-        
+        return self._lname_particles
+
     @property
     def ampersands(self) -> List[str]:
         return self._ampersands
@@ -45,7 +45,7 @@ class Patterns:
     @property
     def invalid_chars(self) -> List[str]:
         return self._invalid_chars
-    
+
     @property
     def invalid_words(self) -> Optional[List[str]]:
         return self._invalid_words
@@ -68,7 +68,7 @@ class Patterns:
     @staticmethod
     def _get_invalid_chars() -> List[str]:
         invalid_chars = [p for p in string.punctuation]
-        for x in ('&', "'", '-', '.'):
+        for x in ("&", "'", "-", "."):
             invalid_chars.remove(x)
         return invalid_chars
 
@@ -90,5 +90,5 @@ class Patterns:
     def _update_patterns(self, **pattern_lists) -> None:
         for k, v in pattern_lists.items():
             prop = getattr(self, k, [])
-            prop += v 
-            setattr(self, f'_{k}', prop)
+            prop += v
+            setattr(self, f"_{k}", prop)

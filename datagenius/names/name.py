@@ -9,9 +9,9 @@ NameOperation = Callable[[str, Optional[int]], str]
 
 class Name:
     def __init__(
-            self, 
-            name: Union[str, List[Optional[str]]],
-            operation_list: Optional[List[NameOperation]] = None
+        self,
+        name: Union[str, List[Optional[str]]],
+        operation_list: Optional[List[NameOperation]] = None,
     ) -> None:
         """
         Acts as a central repository for all the information about a given
@@ -20,10 +20,10 @@ class Name:
         the real workhorses of parsing, Namestring and Nametoken.
         -
         Args:
-            name (Union[str, List[Optional[str]]]): The name to assign to this 
+            name (Union[str, List[Optional[str]]]): The name to assign to this
                 Name object.
-            operation_list (Optional[List[NameOperation]], optional): Additional 
-                NameOperations to use when parsing the passed name. Defaults to 
+            operation_list (Optional[List[NameOperation]], optional): Additional
+                NameOperations to use when parsing the passed name. Defaults to
                 None.
         """
         self.original_name = None
@@ -64,7 +64,7 @@ class Name:
     def _do_operations(self):
         """
         Executes the assigned NameOperations if the Name is valid.
-        """ 
+        """
         for operation in self.operations:
             self._validate()
             if self.valid:
@@ -74,7 +74,7 @@ class Name:
 
     def _intake(self, name: Union[str, List[Optional[str]]]):
         """
-        Takes a passed name, which must either be a string or a list of strings, 
+        Takes a passed name, which must either be a string or a list of strings,
         and assigns it to self.name_list after a small amount of pre-processing.
         -
         Args:
@@ -96,8 +96,8 @@ class Name:
 
     def _loop_name_list(self, operation: NameOperation):
         """
-        Loops over each element in self.name_list and applies the passed function 
-        to it. If the passed function returns '', then that result is treated as 
+        Loops over each element in self.name_list and applies the passed function
+        to it. If the passed function returns '', then that result is treated as
         an indication that the string should be removed from self.name_list.
         -
         Args:
@@ -120,11 +120,11 @@ class Name:
 
     def _validate(self, final: Optional[bool] = False):
         """
-        Checks the name list for validity. If any of the conditions specified in 
+        Checks the name list for validity. If any of the conditions specified in
         _validate pass, then the entire Name is not valid.
         -
         Args:
-            final (Optional[bool], optional): True to check if the required 
+            final (Optional[bool], optional): True to check if the required
                 name_attributes are None. Defaults to False.
         """
         m = re.search("[0-9]", str(self.name_list))
@@ -148,13 +148,13 @@ class Name:
     @staticmethod
     def cleanse_invalid_chars(s: str, index: Optional[int] = None) -> str:
         """
-        Takes a string and removes all invalid characters (as specified by 
+        Takes a string and removes all invalid characters (as specified by
         datagenius Patterns configuration) from it.
         -
         Args:
             s (str): The string to cleanse.
-            index (Optional[int], optional): Index in name_list where the string 
-                was found. Required for compatibility as a NameOperation. 
+            index (Optional[int], optional): Index in name_list where the string
+                was found. Required for compatibility as a NameOperation.
                 Defaults to None.
         -
         Returns:
@@ -167,13 +167,13 @@ class Name:
     @staticmethod
     def cleanse_invalid_word(s: str, index: Optional[int] = None) -> str:
         """
-        Takes a string and, if it is one of the invalid words specified in 
+        Takes a string and, if it is one of the invalid words specified in
             datagenius Patterns configuration, returns ''.
         -
         Args:
             s (str): The string to cleanse.
-            index (Optional[int], optional): Index in name_list where the string 
-                was found. Required for compatibility as a NameOperation. 
+            index (Optional[int], optional): Index in name_list where the string
+                was found. Required for compatibility as a NameOperation.
                 Defaults to None.
         -
         Returns:
@@ -218,8 +218,8 @@ class Name:
         -
         Args:
             s (str): The string to cleanse.
-            index (Optional[int], optional): Index in name_list where the string 
-                was found. Required for compatibility as a NameOperation. 
+            index (Optional[int], optional): Index in name_list where the string
+                was found. Required for compatibility as a NameOperation.
                 Defaults to None.
         -
         Returns:
@@ -257,8 +257,8 @@ class Name:
     def search_and_split(s: str, search_char: str) -> str:
         """
         Takes a string and a single character search value and uses re.search to
-        check for that search_char. If it finds it, it splits string on that 
-        value and then standardizes the capitalization of each element in the 
+        check for that search_char. If it finds it, it splits string on that
+        value and then standardizes the capitalization of each element in the
         string, before joining it all back together on the search_char.
         -
         Args:
@@ -266,7 +266,7 @@ class Name:
             search_char (str): A single character to split s on.
         -
         Returns:
-            str: The string with capitalization standardized if search_char was 
+            str: The string with capitalization standardized if search_char was
                 found.
         """
         m = re.search(search_char, s)

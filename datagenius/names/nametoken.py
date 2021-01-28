@@ -7,8 +7,8 @@ from datagenius.names import Name
 class Nametoken(Name):
     def __init__(self, name_list: List[Optional[str]]) -> None:
         """
-        Expands Name's functionality so that it can more robustly handle datasets 
-        where the name information is stored as separated into different types of 
+        Expands Name's functionality so that it can more robustly handle datasets
+        where the name information is stored as separated into different types of
         names (fname, mname, lname, etc).
         -
         Args:
@@ -16,13 +16,13 @@ class Nametoken(Name):
         """
         operation_list = [
             self.assign_trailing_middle_initial,
-            self.assign_ampersand_split
+            self.assign_ampersand_split,
         ]
         super(Nametoken, self).__init__(name_list, operation_list)
 
     def _allocate(self) -> None:
         """
-        Assigns name components to attributes based on position in name_list and 
+        Assigns name components to attributes based on position in name_list and
         length of name_list
         """
         self.fname = self.name_list[0]
@@ -37,9 +37,9 @@ class Nametoken(Name):
 
     def assign_ampersand_split(self, s: str, index: int) -> str:
         """
-        Takes a string from name_list and checks it for ampersands. If it finds 
+        Takes a string from name_list and checks it for ampersands. If it finds
         any it splits the string following the ampersand off into the appropriate n
-        ame2 location (based on where it is in name_list. Removes everything 
+        ame2 location (based on where it is in name_list. Removes everything
         after the ampersand and returns the cleaned string.
         -
         Args:
@@ -51,27 +51,27 @@ class Nametoken(Name):
         """
         amp_indices = []
         ampersands = []
-        string_list = s.split(' ')
+        string_list = s.split(" ")
         for i, s in enumerate(string_list):
             if s.lower() in patterns.ampersands:
                 amp_indices.append(i)
                 ampersands.append(s)
         if len(amp_indices) > 0:
-            name_list2 = string_list[amp_indices[0] + 1:]
-            string_list = string_list[:amp_indices[0]]
-            name2 = ' '.join(name_list2)
+            name_list2 = string_list[amp_indices[0] + 1 :]
+            string_list = string_list[: amp_indices[0]]
+            name2 = " ".join(name_list2)
             if index == 0:
                 self.fname2 = name2
             elif index == 1:
                 self.mname2 = name2
             else:
                 self.lname2 = name2
-        return ' '.join(string_list)
+        return " ".join(string_list)
 
     def assign_trailing_middle_initial(self, s: str, index: int) -> str:
         """
-        It's common for tokenized names to have a middle initial at the end of 
-        the first name token, for whatever reason, so this method moves it to the 
+        It's common for tokenized names to have a middle initial at the end of
+        the first name token, for whatever reason, so this method moves it to the
         mname and removes it from the passed string.
         -
         Args:
@@ -81,12 +81,13 @@ class Nametoken(Name):
         Returns:
             str: The string, with its trailing initial removed if one is found.
         """
-        string_list = s.split(' ')
+        string_list = s.split(" ")
         if index == 0:
             if len(string_list) > 1:
                 last_string = string_list[-1]
-                if len(last_string) == 1 or (len(last_string) == 2
-                                             and last_string[1] == '.'):
+                if len(last_string) == 1 or (
+                    len(last_string) == 2 and last_string[1] == "."
+                ):
                     self.mname = last_string
                     string_list.remove(last_string)
-        return ' '.join(string_list)
+        return " ".join(string_list)
