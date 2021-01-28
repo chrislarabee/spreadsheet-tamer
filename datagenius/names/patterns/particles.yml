@@ -8,18 +8,18 @@ camelcase_particles:
   - o'
 
 prefixes:
-  - mr
-  - ms
-  - mrs
+  - mr.
+  - ms.
+  - mrs.
   - miss
-  - dr
-  - rev
-  - prof
+  - dr.
+  - rev.
+  - prof.
 
 suffixes:
-  - jr
-  - sr
-  - phd
-  - md
+  - jr.
+  - sr.
+  - phd.
+  - md.
   - ii
   - iii

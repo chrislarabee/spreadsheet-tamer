@@ -9,37 +9,37 @@ import yaml
 class Patterns:
     def __init__(self) -> None:
         raw = self.load_patterns()
-        self._compound_fnames = raw.get('compound_fnames')
-        self._lname_particles = raw.get('lname_particles')
-        self._ampersands = raw.get('ampersands')
-        self._camelcase_particles = raw.get('camelcase_particles')
-        self._prefixes = raw.get('prefixes')
-        self._suffixes = raw.get('suffixes')
-        self._invalid_words = raw.get('invalid_words')
+        self._compound_fnames = raw.get('compound_fnames', [])
+        self._lname_particles = raw.get('lname_particles', [])
+        self._ampersands = raw.get('ampersands', [])
+        self._camelcase_particles = raw.get('camelcase_particles', [])
+        self._prefixes = raw.get('prefixes', [])
+        self._suffixes = raw.get('suffixes', [])
+        self._invalid_words = raw.get('invalid_words', [])
         self._invalid_chars = self._get_invalid_chars()
 
     @property
-    def compound_fnames(self) -> Optional[List[str]]:
+    def compound_fnames(self) -> List[str]:
         return self._compound_fnames
 
     @property
-    def lname_particles(self) -> Optional[List[str]]:
-        return self._lname_particles
+    def lname_particles(self) -> List[str]:
+        return self._lname_particles 
         
     @property
-    def ampersands(self) -> Optional[List[str]]:
+    def ampersands(self) -> List[str]:
         return self._ampersands
 
     @property
-    def camelcase_particles(self) -> Optional[List[str]]:
+    def camelcase_particles(self) -> List[str]:
         return self._camelcase_particles
 
     @property
-    def prefixes(self) -> Optional[List[str]]:
+    def prefixes(self) -> List[str]:
         return self._prefixes
 
     @property
-    def suffixes(self) -> Optional[List[str]]:
+    def suffixes(self) -> List[str]:
         return self._suffixes
 
     @property

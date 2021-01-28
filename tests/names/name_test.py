@@ -1,9 +1,7 @@
 import re
 import numpy as np
 
-import pytest
-
-from datagenius.names.name import Name
+from datagenius.names import Name
 
 
 class TestName:
