@@ -8,7 +8,7 @@ setup(
     packages=["datagenius", "datagenius.io", "datagenius.lib", "datagenius.names"],
     install_requires=[
         "pandas>=1.0.4",
-        "xlrd==1.20",
+        "xlrd==1.2.0",
         "SQLalchemy==1.3.22",
         "recordlinkage==0.14",
         "google-api-python-client==1.12.8",
@@ -18,7 +18,7 @@ setup(
         "numpy==1.19.5",
         "PyYAML>=5.4.1",
     ],
-    version="0.6.0",
+    version="0.6.1",
     license="GNU",
     description=(
         "A suite of classes and functions that attempt to "
