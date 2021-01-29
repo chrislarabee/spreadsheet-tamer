@@ -1,6 +1,5 @@
 default:
-  image:
-    - python:3.8.7
+  image: python:3.8.7
 
 stages:
   - test
