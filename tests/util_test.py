@@ -12,32 +12,32 @@ import datagenius.element as e
 
 def test_transmutation():
     @u.transmutation
-    def func(x):
+    def _func1(x):
         return x
 
-    assert func.stage == "_no_stage"
-    assert func.args == ["x"]
+    assert _func1.stage == "_no_stage"
+    assert _func1.args == ["x"]
 
     @u.transmutation("rejects", stage="preprocess")
-    def func(x):
+    def _func2(x):
         return x
 
-    assert func.stage == "preprocess"
+    assert _func2.stage == "preprocess"
 
     @u.transmutation(stage="a custom stage")
-    def func(x):
+    def _func3(x):
         return x
 
-    assert func.stage == "a_custom_stage"
+    assert _func3.stage == "a_custom_stage"
 
 
 def test_nullable():
     @u.nullable
-    def func(x):
+    def _func(x):
         return x[0]
 
-    assert func([1, 2, 3]) == 1
-    assert pd.isna(func(nan))
+    assert _func([1, 2, 3]) == 1
+    assert pd.isna(_func(nan))
 
 
 def test_align_args():
@@ -46,10 +46,10 @@ def test_align_args():
     assert u.align_args(lambda x, y: x + y, dict(x=1), ["y", "z"]) == dict(x=1)
 
     @u.transmutation
-    def func(x, y, z):
+    def _func(x, y, z):
         return x, y, z
 
-    assert u.align_args(func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
+    assert u.align_args(_func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
 def test_broadcast_suffix():
@@ -64,10 +64,10 @@ def test_broadcast_type():
 
 
 def test_clean_whitespace():
-    assert u.clean_whitespace(1) == [False, 1]
-    assert u.clean_whitespace(" a bad  string ") == [True, "a bad string"]
-    assert u.clean_whitespace("a good string") == [False, "a good string"]
-    assert u.clean_whitespace("     what       even     ") == [True, "what even"]
+    assert u.clean_whitespace(1) == (False, 1)
+    assert u.clean_whitespace(" a bad  string ") == (True, "a bad string")
+    assert u.clean_whitespace("a good string") == (False, "a good string")
+    assert u.clean_whitespace("     what       even     ") == (True, "what even")
 
 
 def test_collect_by_keys():
@@ -122,7 +122,7 @@ def test_get_class_name():
 
 
 def test_gconvert():
-    assert u.gconvert(123, str) == "123"
+    assert u.gconvert(123, target_type=str) == "123"
     assert u.gconvert("1..23", float) == 1.23
     assert isinstance(u.gconvert("00123", e.ZeroNumeric), e.ZeroNumeric)
     assert u.gconvert(1.23, int) == 1

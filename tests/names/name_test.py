@@ -189,8 +189,8 @@ class TestName:
         assert record_dict == expected
 
     def test_to_list(self):
-        n = Name('Bob Kevin Smith')
-        assert n.to_list() == [None, 'Bob', 'Kevin', 'Smith', None]
+        n = Name("Bob Kevin Smith")
+        assert n.to_list() == [None, "Bob", "Kevin", "Smith", None]
 
     def test_search_and_split(self):
         n = Name.search_and_split("mary jo", " ")

@@ -261,14 +261,12 @@ class Name:
         Generates a list of the name's components.
         -
         Returns:
-            List[Optional[str]]: A list consisting of the name's prefix, first 
+            List[Optional[str]]: A list consisting of the name's prefix, first
                 name, middle name, last name, and suffix.
         """
         self._allocate()
         self._validate(True)
-        return [
-            self.prefix, self.fname, self.mname, self.lname, self.suffix
-        ]
+        return [self.prefix, self.fname, self.mname, self.lname, self.suffix]
 
     @staticmethod
     def search_and_split(s: str, search_char: str) -> str:
