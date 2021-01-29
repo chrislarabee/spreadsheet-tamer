@@ -1,17 +1,18 @@
-services:
-  - python:3.8.7
-
 stages:
   - test
   - verify-import
 
 run-pytest:
   stage: test
+  services:
+    - python:3.8.7
   script: 
     - pip install -r requirements.txt
     - pytest
 
 verify-latest-importable:
   stage: verify-import
+  services:
+    - python:3.8.7
   script:
     - pip install git+https://gitlab.com/mnhs/bipi/datagenius.git@latest#egg=data-genius 
