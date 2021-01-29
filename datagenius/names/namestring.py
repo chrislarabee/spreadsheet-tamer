@@ -14,7 +14,7 @@ class Namestring(Name):
         Args:
             name_string (str): The name as a single string.
         """
-        operation_list = [self.assign_affix, self.assign_middle_initials]
+        operation_list = [self.assign_middle_initials, self.assign_affix]
         self.chain = []
         self.mid_init_clusters = 1
         super(Namestring, self).__init__(name_string, operation_list)
