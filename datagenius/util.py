@@ -24,6 +24,7 @@ from numpy import nan
 
 import datagenius.element as e
 from datagenius.tms_registry import TMS
+from datagenius.names import Name
 
 
 _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
@@ -425,6 +426,20 @@ def isnumericplus(x, *options) -> Union[bool, Tuple[bool, Any]]:
     return tuple(result) if len(result) > 1 else result[0]
 
 
+def name_to_list(n: Name) -> List[Optional[str]]:
+    """
+    Wraps a Name object's to_list method call so that it can be used as part of a 
+    pandas DataFrame or Series .apply call.
+
+    Args:
+        n (Name): Any Name object.
+
+    Returns:
+        List[Optional[str]]: The result of the Name's to_list() method.
+    """
+    return n.to_list()
+
+
 def package_rejects_metadata(df: pd.DataFrame):
     """
     Convenience function for creating a metadata dictionary containing
@@ -476,7 +491,8 @@ def standardize_header(header: Iterable) -> Tuple[List[str], List[str]]:
     return result, list(header)
 
 
-def translate_null(obj, to: Union[nan, None] = nan) -> Union[nan, None]:
+def translate_null(obj: Any, to = nan):
+    # TODO: Create a datagenius null class.
     """
     Checks if a passed object is a NoneType object or a numpy nan and
     then converts it to the passed
