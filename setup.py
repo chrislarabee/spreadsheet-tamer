@@ -5,7 +5,7 @@ setup(
     url="https://gitlab.com/mnhs/bipi/datagenius",
     author="Chris Larabee",
     author_email="chris.larabee9@gmail.com",
-    packages=["datagenius", "datagenius.io", "datagenius.lib"],
+    packages=["datagenius", "datagenius.io", "datagenius.lib", "datagenius.names"],
     install_requires=[
         "pandas>=1.0.4",
         "xlrd==1.20",
@@ -16,8 +16,9 @@ setup(
         "google-auth-oauthlib==0.4.2",
         "oauth2client==4.1.3",
         "numpy==1.19.5",
+        "PyYAML>=5.4.1",
     ],
-    version="0.5.6",
+    version="0.6.0",
     license="GNU",
     description=(
         "A suite of classes and functions that attempt to "

@@ -1,3 +1,4 @@
+from .config import configure
 from .element import ZeroNumeric
 from .genius import GeniusAccessor
 from .metadata import GeniusMetadata
@@ -21,6 +22,7 @@ from .util import (
 
 
 __all__ = [
+    "configure",
     "element",
     "genius",
     "util",
