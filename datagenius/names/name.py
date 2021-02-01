@@ -4,7 +4,7 @@ from typing import Optional, List, Callable, Union, Dict, Any
 import re
 import pandas as pd
 
-from datagenius import config
+from datagenius.config import config
 
 NameOperation = Callable[[str, Optional[int]], str]
 

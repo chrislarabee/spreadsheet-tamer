@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from datagenius import config
+from datagenius.config import config
 from datagenius.names.name import Name
 
 

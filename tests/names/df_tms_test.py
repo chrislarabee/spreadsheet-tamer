@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 
 import datagenius.names.df_tms as tms
-from datagenius import config
+from datagenius.config import config
 
 
 class TestParseNameStringColumn:

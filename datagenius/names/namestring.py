@@ -1,7 +1,7 @@
 from typing import Optional
 import re
 
-from datagenius import config
+from datagenius.config import config
 from datagenius.names.name import Name
 
 

@@ -18,12 +18,12 @@ from .util import (
     broadcast_type,
     standardize_header,
 )
-from datagenius.gconfig import GConfig
+from datagenius.config import config
 import datagenius.names as names
 
-config = GConfig()
 
 __all__ = [
+    "config",
     "names",
     "element",
     "genius",
