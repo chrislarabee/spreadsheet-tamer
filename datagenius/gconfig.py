@@ -1,9 +1,11 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union, Tuple
+from typing import Dict, List, Any, Union, Tuple
 import string
 
 import yaml
+
+mod_path = Path(__file__).parent
 
 
 class Patterns:
@@ -99,7 +101,7 @@ class Patterns:
             Dict[str, List[str]]: A dictionary with keys matching Patterns'
                 properties and lists of strings to assign to those properties.
         """
-        p = Path("./datagenius/_config_files/patterns")
+        p = mod_path.joinpath("_config_files/patterns").resolve()
         pattern_files = os.listdir(p)
         results = dict()
         for f in pattern_files:
@@ -240,7 +242,7 @@ class GConfig:
             Dict[str, Any]: A dictionary containing keys matching GConfig
                 properties and values to assign to those properties.
         """
-        p = Path("./datagenius/_config_files/config.yml")
+        p = mod_path.joinpath("_config_files/config.yml").resolve()
         with open(p, "r") as r:
             results = yaml.load(r, Loader=yaml.Loader)
         return results
