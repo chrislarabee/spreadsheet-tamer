@@ -31,6 +31,6 @@ setup(
         "and cleaning data in any format and form."
     ),
     long_description=open("README.md").read(),
-    package_data=dict(datagenius=["_config_files"]),
+    package_data={"": ["datagenius/_config_files/*"]},
     include_package_data=True,
 )
