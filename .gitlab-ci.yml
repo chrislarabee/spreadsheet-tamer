@@ -12,7 +12,7 @@ run-pytest:
     - pytest
 
 # TODO: Would love to get this working eventually...
-# verify-latest-importable:
-#   stage: verify-import
-#   script:
-#     - pip install git+https://gitlab.com/mnhs/bipi/datagenius.git@latest#egg=data-genius 
+verify-latest-importable:
+  stage: verify-import
+  script:
+    - pip install git+https://gitlab.com/mnhs/bipi/datagenius.git@latest

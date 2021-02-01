@@ -5,7 +5,13 @@ setup(
     url="https://gitlab.com/mnhs/bipi/datagenius",
     author="Chris Larabee",
     author_email="chris.larabee9@gmail.com",
-    packages=["datagenius", "datagenius.io", "datagenius.lib", "datagenius.names"],
+    packages=[
+        "datagenius",
+        "datagenius.io",
+        "datagenius.lib",
+        "datagenius.names",
+        "datagenius._config_files",
+    ],
     install_requires=[
         "pandas>=1.0.4",
         "xlrd==1.2.0",
