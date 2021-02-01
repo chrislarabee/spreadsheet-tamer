@@ -7,7 +7,7 @@ from datagenius.gconfig import Patterns, GConfig
 
 class TestLoadPatterns:
     def test_that_it_can_load_patterns(self):
-        result = Patterns.load_patterns()
+        result = Patterns._load_patterns()
         assert isinstance(result, dict)
 
     def test_that_it_can_update_patterns(self):
@@ -48,22 +48,13 @@ class TestGconfigNameColumnLabels:
         return GConfig()
 
     def test_that_it_must_be_a_tuple(self, gconfig):
-        with pytest.raises(
-            ValueError,
-            match="Passed value type is <class 'list'>"
-        ):
+        with pytest.raises(ValueError, match="Passed value type is <class 'list'>"):
             gconfig.name_column_labels = ["a", "b", "c", "d", "e"]
 
     def test_that_it_must_be_length_5(self, gconfig):
-        with pytest.raises(
-            ValueError,
-            match = "must be a tuple of length 5"
-        ):
+        with pytest.raises(ValueError, match="must be a tuple of length 5"):
             gconfig.name_column_labels = ("a", "b", "c")
 
     def test_that_values_must_be_strings(self, gconfig):
-        with pytest.raises(
-            ValueError, 
-            match="1 is type <class 'int'>"
-        ):
+        with pytest.raises(ValueError, match="1 is type <class 'int'>"):
             gconfig.name_column_labels = ("a", "b", 1, "d", "e")

@@ -12,7 +12,7 @@ NameOperation = Callable[[str, Optional[int]], str]
 class Name:
     def __init__(
         self,
-        name: Union[str, List[Optional[str]]],
+        name: Union[str, List[str], List[Optional[str]]],
         operation_list: Optional[List[NameOperation]] = None,
     ) -> None:
         """
@@ -75,7 +75,7 @@ class Name:
             else:
                 break
 
-    def _intake(self, name: Union[str, List[Optional[str]]]):
+    def _intake(self, name: Union[str, List[str], List[Optional[str]]]):
         """
         Takes a passed name, which must either be a string or a list of strings,
         and assigns it to self.name_list after a small amount of pre-processing.
