@@ -10,7 +10,6 @@ setup(
         "datagenius.io",
         "datagenius.lib",
         "datagenius.names",
-        "datagenius._config_files",
     ],
     install_requires=[
         "pandas>=1.0.4",
@@ -32,4 +31,6 @@ setup(
         "and cleaning data in any format and form."
     ),
     long_description=open("README.md").read(),
+    package_data=dict(datagenius=["_config_files"]),
+    include_package_data=True,
 )
