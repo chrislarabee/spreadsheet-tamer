@@ -1,2 +1,2 @@
 include README.md
-include datagenius/_config_files
+include datagenius/_config_files/*.yml
