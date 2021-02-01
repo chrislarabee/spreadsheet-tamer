@@ -1,1 +1,2 @@
-recursive-include datagenius/_config_files/*.yml
+include datagenius/_config_files/*.yml
+include datagenius/_config_files/patterns/*.yml
