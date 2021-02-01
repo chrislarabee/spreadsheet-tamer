@@ -1,4 +1,6 @@
-from .config import configure
+from typing import Optional, Tuple
+from pathlib import Path
+
 from .element import ZeroNumeric
 from .genius import GeniusAccessor
 from .metadata import GeniusMetadata
@@ -20,9 +22,11 @@ from .util import (
     standardize_header,
 )
 
+from datagenius.gconfig import GConfig
+
+config = GConfig()
 
 __all__ = [
-    "configure",
     "element",
     "genius",
     "util",

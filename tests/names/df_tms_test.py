@@ -24,7 +24,7 @@ class TestParseNameStringColumn:
                 [None, "Ewan", None, "Hudson", None, True],
                 [None, "Finley", None, "Chambers", None, True],
                 [None, "Harley", "D.", "Patel", None, True],
-                ["Dr.", "Jaden", None, "Blackburn", None, True], 
+                ["Dr.", "Jaden", None, "Blackburn", None, True],
                 ["Mr.", "Alex", "J.", "White", "Iii", True],
             ],
             columns=[

@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-from datagenius.config import patterns
-from datagenius.names import Name
+from datagenius import config
+from datagenius.names.name import Name
 
 
 class Nametoken(Name):
@@ -53,7 +53,7 @@ class Nametoken(Name):
         ampersands = []
         string_list = s.split(" ")
         for i, s in enumerate(string_list):
-            if s.lower() in patterns.ampersands:
+            if s.lower() in config.patterns.ampersands:
                 amp_indices.append(i)
                 ampersands.append(s)
         if len(amp_indices) > 0:

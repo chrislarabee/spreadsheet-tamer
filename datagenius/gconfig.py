@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Union, Tuple
 import string
 
 import yaml
@@ -52,7 +52,7 @@ class Patterns:
 
     @classmethod
     def load_patterns(cls) -> Dict[str, List[str]]:
-        p = Path("datagenius/names/patterns")
+        p = Path("datagenius/_config_files/patterns")
         pattern_files = os.listdir(p)
         results = dict()
         for f in pattern_files:
@@ -92,3 +92,46 @@ class Patterns:
             prop = getattr(self, k, [])
             prop += v
             setattr(self, f"_{k}", prop)
+
+
+class GConfig:
+    def __init__(self) -> None:
+        self._patterns = Patterns()
+        raw = self._load_config()
+        self._name_columns = tuple(raw.get("name_columns", []))
+
+    @property
+    def patterns(self)-> Patterns:
+        return self._patterns
+
+    @property
+    def name_column_labels(self) -> Tuple[str, str, str, str, str]:
+        return self._name_columns
+
+    @name_column_labels.setter
+    def name_column_labels(self, value: Tuple[str, str, str, str, str]) -> None:
+        if len(value) != 5:
+            raise ValueError("name_column_labels must be a tuple of length 5.")
+        if isinstance(value, tuple):
+            for v in value:
+                if not isinstance(v, str):
+                    raise ValueError(
+                        f"All elements of name_column_labels must be strings. {v} is "
+                        f"type {type(v)}"
+                    )
+            self._name_columns = value
+        else:
+            raise ValueError(
+                f"name_column_labels must be a tuple. Passed value type is {type(value)}"
+            )
+
+    def add_custom_pattern_file(self, p: Union[str, Path]) -> None:
+        p = Path(p)
+        self._patterns.add_custom_pattern_file(p)
+
+    @classmethod
+    def _load_config(cls) -> Dict[str, Any]:
+        p = Path("datagenius/_config_files/config.yml")
+        with open(p, "r") as r:
+            results = yaml.load(r, Loader=yaml.Loader)
+        return results

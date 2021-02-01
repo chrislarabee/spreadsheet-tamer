@@ -1,4 +1,4 @@
-from datagenius.names import Nametoken
+from datagenius.names.nametoken import Nametoken
 
 
 def test_allocate():

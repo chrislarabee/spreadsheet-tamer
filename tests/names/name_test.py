@@ -1,8 +1,7 @@
 import re
 import numpy as np
-import pandas as pd
 
-from datagenius.names import Name
+from datagenius.names.name import Name
 
 
 class TestName:

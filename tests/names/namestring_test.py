@@ -1,4 +1,4 @@
-from datagenius.names import Namestring
+from datagenius.names.namestring import Namestring
 
 
 class TestAllocate:
@@ -8,7 +8,7 @@ class TestAllocate:
         assert n.fname == "William"
         assert n.mname == "Cyrus"
         assert n.lname == "Jehosephat"
-    
+
     def test_that_it_can_handle_two_names(self):
         n = Namestring("Bob Smith")
         n._allocate()
@@ -45,6 +45,7 @@ class TestAllocate:
         assert n.mname == "D."
         assert n.lname == "Parr"
 
+
 class TestAssignAffixes:
     def test_that_it_can_handle_single_prefix(self):
         n = Namestring("Mr. Bob Parr")
@@ -71,12 +72,13 @@ class TestAssignAffixes:
         assert n.prefix2 == "Mrs."
         assert n.name_list == ["Bob", "Parr"]
 
+
 class TestAssignMiddleInitials:
     def test_that_it_can_handle_single_middle_initial(self):
         n = Namestring("Frederick R Powell")
         assert n.mname == "R."
         assert n.name_list == ["Frederick", "Powell"]
-        
+
     def test_assign_middle_initials_multiple_initials(self):
         n = Namestring("Kay O. G. Williams")
         assert n.mname == "O.G."

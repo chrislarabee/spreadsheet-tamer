@@ -24,7 +24,6 @@ from numpy import nan
 
 import datagenius.element as e
 from datagenius.tms_registry import TMS
-from datagenius.names import Name
 
 
 _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])

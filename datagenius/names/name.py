@@ -4,7 +4,7 @@ from typing import Optional, List, Callable, Union, Dict, Any
 import re
 import pandas as pd
 
-from datagenius.config import patterns
+from datagenius import config
 
 NameOperation = Callable[[str, Optional[int]], str]
 
@@ -152,7 +152,7 @@ class Name:
     def cleanse_invalid_chars(s: str, index: Optional[int] = None) -> str:
         """
         Takes a string and removes all invalid characters (as specified by
-        datagenius Patterns configuration) from it.
+        datagenius patterns configuration) from it.
         -
         Args:
             s (str): The string to cleanse.
@@ -163,7 +163,7 @@ class Name:
         Returns:
             str: The cleansed string
         """
-        for char in patterns.invalid_chars:
+        for char in config.patterns.invalid_chars:
             s = s.replace(char, "")
         return s
 
@@ -171,7 +171,7 @@ class Name:
     def cleanse_invalid_word(s: str, index: Optional[int] = None) -> str:
         """
         Takes a string and, if it is one of the invalid words specified in
-            datagenius Patterns configuration, returns ''.
+            datagenius patterns configuration, returns ''.
         -
         Args:
             s (str): The string to cleanse.
@@ -185,7 +185,7 @@ class Name:
         string_list = s.split(" ")
         invalid = []
         for s in string_list:
-            if s.lower() in patterns.invalid_words:
+            if s.lower() in config.patterns.invalid_words:
                 invalid.append(s)
         for s in invalid:
             string_list.remove(s)
@@ -229,7 +229,7 @@ class Name:
             str: Camel-cased version of name.
         """
         # Check for and process camel-cased type names:
-        for particle in patterns.camelcase_particles:
+        for particle in config.patterns.camelcase_particles:
             m = re.search(particle + "[a-z]", s)
             if m is not None:
                 s = cls.format_camelcase(s, m.end() - 1)

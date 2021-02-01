@@ -1,8 +1,8 @@
 from typing import Optional
 import re
 
-from datagenius.config import patterns
-from datagenius.names import Name
+from datagenius import config
+from datagenius.names.name import Name
 
 
 class Namestring(Name):
@@ -57,7 +57,7 @@ class Namestring(Name):
     def assign_affix(self, s: str, index: Optional[int] = None) -> str:
         """
         Takes a passed string and checks it against prefixes and suffixes of
-        datagenius Patterns configuration. Places the first match it finds in
+        datagenius patterns configuration. Places the first match it finds in
         prefix/suffix and the second it finds in prefix2/suffix2.
         :return:
         -
@@ -70,7 +70,10 @@ class Namestring(Name):
         Returns:
             str: The string if no matches were found, '' otherwise.
         """
-        affixes = {"prefix": patterns.prefixes, "suffix": patterns.suffixes}
+        affixes = dict(
+            prefix=config.patterns.prefixes, 
+            suffix=config.patterns.suffixes
+        )
         output = s
         for key, match_against in affixes.items():
             matches = list(filter(re.compile(s.lower()).match, match_against))
@@ -94,7 +97,7 @@ class Namestring(Name):
         amp_indices = []
         ampersands = []
         for i, string in enumerate(self.name_list):
-            if string.lower() in patterns.ampersands:
+            if string.lower() in config.patterns.ampersands:
                 amp_indices.append(i)
                 ampersands.append(string)
         for i in amp_indices:
@@ -154,7 +157,7 @@ class Namestring(Name):
             if i < len(self.name_list) - 1:
                 name2 = self.name_list[i + 1]
                 combo = string + " " + name2
-                if combo.lower() in patterns.compound_fnames:
+                if combo.lower() in config.patterns.compound_fnames:
                     self.name_list[i] = combo
                     absorbed.append(name2)
         for string in absorbed:
@@ -170,13 +173,13 @@ class Namestring(Name):
         absorbed = []
         chain = []
         for i, string in enumerate(self.name_list):
-            if string.lower() in patterns.lname_particles and string not in absorbed:
+            if string.lower() in config.patterns.lname_particles and string not in absorbed:
                 if i < len(self.name_list) - 1:
                     for name2 in self.name_list[i + 1 :]:
                         if name2 not in absorbed:
                             chain.append(name2)
                             absorbed.append(name2)
-                            if name2.lower() not in patterns.lname_particles:
+                            if name2.lower() not in config.patterns.lname_particles:
                                 break
                     self.name_list[i] += " " + " ".join(chain)
 
