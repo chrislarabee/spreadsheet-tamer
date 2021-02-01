@@ -1,2 +1,1 @@
-include README.md
-include datagenius/_config_files/*.yml
+recursive-include datagenius/_config_files/*.yml
