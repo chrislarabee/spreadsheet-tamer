@@ -23,7 +23,7 @@ setup(
         "numpy==1.19.5",
         "PyYAML>=5.4.1",
     ],
-    version="0.6.3",
+    version="0.6.4",
     license="GNU",
     description=(
         "A suite of classes and functions that attempt to "
