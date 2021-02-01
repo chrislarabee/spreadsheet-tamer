@@ -11,7 +11,8 @@ run-pytest:
     - pip install -r requirements.txt
     - pytest
 
-verify-latest-importable:
-  stage: verify-import
-  script:
-    - pip install git+https://gitlab.com/mnhs/bipi/datagenius.git@latest#egg=data-genius 
+# TODO: Would love to get this working eventually...
+# verify-latest-importable:
+#   stage: verify-import
+#   script:
+#     - pip install git+https://gitlab.com/mnhs/bipi/datagenius.git@latest#egg=data-genius 
