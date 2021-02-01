@@ -130,6 +130,15 @@ class TestManageMultiFname:
         n = Namestring("mary ann and jo ann williamson")
         assert n.name_list == ["Mary Ann", "Jo Ann", "Williamson"]
 
+    def test_that_it_can_handle_spelling_variations(self):
+        n = Namestring("mary kaye ashley")
+        assert n.name_list == ["Mary Kaye", "Ashley"]
+        n = Namestring("mary kay ashley")
+        assert n.name_list == ["Mary Kay", "Ashley"]
+        n = Namestring("mary lu ashley")
+        assert n.name_list == ["Mary Lu", "Ashley"]
+        n = Namestring("mary lou ashley")
+        assert n.name_list == ["Mary Lou", "Ashley"]
 
 class TestManageMultiLname:
     def test_that_it_can_handle_two_part_multi_lnames(self):

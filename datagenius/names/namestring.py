@@ -154,9 +154,11 @@ class Namestring(Name):
             if i < len(self.name_list) - 1:
                 name2 = self.name_list[i + 1]
                 combo = string + " " + name2
-                if combo.lower() in config.patterns.compound_fnames:
-                    self.name_list[i] = combo
-                    absorbed.append(name2)
+                for match_against in config.patterns.compound_fnames:
+                    match =  re.match(re.compile(match_against), combo.lower())
+                    if match:
+                        self.name_list[i] = combo
+                        absorbed.append(name2)
         for string in absorbed:
             self.name_list.remove(string)
 

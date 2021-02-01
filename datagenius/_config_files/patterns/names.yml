@@ -2,14 +2,19 @@ compound_fnames:
   - mary ann
   - jo ann
   - mary beth
-  - mary lou
+  - mary lo?u
   - mary jane
-  - mary lu
   - lee ann
   - mary jo
+  - lo?u ann
+  - mary kay
+  - mary ellen
+  - mary alice
 
 lname_particles:
   - van
+  - der
+  - den
   - del
   - de 
   - las 
