@@ -99,7 +99,7 @@ class Patterns:
             Dict[str, List[str]]: A dictionary with keys matching Patterns'
                 properties and lists of strings to assign to those properties.
         """
-        p = Path("datagenius/_config_files/patterns")
+        p = Path("./datagenius/_config_files/patterns")
         pattern_files = os.listdir(p)
         results = dict()
         for f in pattern_files:
@@ -240,7 +240,7 @@ class GConfig:
             Dict[str, Any]: A dictionary containing keys matching GConfig
                 properties and values to assign to those properties.
         """
-        p = Path("datagenius/_config_files/config.yml")
+        p = Path("./datagenius/_config_files/config.yml")
         with open(p, "r") as r:
             results = yaml.load(r, Loader=yaml.Loader)
         return results
