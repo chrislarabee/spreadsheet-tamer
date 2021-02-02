@@ -148,3 +148,40 @@ class TestManageMultiLname:
     def test_that_it_can_handle_three_part_multi_lnames(self):
         n = Namestring("maria de las casas")
         assert n.name_list == ["Maria", "De Las Casas"]
+
+
+class TestExtractAltName:
+    def test_that_it_can_handle_single_set_of_parens(self):
+        s = "reginald (reggie) watts"
+        n, a1, a2 = Namestring.extract_alt_name(s)
+        assert n == "reginald watts"
+        assert a1 == "reggie"
+        assert not a2
+        n = Namestring(s)
+        assert n.name_list == ["Reginald", "Watts"]
+        assert n.alt_name == "Reggie"
+
+    def test_that_it_can_handle_two_sets_of_parens(self):
+        s = "robert (rob) ryan and cassandra (cassie) maddox"
+        n, a1, a2 = Namestring.extract_alt_name(s)
+        assert n == "robert ryan and cassandra maddox"
+        assert a1 == "rob"
+        assert a2 == "cassie"
+        n = Namestring(s)
+        assert n.name_list == ["Robert", "Ryan", "Cassandra", "Maddox"]
+        assert n.alt_name == "Rob"
+        assert n.alt_name2 == "Cassie"
+
+    def test_that_it_can_handle_many_sets_of_parens(self):
+        n, a1, a2 = Namestring.extract_alt_name(
+            "why (are) there (so) many (parens) in (this) name"
+        )
+        assert n == "why there many in name"
+        assert a1 == "are"
+        assert a2 == "so"
+
+    def test_that_it_can_handle_weird_spacing(self):
+        n, a1, a2 = Namestring.extract_alt_name("why  (    would   )you do this")
+        assert n == "why you do this"
+        assert a1 == "would"
+        assert not a2

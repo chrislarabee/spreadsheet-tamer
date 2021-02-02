@@ -130,7 +130,7 @@ class Patterns:
             List[str]: A list of invalid characters.
         """
         invalid_chars = [p for p in string.punctuation]
-        for x in ("&", "'", "-", "."):
+        for x in "&'-.":
             invalid_chars.remove(x)
         return invalid_chars
 

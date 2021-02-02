@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 import re
 
 from datagenius.config import config
@@ -17,7 +17,12 @@ class Namestring(Name):
         operation_list = [self.assign_middle_initials, self.assign_affix]
         self.chain = []
         self.mid_init_clusters = 1
+        name_string, alt_name1, alt_name2 = self.extract_alt_name(name_string)
         super(Namestring, self).__init__(name_string, operation_list)
+        if alt_name1 and not self.alt_name:
+            self.alt_name = self.manage_cases(alt_name1)
+        if alt_name2 and not self.alt_name2:
+            self.alt_name2 = self.manage_cases(alt_name2)
         self.name_list1 = None
         self.name_list2 = None
         if self.valid:
@@ -184,6 +189,43 @@ class Namestring(Name):
                             if name2.lower() not in config.patterns.lname_particles:
                                 break
                     self.name_list[i] += " " + " ".join(chain)
-
         for string in absorbed:
             self.name_list.remove(string)
+
+    @staticmethod
+    def extract_alt_name(s: str) -> Tuple[str, Optional[str], Optional[str]]:
+        """
+        Pulls names in parentheses () out of the passed string.
+
+        Args:
+            s (str): A string that may or may not have parentheses in it.
+
+        Returns:
+            Tuple[str, Optional[str], Optional[str]]: The string, with parentheses
+                removed, and up to two additional strings containing the first 
+                two names in parentheses found by the method.
+        """
+        paren_s = r" *\(.+\) *"
+        match = re.search(paren_s, s)
+        alt_name1 = None
+        alt_name2 = None
+        while match:
+            match_start = match.start()
+            substr = s[match_start:]
+            close_paren = re.match(r".*?\) *", substr).end()
+            match_end = close_paren + match_start
+            alt_name = s[match_start:match_end]
+            alt_name = re.sub(r"[\(\)]", "", alt_name).strip()
+            if alt_name1 is None:
+                alt_name1 = alt_name
+            elif alt_name2 is None:
+                alt_name2 = alt_name
+            s = f"{s[:match.start()].strip()} {s[match_end:].strip()}"
+            match = re.search(paren_s, s)
+        return s, alt_name1, alt_name2
+
+
+            
+
+
+

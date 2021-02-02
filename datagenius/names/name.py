@@ -43,6 +43,7 @@ class Name:
         self.mname = None
         self.lname = None
         self.suffix = None
+        self.alt_name = None
         # Name 2 info:
         self.name2 = None
         self.prefix2 = None
@@ -50,6 +51,7 @@ class Name:
         self.mname2 = None
         self.lname2 = None
         self.suffix2 = None
+        self.alt_name2 = None
         # Meta attributes:
         self.valid = True
         # Process name:
@@ -215,7 +217,7 @@ class Name:
         return prefix + remainder
 
     @classmethod
-    def manage_cases(cls, s: str, index: Optional[int]) -> str:
+    def manage_cases(cls, s: str, index: Optional[int] = None) -> str:
         """
         Makes sure each the passed string is properly capitalized.
         -
