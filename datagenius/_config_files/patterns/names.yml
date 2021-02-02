@@ -15,12 +15,13 @@ compound_fnames:
 
 lname_particles:
   - v[ao]n$
+  - ver$
   - de[rnl]$
   - de$ 
   - l[ao]s$
   - vau$
   - zie$
-  - st$
+  - st\.?$
   - o$
 
 invalid_words:
