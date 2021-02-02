@@ -140,14 +140,36 @@ class TestManageMultiFname:
         n = Namestring("mary lou ashley")
         assert n.name_list == ["Mary Lou", "Ashley"]
 
+
 class TestManageMultiLname:
     def test_that_it_can_handle_two_part_multi_lnames(self):
-        n = Namestring("bethany van houten")
-        assert n.name_list == ["Bethany", "Van Houten"]
+        n = Namestring.manage_multi_lname(["bethany", "van", "houten"])
+        assert n == ["bethany", "van houten"]
 
     def test_that_it_can_handle_three_part_multi_lnames(self):
-        n = Namestring("maria de las casas")
-        assert n.name_list == ["Maria", "De Las Casas"]
+        n = Namestring.manage_multi_lname(["maria", "de", "las", "casas"])
+        assert n == ["maria", "de las casas"]
+        n = Namestring.manage_multi_lname(["bethany", "van", "der", "maar"])
+        assert n == ["bethany", "van der maar"]
+
+    def test_that_it_can_handle_multi_part_lnames_and_ampersands(self):
+        n = Namestring("maria de las casas and miguel de las casas")
+        assert n.name_list == [
+            "Maria",
+            "De",
+            "Las",
+            "Casas",
+            "Miguel",
+            "De",
+            "Las",
+            "Casas",
+        ]
+        assert n.name_list1 == ["Maria", "De Las Casas"]
+        assert n.name_list2 == ["Miguel", "De Las Casas"]
+
+    def test_that_it_does_not_group_multi_part_lnames_with_ampersands(self):
+        n = Namestring("bethany vandermeer and george vandermeer")
+        assert n.name_list == ["Bethany", "Vandermeer", "George", "Vandermeer"]
 
 
 class TestExtractAltName:

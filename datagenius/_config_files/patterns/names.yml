@@ -10,19 +10,18 @@ compound_fnames:
   - mary kay
   - mary ellen
   - mary alice
+  - mary kate
+  - anne? marie
 
 lname_particles:
-  - van
-  - der
-  - den
-  - del
-  - de 
-  - las 
-  - vau
-  - zie
-  - st
-  - o 
-  - los
+  - v[ao]n$
+  - de[rnl]$
+  - de$ 
+  - l[ao]s$
+  - vau$
+  - zie$
+  - st$
+  - o$
 
 invalid_words:
   - the

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import re
 
 from datagenius.config import config
@@ -26,9 +26,12 @@ class Namestring(Name):
         self.name_list1 = None
         self.name_list2 = None
         if self.valid:
-            self.manage_multi_fname()
-            self.manage_multi_lname()
             self.assign_ampersand_split()
+            self.manage_multi_fname()
+            if self.name_list1:
+                self.name_list1 = self.manage_multi_lname(self.name_list1)
+            if self.name_list2:
+                self.name_list2 = self.manage_multi_lname(self.name_list2)
 
     def _allocate(self) -> None:
         """
@@ -160,37 +163,39 @@ class Namestring(Name):
                 name2 = self.name_list[i + 1]
                 combo = string + " " + name2
                 for match_against in config.patterns.compound_fnames:
-                    match =  re.match(re.compile(match_against), combo.lower())
+                    match = re.match(re.compile(match_against), combo.lower())
                     if match:
                         self.name_list[i] = combo
                         absorbed.append(name2)
         for string in absorbed:
             self.name_list.remove(string)
 
-    def manage_multi_lname(self) -> None:
+    @staticmethod
+    def manage_multi_lname(name_list: List[str]) -> List[str]:
         """
         Takes a Name object and checks it for common last name "particles" such
         as in "Van Houten". If found, it overwrites the name_list at the
         appropriate locations. Cannot be called as part of _do_operations because
         more than one token in the name_list is needed for it to run.
         """
-        absorbed = []
         chain = []
-        for i, string in enumerate(self.name_list):
-            if (
-                string.lower() in config.patterns.lname_particles
-                and string not in absorbed
-            ):
-                if i < len(self.name_list) - 1:
-                    for name2 in self.name_list[i + 1 :]:
-                        if name2 not in absorbed:
-                            chain.append(name2)
-                            absorbed.append(name2)
-                            if name2.lower() not in config.patterns.lname_particles:
-                                break
-                    self.name_list[i] += " " + " ".join(chain)
-        for string in absorbed:
-            self.name_list.remove(string)
+        lname_start = None
+        for i, string in enumerate(name_list):
+            # Check the string against each lname_particle regex and add it to
+            # the chain on match. If a chain has been started and a non-match is
+            # found, assume that this string is the final part of the last name
+            # chain.
+            for match_against in config.patterns.lname_particles:
+                match = re.match(re.compile(match_against), string.lower())
+                if match or lname_start:
+                    lname_start = i if not lname_start else lname_start
+                    chain.append(string)
+                    break
+        for c in chain:
+            name_list.remove(c)
+        if lname_start:
+            name_list.insert(lname_start, " ".join(chain))
+        return name_list
 
     @staticmethod
     def extract_alt_name(s: str) -> Tuple[str, Optional[str], Optional[str]]:
@@ -202,7 +207,7 @@ class Namestring(Name):
 
         Returns:
             Tuple[str, Optional[str], Optional[str]]: The string, with parentheses
-                removed, and up to two additional strings containing the first 
+                removed, and up to two additional strings containing the first
                 two names in parentheses found by the method.
         """
         paren_s = r" *\(.+\) *"
@@ -223,9 +228,3 @@ class Namestring(Name):
             s = f"{s[:match.start()].strip()} {s[match_end:].strip()}"
             match = re.search(paren_s, s)
         return s, alt_name1, alt_name2
-
-
-            
-
-
-
