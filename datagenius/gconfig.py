@@ -170,9 +170,10 @@ class Patterns:
         Updates Patterns' properties using the passed pattern kwargs.
         """
         for k, v in pattern_lists.items():
-            prop = getattr(self, k, [])
-            prop += v
-            setattr(self, f"_{k}", prop)
+            prop = getattr(self, k, None)
+            if prop:
+                prop += v
+                setattr(self, f"_{k}", list(set(prop)))
 
 
 class GConfig:

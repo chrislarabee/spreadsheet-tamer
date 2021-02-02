@@ -167,10 +167,7 @@ class Namestring(Name):
                         self.name_list[i] = combo
                         absorbed.append(name2)
         for string in absorbed:
-            try:
-                self.name_list.remove(string)
-            except ValueError:
-                raise ValueError(f"{string} is not in name_list.")
+            self.name_list.remove(string)
 
     @staticmethod
     def manage_multi_lname(name_list: List[str]) -> List[str]:

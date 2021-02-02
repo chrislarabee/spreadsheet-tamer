@@ -12,9 +12,10 @@ class TestLoadPatterns:
 
     def test_that_it_can_update_patterns(self):
         p = Patterns()
-        p._compound_fnames = []
-        p._update_patterns(compound_fnames=["this", "is", "a", "test"])
-        assert p.compound_fnames == ["this", "is", "a", "test"]
+        p._compound_fnames = ["test"]
+        new = ["this", "is", "a", "test"]
+        p._update_patterns(compound_fnames=new)
+        assert set(p.compound_fnames).difference(set(new)) == set()
 
     def test_get_invalid_chars(self):
         result = Patterns._get_invalid_chars()
