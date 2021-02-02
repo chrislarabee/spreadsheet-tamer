@@ -88,7 +88,6 @@ class Namestring(Name):
                 elif getattr(self, key + "2") is None:
                     setattr(self, key + "2", s)
                 output = ""
-
         return output
 
     def assign_ampersand_split(self) -> None:
@@ -168,7 +167,10 @@ class Namestring(Name):
                         self.name_list[i] = combo
                         absorbed.append(name2)
         for string in absorbed:
-            self.name_list.remove(string)
+            try:
+                self.name_list.remove(string)
+            except ValueError:
+                raise ValueError(f"{string} is not in name_list.")
 
     @staticmethod
     def manage_multi_lname(name_list: List[str]) -> List[str]:
