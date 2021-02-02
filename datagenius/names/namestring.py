@@ -30,6 +30,8 @@ class Namestring(Name):
             self.manage_multi_fname()
             if self.name_list1:
                 self.name_list1 = self.manage_multi_lname(self.name_list1)
+            else:
+                self.name_list = self.manage_multi_lname(self.name_list)
             if self.name_list2:
                 self.name_list2 = self.manage_multi_lname(self.name_list2)
 

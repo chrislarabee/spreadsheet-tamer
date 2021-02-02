@@ -146,6 +146,10 @@ class TestManageMultiLname:
         n = Namestring.manage_multi_lname(["bethany", "van", "houten"])
         assert n == ["bethany", "van houten"]
 
+    def test_that_it_works_as_part_of_namestring_iniit(self):
+        n = Namestring("sarah van den akker")
+        assert n.name_list == ["Sarah", "Van Den Akker"]
+
     def test_that_it_can_handle_three_part_multi_lnames(self):
         n = Namestring.manage_multi_lname(["maria", "de", "las", "casas"])
         assert n == ["maria", "de las casas"]
