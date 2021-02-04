@@ -161,7 +161,7 @@ class ZeroNumeric:
             followed by new_val.
 
         """
-        if new_val is 0:
+        if new_val == 0:
             return 0
         else:
             return ZeroNumeric(self._zeros + str(new_val))
