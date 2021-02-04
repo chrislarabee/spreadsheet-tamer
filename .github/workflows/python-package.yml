@@ -5,7 +5,7 @@ name: Python package
 
 on:
   push:
-    tags: [ stable ]
+    branches: [ stable ]
 
 jobs:
   build:
