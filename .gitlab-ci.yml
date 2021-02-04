@@ -10,6 +10,8 @@ run-pytest:
   script: 
     - pip install -r requirements.txt
     - pytest
+  only:
+    - tags
 
 # TODO: Would love to get this working eventually...
 # verify-latest-importable:
