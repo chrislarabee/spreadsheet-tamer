@@ -1,0 +1,25 @@
+ampersands:
+  - '&'
+  - and
+  - or
+
+camelcase_particles:
+  - mc
+  - o'
+
+prefixes:
+  - mr.
+  - ms.
+  - mrs.
+  - miss
+  - dr.
+  - rev.
+  - prof.
+
+suffixes:
+  - jr.
+  - sr.
+  - phd.
+  - md.
+  - ii
+  - iii

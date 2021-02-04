@@ -11,12 +11,13 @@ class ODBConnector:
     """
     Serves as an input/output connector for a local SQLite database.
     """
+
     type_map = {
-        'O': str,
-        'object': str,
-        'string': str,
-        'float64': float,
-        'int64': int,
+        "O": str,
+        "object": str,
+        "string": str,
+        "float64": float,
+        "int64": int,
     }
 
     @property
@@ -77,11 +78,7 @@ class ODBConnector:
         else:
             return False
 
-    def insert(
-            self,
-            table: str,
-            df: pd.DataFrame,
-            schema=None) -> None:
+    def insert(self, table: str, df: pd.DataFrame, schema=None) -> None:
         """
         Takes the records in a DataFrame and inserts them into
         the connected db.
@@ -105,7 +102,7 @@ class ODBConnector:
         with self.engine.connect() as conn:
             conn.execute(
                 self._tables[table].insert(),
-                df.to_dict('records', into=col.OrderedDict)
+                df.to_dict("records", into=col.OrderedDict),
             )
 
     def purge(self) -> bool:
@@ -118,12 +115,10 @@ class ODBConnector:
         """
         if os.path.exists(self._db_path):
             os.remove(self._db_path)
-            print(f'Pre-existing db at {self._db_path} found and '
-                  f'purged.')
+            print(f"Pre-existing db at {self._db_path} found and " f"purged.")
             return True
         else:
-            print(f'No db found at {self._db_path}, purge '
-                  f'skipped.')
+            print(f"No db found at {self._db_path}, purge " f"skipped.")
             return False
 
     def select(self, table: str) -> list:
@@ -139,8 +134,7 @@ class ODBConnector:
         """
         with self.engine.connect() as conn:
             results = []
-            for r in conn.execute(sa.select(
-                    [self._tables[table]])).fetchall():
+            for r in conn.execute(sa.select([self._tables[table]])).fetchall():
                 d = col.OrderedDict()
                 for i, k in enumerate(self._schemas[table].keys()):
                     d[k] = u.translate_null(r[i])
@@ -162,8 +156,7 @@ class ODBConnector:
         self._db_path = db_path
         if purge:
             self.purge()
-        self.engine = sa.create_engine(
-            f'sqlite:///' + self._db_path, echo=False)
+        self.engine = sa.create_engine(f"sqlite:///" + self._db_path, echo=False)
         # Check if the database already exists, and load its schema
         # into the ODBConnector object:
         self._metadata.reflect(bind=self.engine)
@@ -231,11 +224,7 @@ def from_sqlite(dir_path: str, table: str, **options) -> pd.DataFrame:
         passed table.
 
     """
-    conn = quick_conn_setup(
-        dir_path,
-        options.get('db_name'),
-        options.get('db_conn')
-    )
+    conn = quick_conn_setup(dir_path, options.get("db_name"), options.get("db_conn"))
     return pd.DataFrame(conn.select(table))
 
 
@@ -251,7 +240,7 @@ def convert_pandas_type(pd_dtype) -> object:
 
     """
     if str(pd_dtype) not in ODBConnector.type_map.keys():
-        pd_dtype = 'O'
+        pd_dtype = "O"
     return ODBConnector.type_map[str(pd_dtype)]
 
 
@@ -267,9 +256,7 @@ def gen_schema(df: pd.DataFrame) -> dict:
         the passed DataFrame.
 
     """
-    return {
-        k: convert_pandas_type(v) for k, v in df.dtypes.to_dict().items()
-    }
+    return {k: convert_pandas_type(v) for k, v in df.dtypes.to_dict().items()}
 
 
 def quick_conn_setup(dir_path, db_name=None, db_conn=None):
@@ -287,18 +274,19 @@ def quick_conn_setup(dir_path, db_name=None, db_conn=None):
     Returns:
 
     """
-    db_name = 'datasets' if not db_name else db_name
+    db_name = "datasets" if not db_name else db_name
     db_conn = ODBConnector() if not db_conn else db_conn
-    db_conn.setup(os.path.join(dir_path, db_name + '.db'))
+    db_conn.setup(os.path.join(dir_path, db_name + ".db"))
     return db_conn
 
 
 def write_sqlite(
-        odbc: ODBConnector,
-        table_name: str,
-        df: pd.DataFrame,
-        schema: dict = None,
-        drop_first: bool = True) -> None:
+    odbc: ODBConnector,
+    table_name: str,
+    df: pd.DataFrame,
+    schema: dict = None,
+    drop_first: bool = True,
+) -> None:
     """
     Simple function to write data to a sqlite db connected via an
     ODBConnector.

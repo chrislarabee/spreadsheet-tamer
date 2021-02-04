@@ -3,7 +3,21 @@ import inspect
 import re
 import string
 from collections import OrderedDict
-from typing import Callable, Sequence, Mapping, Collection, Iterable
+from typing import (
+    Callable,
+    MutableSequence,
+    Sequence,
+    MutableMapping,
+    Collection,
+    Iterable,
+    Dict,
+    List,
+    Optional,
+    Any,
+    Union,
+    Tuple,
+    TypeVar,
+)
 
 import pandas as pd
 from numpy import nan
@@ -12,7 +26,12 @@ import datagenius.element as e
 from datagenius.tms_registry import TMS
 
 
-def transmutation(func=None, *, stage: str = None, priority: int = 10):
+_TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
+
+
+def transmutation(
+    func: Optional[Any] = None, *, stage: str = None, priority: int = 10
+) -> Union[Any, _TFunc]:
     """
     Custom functions written for use by genius pipeline stages can be
     decorated as transmutations in order to better organize information
@@ -31,7 +50,7 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
     Returns: The passed function once decorated.
 
     """
-    stage = '_no_stage' if stage is None else stage
+    stage = "_no_stage" if stage is None else stage
 
     # Allows transmutation functions to have special attributes:
     def decorator_transmutation(_func):
@@ -47,7 +66,7 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
 
         # Attributes of transmutation functions expected by other
         # objects:
-        wrapper_transmutation.stage = (re.sub(r' +', '_', stage).lower())
+        wrapper_transmutation.stage = re.sub(r" +", "_", stage).lower()
         wrapper_transmutation.priority = priority
 
         # Registers the transmutation in the tms_registry.
@@ -63,7 +82,9 @@ def transmutation(func=None, *, stage: str = None, priority: int = 10):
         return decorator_transmutation(func)
 
 
-def nullable(func: Callable = None, *, nan_return=nan):
+def nullable(
+    func: Optional[Any] = None, *, nan_return: Optional[Any] = nan
+) -> Union[Any, _TFunc]:
     """
     An easy way to wrap functions that need to not execute if they are
     used in a DataFrame/Series.apply call on data that contains nan
@@ -101,8 +122,11 @@ def nullable(func: Callable = None, *, nan_return=nan):
         return decorator_nullable(func)
 
 
-def align_args(func: Callable, kwargs: dict,
-               suppress: (list, str) = None) -> dict:
+def align_args(
+    func: Callable,
+    kwargs: Dict[str, Any],
+    suppress: Optional[Union[str, List[str]]] = None,
+) -> Dict[str, Any]:
     """
     Plucks only kwargs used by the passed function from the passed
     kwargs dict. Can also suppress any number of kwargs that do match,
@@ -119,13 +143,12 @@ def align_args(func: Callable, kwargs: dict,
         that func can accept.
 
     """
-    func_args = getattr(func, 'args', None)
+    func_args = getattr(func, "args", None)
     if func_args is None:
         func_args = inspect.getfullargspec(func).args
     # TODO: Make this auto-suppress args that are passed as None.
     if suppress:
-        suppress = (
-            [suppress] if not isinstance(suppress, list) else suppress)
+        suppress = [suppress] if not isinstance(suppress, list) else suppress
         for s in suppress:
             if s in func_args:
                 func_args.remove(s)
@@ -133,8 +156,8 @@ def align_args(func: Callable, kwargs: dict,
 
 
 def broadcast_suffix(
-        x: (list, tuple, pd.Series, pd.Index),
-        suffix: str) -> list:
+    x: Union[List[str], Tuple[str, ...], pd.Series, pd.Index], suffix: str
+) -> List[str]:
     """
     Appends the passed suffix to every value in the passed list.
 
@@ -148,7 +171,7 @@ def broadcast_suffix(
     return [i + suffix for i in list(x)]
 
 
-def broadcast_type(x: (list, tuple, pd.Series), type_func: Callable):
+def broadcast_type(x: Union[List[Any], pd.Series], type_func: Callable):
     """
     Applies the passed type conversion function to each element in the
     passed list. Note that if you pass isnumeric plus broadcast_type
@@ -156,7 +179,7 @@ def broadcast_type(x: (list, tuple, pd.Series), type_func: Callable):
     to determine what type to convert numeric strings to.
 
     Args:
-        x: A list or Sequence.
+        x: Object to broadcast types over.
         type_func: A callable function to convert objects in the list.
 
     Returns: The list or Sequence with each element replaced by the
@@ -164,15 +187,15 @@ def broadcast_type(x: (list, tuple, pd.Series), type_func: Callable):
 
     """
     for i, val in enumerate(x):
-        if type_func == isnumericplus:
-            b, t = isnumericplus(val, '-v')
+        if type_func.__name__ == "isnumericplus":
+            _, t = isnumericplus(val, "-v")
         else:
             t = type_func
         x[i] = t(val)
     return x
 
 
-def clean_whitespace(x) -> list:
+def clean_whitespace(x: Any) -> Tuple[bool, Any]:
     """
     When passed a string, removes leading and trailing whitespace from
     it and also replaces any chains of more than one space with a
@@ -188,12 +211,12 @@ def clean_whitespace(x) -> list:
     cleaned = False
     clean_x = x
     if isinstance(clean_x, str):
-        clean_x = re.sub(r' +', ' ', x.strip())
+        clean_x = re.sub(r" +", " ", x.strip())
         cleaned = True if clean_x != x else False
-    return [cleaned, clean_x]
+    return cleaned, clean_x
 
 
-def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
+def collect_by_keys(x: Union[Dict, OrderedDict], *keys) -> Union[Dict, OrderedDict]:
     """
     A simple function to collect an arbitrary and not-necessarily
     ordered subset of a dictionary.
@@ -213,7 +236,7 @@ def collect_by_keys(x: (dict, OrderedDict), *keys) -> (dict, OrderedDict):
     return result
 
 
-def count_true_str(x: (list, pd.Series)) -> int:
+def count_true_str(x: Union[list, pd.Series]) -> int:
     """
     Takes a list or pandas Series and returns the number of values in
     it that are strings that are not ''.
@@ -224,9 +247,7 @@ def count_true_str(x: (list, pd.Series)) -> int:
     Returns: An integer, the count of non-blank strings.
 
     """
-    return sum(
-        [1 if isinstance(y, str) and y != '' else 0 for y in x]
-    )
+    return sum([1 if isinstance(y, str) and y != "" else 0 for y in x])
 
 
 def enforce_uniques(x: list) -> list:
@@ -244,14 +265,14 @@ def enforce_uniques(x: list) -> list:
     values = dict()
     for i, val in enumerate(x):
         if val in values.keys():
-            x[i] = str(val) + '_' + str(values[val])
+            x[i] = str(val) + "_" + str(values[val])
             values[val] += 1
         else:
             values[val] = 1
     return x
 
 
-def gen_alpha_keys(num: int) -> list:
+def gen_alpha_keys(num: int) -> List[str]:
     """
     Generates a set of characters from the Latin alphabet a la excel
     headers.
@@ -267,7 +288,7 @@ def gen_alpha_keys(num: int) -> list:
     result = list()
     x = num // 26
     for i in range(x + 1):
-        root = a[i - 1] if i > 0 else ''
+        root = a[i - 1] if i > 0 else ""
         keys = [root + a[j] for j in range(26)]
         for k in keys:
             result.append(k) if len(result) < num else None
@@ -292,7 +313,7 @@ def gen_empty_md_df(columns: Sequence, default_val=0) -> pd.DataFrame:
     return pd.DataFrame([[default_val for _ in columns]], columns=columns)
 
 
-@nullable(nan_return='nan')
+@nullable(nan_return="nan")
 def get_class_name(obj) -> str:
     """
     Gets the name of the passed object's class, even if it doesn't
@@ -309,7 +330,7 @@ def get_class_name(obj) -> str:
 
 
 @nullable
-def gconvert(obj, target_type):
+def gconvert(obj: Any, target_type: Callable):
     """
     Smart type conversion that avoids errors when converting to numeric
     from non-standard strings.
@@ -321,18 +342,16 @@ def gconvert(obj, target_type):
     Returns:
 
     """
-    if (isinstance(obj, str)
-            and target_type == float
-            and isnumericplus(obj)):
-        pts = re.search(r'\.+', obj)
+    if isinstance(obj, str) and target_type == float and isnumericplus(obj):
+        pts = re.search(r"\.+", obj)
         point_ct = len(pts.group()) if pts else 0
         if point_ct > 1:
-            obj = re.sub(r'\.+', '.', obj)
+            obj = re.sub(r"\.+", ".", obj)
     return target_type(obj)
 
 
 @nullable
-def gtype(obj):
+def gtype(obj: Any):
     """
     Wrapper for type that distinguishes nan values as nan and not
     float.
@@ -377,7 +396,7 @@ def gwithin(within: Sequence, *values) -> bool:
     return result
 
 
-def isnumericplus(x, *options) -> (bool, tuple):
+def isnumericplus(x, *options) -> Union[bool, Tuple[bool, Any]]:
     """
     A better version of the str.isnumeric test that correctly
     identifies floats stored as strings as numeric.
@@ -396,12 +415,12 @@ def isnumericplus(x, *options) -> (bool, tuple):
     if isinstance(x, (int, float)):
         numeric = True
     elif isinstance(x, str):
-        v = int if re.search(r'^-*\d+$', x) else v
-        v = e.ZeroNumeric if x[0] == '0' and x not in ('0', '0.00') else v
-        v = float if re.search(r'^-*\d+\.+\d*$', x) else v
+        v = int if re.search(r"^-*\d+$", x) else v
+        v = e.ZeroNumeric if x[0] == "0" and x not in ("0", "0.00") else v
+        v = float if re.search(r"^-*\d+\.+\d*$", x) else v
         numeric = True if v in (int, float, e.ZeroNumeric) else False
     result = [numeric]
-    if '-v' in options:
+    if "-v" in options:
         result.append(v)
     return tuple(result) if len(result) > 1 else result[0]
 
@@ -418,10 +437,7 @@ def package_rejects_metadata(df: pd.DataFrame):
         counts of values in df.
 
     """
-    return dict(
-        rejects=df,
-        metadata=pd.DataFrame(df.count()).T
-    )
+    return dict(rejects=df, metadata=pd.DataFrame(df.count()).T)
 
 
 def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
@@ -434,10 +450,10 @@ def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     Returns: A DataFrame without entirely nan rows.
 
     """
-    return df.dropna(how='all').reset_index(drop=True)
+    return df.dropna(how="all").reset_index(drop=True)
 
 
-def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
+def standardize_header(header: Iterable) -> Tuple[List[str], List[str]]:
     """
     Takes a list-like object and ensures every element in it is
     compliant as a sqlite column name.
@@ -451,16 +467,17 @@ def standardize_header(header: (pd.Index, list, tuple)) -> tuple:
     """
     result = []
     for h in header:
-        p = string.punctuation.replace('_', '')
+        p = string.punctuation.replace("_", "")
         h = str(h)
-        h = re.sub(re.compile(r'[' + p + ']'), '', h)
-        result.append(re.sub(' +', '_', h.strip()).lower())
+        h = re.sub(re.compile(r"[" + p + "]"), "", h)
+        result.append(re.sub(" +", "_", h.strip()).lower())
     if len(set(result)) < len(result):
         result = enforce_uniques(result)
     return result, list(header)
 
 
-def translate_null(obj, to: (nan, None) = nan):
+def translate_null(obj: Any, to=nan):
+    # TODO: Create a datagenius null class.
     """
     Checks if a passed object is a NoneType object or a numpy nan and
     then converts it to the passed
@@ -474,14 +491,14 @@ def translate_null(obj, to: (nan, None) = nan):
 
     """
     if not pd.isna(to) and to is not None:
-        raise ValueError(f'to must be numpy nan or None. to={to}')
+        raise ValueError(f"to must be numpy nan or None. to={to}")
     if pd.isna(obj) or obj is None:
         return to
     else:
         return obj
 
 
-def tuplify(value, do_none: bool = False) -> (tuple, None):
+def tuplify(value, do_none: bool = False) -> Optional[tuple]:
     """
     Simple function that puts the passed object value into a tuple, if
     it is not already.
@@ -505,18 +522,18 @@ def tuplify(value, do_none: bool = False) -> (tuple, None):
 
 
 def tuplify_iterable(
-        value: (Sequence, Mapping),
-        do_none: bool = False) -> (Sequence, Mapping):
+    value: Union[MutableSequence[Any], MutableMapping[Any, Any]], do_none: bool = False
+) -> Union[MutableSequence[tuple], MutableMapping[str, tuple]]:
     """
-    Convenience method to apply tuplify function to the values of an
-    iterable sequence.
+    Convenience method to apply tuplify function to the values of a mutable
+    mapping or sequence.
 
     Args:
-        value: An iterable Sequence.
-        do_none: A boolean, indicates whether None values contained
-            in the Sequence should be tuplified.
+        value: The mutable mapping or sequence to iterate over.
+        do_none: A boolean, indicates whether None values contained in the S
+            mapping/sequence should be tuplified.
 
-    Returns: The Sequence, with values rendered into tuples.
+    Returns: The passed sequence or mapping, with elements rendered into tuples.
 
     """
     if isinstance(value, (dict, OrderedDict)):
@@ -530,8 +547,8 @@ def tuplify_iterable(
 
 def validate_attr(obj, attr: str, match=None) -> bool:
     """
-    Takes an object and checks its attributes. Useful in situations 
-    where you want to check an object's attributes without first 
+    Takes an object and checks its attributes. Useful in situations
+    where you want to check an object's attributes without first
     checking if it has those attributes.
 
     Args:
@@ -554,14 +571,17 @@ def validate_attr(obj, attr: str, match=None) -> bool:
 
 
 def gsheet_range_formula(
-        df: pd.DataFrame,
-        f_range: (str, int, tuple) = None,
-        f_func: str = 'sum',
-        axis: int = 0,
-        label_range: tuple = None,
-        new_label: (str, int) = None,
-        col_order=None,
-        header_buffer: int = 1) -> pd.DataFrame:
+    df: pd.DataFrame,
+    f_range: Optional[
+        Union[str, int, Tuple[Union[str, int], Union[str, int, None]]]
+    ] = None,
+    f_func: str = "sum",
+    axis: int = 0,
+    label_range: tuple = None,
+    new_label: Optional[Union[str, int]] = None,
+    col_order=None,
+    header_buffer: int = 1,
+) -> pd.DataFrame:
     """
     Adds a row or column to a DataFrame, containing strings that will be
     parsed by Google Sheets as formula functions. Formulas must be range
@@ -610,16 +630,16 @@ def gsheet_range_formula(
         r1, r2 = label_range if label_range else (0, len(df) - 1)
         fr = tuplify(f_range)
         c1, c2 = (mtrx[fr[0]], mtrx[fr[-1]])
-        new_col = [
-            f'={f_func.upper()}({c1}{i + r}:{c2}{i + r})'
-            for i in df.index
-        ][r1:r2 + 1]
+        new_col = [f"={f_func.upper()}({c1}{i + r}:{c2}{i + r})" for i in df.index][
+            r1 : r2 + 1
+        ]
         df.loc[r1:r2, new_label] = new_col
     else:
         if new_label not in (None, 0, -1):
             raise ValueError(
-                f'Can only add formula row to beginning (new_label=0) '
-                f'or end (new_label=-1) of df. Passed value = {new_label}')
+                f"Can only add formula row to beginning (new_label=0) "
+                f"or end (new_label=-1) of df. Passed value = {new_label}"
+            )
         if new_label == 0:
             row_idx = -1
             r += 1
@@ -628,22 +648,19 @@ def gsheet_range_formula(
         f_range = f_range if f_range else (0, df.index[-1])
         fr = tuplify(f_range)
         r1, r2 = fr[0], fr[-1]
-        r2 = '' if r2 in (None, '', -1) else r2 + r
+        r2 = "" if r2 in (None, "", -1) else r2 + r
         if not label_range:
             label_range = (col_order[0], col_order[-1])
         c1, c2 = label_range
-        form_cols = col_order[col_order.index(c1):col_order.index(c2) + 1]
+        form_cols = col_order[col_order.index(c1) : col_order.index(c2) + 1]
         new_row = [
-            f'={f_func.upper()}({mtrx[c]}{r1 + r}:{mtrx[c]}{r2})'
-            if c in form_cols else nan for c in df.columns
+            f"={f_func.upper()}({mtrx[c]}{r1 + r}:{mtrx[c]}{r2})"
+            if c in form_cols
+            else nan
+            for c in df.columns
         ]
         df.loc[row_idx, :] = new_row
         if new_label == 0:
             df.index = df.index + 1
             df.sort_index(inplace=True)
     return df
-
-
-
-
-

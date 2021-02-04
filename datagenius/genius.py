@@ -11,12 +11,13 @@ from datagenius.io import odbc, text
 from datagenius.tms_registry import TMS
 
 
-@pd.api.extensions.register_dataframe_accessor('genius')
+@pd.api.extensions.register_dataframe_accessor("genius")
 class GeniusAccessor:
     """
     A custom pandas DataFrame accessor that adds a number of additional
     methods and properties that extend the DataFrame's functionality.
     """
+
     def __init__(self, df: pd.DataFrame):
         """
 
@@ -26,10 +27,11 @@ class GeniusAccessor:
         self.df = df
 
     def preprocess(
-            self,
-            header_func: Callable = lib.preprocess.detect_header,
-            metadata: md.GeniusMetadata = None,
-            **options) -> tuple:
+        self,
+        header_func: Callable = lib.preprocess.detect_header,
+        metadata: md.GeniusMetadata = None,
+        **options,
+    ) -> tuple:
         """
         A convenient way to run functions from lib.preprocess on
         self.df.
@@ -44,15 +46,14 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        pp_tms = [
-            *TMS['preprocess']
-        ]
-        if (u.gwithin(self.df.columns, r'[Uu]nnamed:*[ _]\d')
-                or isinstance(self.df.columns, pd.RangeIndex)):
+        pp_tms = [*TMS["preprocess"]]
+        if u.gwithin(self.df.columns, r"[Uu]nnamed:*[ _]\d") or isinstance(
+            self.df.columns, pd.RangeIndex
+        ):
             pp_tms.insert(0, lib.preprocess.purge_pre_header)
             pp_tms.insert(0, header_func)
         return self.transmute(*pp_tms, metadata=metadata, **options)
-    
+
     def explore(self, metadata: md.GeniusMetadata = None) -> tuple:
         """
         A convenient way to run functions from lib.explore on self.df.
@@ -64,12 +65,9 @@ class GeniusAccessor:
             results.
 
         """
-        return self.transmute(*TMS['explore'], metadata=metadata)
+        return self.transmute(*TMS["explore"], metadata=metadata)
 
-    def clean(
-            self,
-            metadata: md.GeniusMetadata = None,
-            **options) -> tuple:
+    def clean(self, metadata: md.GeniusMetadata = None, **options) -> tuple:
         """
         A convenient way to run functions from lib.clean on self.df.
 
@@ -82,13 +80,10 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        cl_tms = self._align_tms_with_options(TMS['clean'], options)
+        cl_tms = self._align_tms_with_options(TMS["clean"], options)
         return self.transmute(*cl_tms, metadata=metadata, **options)
 
-    def reformat(
-            self,
-            metadata: md.GeniusMetadata = None,
-            **options) -> tuple:
+    def reformat(self, metadata: md.GeniusMetadata = None, **options) -> tuple:
         """
         A convenient way to run functions from lib.reformat on
         self.df.
@@ -102,13 +97,10 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        rf_tms = self._align_tms_with_options(TMS['reformat'], options)
+        rf_tms = self._align_tms_with_options(TMS["reformat"], options)
         return self.transmute(*rf_tms, metadata=metadata, **options)
 
-    def standardize(
-            self,
-            metadata: md.GeniusMetadata = None,
-            **options) -> tuple:
+    def standardize(self, metadata: md.GeniusMetadata = None, **options) -> tuple:
         """
         A convenient way to run standardize functions from lib.clean on
         self.df.
@@ -122,7 +114,7 @@ class GeniusAccessor:
             metadata dictionary describing the changes made.
 
         """
-        st_tms = self._align_tms_with_options(TMS['standardize'], options)
+        st_tms = self._align_tms_with_options(TMS["standardize"], options)
         return self.transmute(*st_tms, metadata=metadata, **options)
 
     @staticmethod
@@ -141,15 +133,13 @@ class GeniusAccessor:
         """
         result = []
         for tm in tms:
-            if None not in u.align_args(tm, options, 'df').values():
+            if None not in u.align_args(tm, options, "df").values():
                 result.append(tm)
         return result
 
     def transmute(
-            self,
-            *transmutations,
-            metadata: md.GeniusMetadata = None,
-            **options) -> tuple:
+        self, *transmutations, metadata: md.GeniusMetadata = None, **options
+    ) -> tuple:
         """
         Executes the passed transmutation list on self.df with the
         passed options and using the passed metadata.
@@ -170,12 +160,13 @@ class GeniusAccessor:
         return self.df, metadata
 
     def supplement(
-            self,
-            *other,
-            on: (str, list, tuple),
-            select_cols: (str, tuple) = None,
-            suffixes: (str, tuple) = None,
-            split_results: bool = False) -> (pd.DataFrame, tuple):
+        self,
+        *other,
+        on: (str, list, tuple),
+        select_cols: (str, tuple) = None,
+        suffixes: (str, tuple) = None,
+        split_results: bool = False,
+    ) -> (pd.DataFrame, tuple):
         """
 
         Args:
@@ -209,7 +200,8 @@ class GeniusAccessor:
         frames = [self.df, *other]
         ons = lib.supplement.prep_ons(on)
         chunks, remainder = lib.supplement.chunk_dframes(
-            lib.supplement.build_plan(ons), *frames)
+            lib.supplement.build_plan(ons), *frames
+        )
         suffixes = lib.supplement.prep_suffixes(suffixes, len(other))
         select_cols = u.tuplify(select_cols)
         results = []
@@ -221,18 +213,21 @@ class GeniusAccessor:
                 rsuffix = suffixes[i]
                 if not other.empty:
                     o_cols = set(other.columns)
-                    other['merged_on'] = ','.join(sg.on)
+                    other["merged_on"] = ",".join(sg.on)
                     other = (
-                        other[{
-                            *sg.on,
-                            *o_cols.intersection(set(select_cols)),
-                            'merged_on'
-                        }] if select_cols else other
+                        other[
+                            {
+                                *sg.on,
+                                *o_cols.intersection(set(select_cols)),
+                                "merged_on",
+                            }
+                        ]
+                        if select_cols
+                        else other
                     )
                     if sg.inexact:
                         p_frame = lib.supplement.do_inexact(
-                            p_frame, other, sg.on,
-                            sg.thresholds, sg.block, rsuffix
+                            p_frame, other, sg.on, sg.thresholds, sg.block, rsuffix
                         )
                     else:
                         p_frame = lib.supplement.do_exact(
@@ -240,8 +235,8 @@ class GeniusAccessor:
                         )
             results.append(p_frame)
         result_df = pd.concat(results)
-        unmatched = result_df[result_df['merged_on'].isna()]
-        matched = result_df[~result_df['merged_on'].isna()]
+        unmatched = result_df[result_df["merged_on"].isna()]
+        matched = result_df[~result_df["merged_on"].isna()]
         unmatched = pd.concat([unmatched[p_cols], remainder])
         if split_results:
             return matched, unmatched
@@ -249,10 +244,8 @@ class GeniusAccessor:
             return pd.concat([matched, unmatched])
 
     def apply_strf(
-            self,
-            *columns,
-            strf: Callable = None,
-            **col_strf_map) -> pd.DataFrame:
+        self, *columns, strf: Callable = None, **col_strf_map
+    ) -> pd.DataFrame:
         """
         Applies passed string function(s) to indicated columns. Skips
         nan values and non-string values.
@@ -276,15 +269,10 @@ class GeniusAccessor:
             col_strf_map = {c: strf for c in self.df.columns}
         col_strf_map = {**col_strf_map, **{c: strf for c in columns}}
         for c, f in col_strf_map.items():
-            self.df[c] = self.df[c].apply(
-                lambda x: f(x) if isinstance(x, str) else x
-            )
+            self.df[c] = self.df[c].apply(lambda x: f(x) if isinstance(x, str) else x)
         return self.df
 
-    def multiapply(
-            self, func: Callable,
-            *columns,
-            **kwargs) -> pd.DataFrame:
+    def multiapply(self, func: Callable, *columns, **kwargs) -> pd.DataFrame:
         """
         Convenience method for running the same function on one or more
         columns of the DataFrame with the same arguments. Avoids having
@@ -332,20 +320,15 @@ class GeniusAccessor:
 
         """
         if len(columns) < 2:
-            raise ValueError('Must supply at least 2 columns.')
+            raise ValueError("Must supply at least 2 columns.")
         for i, c in enumerate(columns[:-1]):
-            for c2 in columns[i + 1:]:
+            for c2 in columns[i + 1 :]:
                 self.df[c].fillna(self.df[c2], inplace=True)
-                self.df[c2] = np.where(
-                    self.df[c] == self.df[c2], np.nan, self.df[c2])
+                self.df[c2] = np.where(self.df[c] == self.df[c2], np.nan, self.df[c2])
         return self.df
 
     @classmethod
-    def from_file(
-            cls,
-            file_path: str,
-            incl_header: bool = False,
-            **kwargs):
+    def from_file(cls, file_path: str, incl_header: bool = False, **kwargs):
         """
         Uses read_file to read in the passed file path.
 
@@ -366,27 +349,26 @@ class GeniusAccessor:
 
         """
         read_funcs = {
-            '.xls': pd.read_excel,
-            '.xlsx': pd.read_excel,
-            '.csv': pd.read_csv,
-            '.json': pd.read_json,
-            '.sheet': text.from_gsheet,
+            ".xls": pd.read_excel,
+            ".xlsx": pd.read_excel,
+            ".csv": pd.read_csv,
+            ".json": pd.read_json,
+            ".sheet": text.from_gsheet,
             # file_paths with no extension are presumed to be dir_paths
-            '': odbc.from_sqlite
+            "": odbc.from_sqlite,
         }
         _, ext = os.path.splitext(file_path)
         # Expectation is that no column for these exts will have data
         # types that are safe for pandas to interpret.
-        if ext in ('.xls', '.xlsx', '.csv'):
-            kwargs['dtype'] = object
+        if ext in (".xls", ".xlsx", ".csv"):
+            kwargs["dtype"] = object
         if ext not in read_funcs.keys():
             raise ValueError(
-                f'read_file error: file extension must be one of '
-                f'{read_funcs.keys()}')
-        else:
-            df = u.purge_gap_rows(
-                pd.DataFrame(read_funcs[ext](file_path, **kwargs))
+                f"read_file error: file extension must be one of "
+                f"{read_funcs.keys()}"
             )
+        else:
+            df = u.purge_gap_rows(pd.DataFrame(read_funcs[ext](file_path, **kwargs)))
             df.columns, o_header = u.standardize_header(df.columns)
             if incl_header:
                 return df, o_header
@@ -419,17 +401,17 @@ class GeniusAccessor:
             shape (columns are included as a row).
 
         """
-        m = options.get('metadata')
+        m = options.get("metadata")
         cols = m.output_header if m is not None else None
         return text.write_gsheet(
             sheet_name,
             self.df,
-            sheet_title=options.get('sheet_title'),
-            s_api=options.get('s_api'),
+            sheet_title=options.get("sheet_title"),
+            s_api=options.get("s_api"),
             columns=cols,
-            parent_folder=options.get('parent_folder'),
-            drive_id=options.get('drive_id'),
-            append=options.get('append', False)
+            parent_folder=options.get("parent_folder"),
+            drive_id=options.get("drive_id"),
+            append=options.get("append", False),
         )
 
     def to_sqlite(self, dir_path: str, table: str, **options):
@@ -455,20 +437,16 @@ class GeniusAccessor:
         Returns: None
 
         """
-        drop = options.get('drop_first', True)
+        drop = options.get("drop_first", True)
         conn = odbc.quick_conn_setup(
-            dir_path,
-            options.get('db_name'),
-            options.get('db_conn')
+            dir_path, options.get("db_name"), options.get("db_conn")
         )
         odbc.write_sqlite(conn, table, self.df, drop_first=drop)
-        m = options.get('metadata')
+        m = options.get("metadata")
         if m is not None:
-            odbc.write_sqlite(
-                conn, f'{table}_metadata', m.collected, drop_first=drop)
+            odbc.write_sqlite(conn, f"{table}_metadata", m.collected, drop_first=drop)
             if m.reject_ct > 0:
-                odbc.write_sqlite(
-                    conn, f'{table}_rejects', m.rejects, drop_first=drop)
+                odbc.write_sqlite(conn, f"{table}_rejects", m.rejects, drop_first=drop)
 
     @staticmethod
     def _order_transmutations(tms: (list, tuple)):

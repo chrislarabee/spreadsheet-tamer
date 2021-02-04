@@ -15,6 +15,7 @@ class CleaningGuide(abc.Mapping, abc.Callable):
     and, if found in the key values, the alternative mapped value will
     be returned.
     """
+
     def __init__(self, *complex_maps, **simple_maps):
         """
 
@@ -48,9 +49,11 @@ class CleaningGuide(abc.Mapping, abc.Callable):
         elif isinstance(incoming, dict):
             return CleaningGuide(**incoming)
         else:
-            raise ValueError(f'Must pass a dict or CleaningGuide object. '
-                             f'Invalid object={incoming}, '
-                             f'type={type(incoming)}')
+            raise ValueError(
+                f"Must pass a dict or CleaningGuide object. "
+                f"Invalid object={incoming}, "
+                f"type={type(incoming)}"
+            )
 
     def __call__(self, check):
         """
@@ -84,13 +87,15 @@ class SupplementGuide(abc.MutableSequence):
     A simple object used by supplement functions below to control what
     rules they use for creating and merging chunks of DataFrames.
     """
+
     def __init__(
-            self,
-            *on,
-            conditions: dict = None,
-            thresholds: (float, tuple) = None,
-            block: (str, tuple) = None,
-            inexact: bool = False):
+        self,
+        *on,
+        conditions: dict = None,
+        thresholds: (float, tuple) = None,
+        block: (str, tuple) = None,
+        inexact: bool = False,
+    ):
         """
 
         Args:
@@ -123,11 +128,12 @@ class SupplementGuide(abc.MutableSequence):
         self.inexact: bool = inexact
         if self.inexact:
             if self.thresholds is None:
-                self.thresholds = tuple([.9 for _ in range(len(self.on))])
+                self.thresholds = tuple([0.9 for _ in range(len(self.on))])
             elif len(self.thresholds) != len(self.on):
                 raise ValueError(
-                    f'If provided, thresholds length must match on '
-                    f'length: thresholds={self.thresholds}, on={self.on}')
+                    f"If provided, thresholds length must match on "
+                    f"length: thresholds={self.thresholds}, on={self.on}"
+                )
         self.chunks: list = []
 
     def insert(self, index: int, x):
@@ -170,11 +176,8 @@ class RedistributionGuide(abc.Callable):
     Used by lib.clean.redistribute to guide its redistribution of some
     values in one column to a different column.
     """
-    def __init__(
-            self,
-            *patterns,
-            destination: str,
-            mode: str = 'fillna'):
+
+    def __init__(self, *patterns, destination: str, mode: str = "fillna"):
         """
 
         Args:
@@ -192,13 +195,12 @@ class RedistributionGuide(abc.Callable):
         """
         self.patterns: tuple = patterns
         self.destination: str = destination
-        valid_modes = ('overwrite', 'append', 'fillna')
+        valid_modes = ("overwrite", "append", "fillna")
         if mode in valid_modes:
             self.mode: str = mode
         else:
             raise ValueError(
-                f'Parameter mode must be one of {valid_modes}, passed '
-                f'mode = {mode}'
+                f"Parameter mode must be one of {valid_modes}, passed " f"mode = {mode}"
             )
 
     def __call__(self, check):

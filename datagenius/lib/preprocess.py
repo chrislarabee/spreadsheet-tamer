@@ -5,7 +5,7 @@ import pandas as pd
 import datagenius.util as u
 
 
-@u.transmutation(stage='h_preprocess', priority=99)
+@u.transmutation(stage="h_preprocess", priority=99)
 def purge_pre_header(df: pd.DataFrame, header_idx: int = None):
     """
     Removes any rows that appear before the header row in a DataFrame
@@ -25,22 +25,17 @@ def purge_pre_header(df: pd.DataFrame, header_idx: int = None):
         metadata = dict()
         if header_idx > 0:
             rejects = df.iloc[:header_idx]
-            metadata['rejects'] = rejects
-            metadata['metadata'] = pd.DataFrame(rejects.count()).T
-        df.drop(
-            index=[i for i in range(header_idx)],
-            inplace=True
-        )
+            metadata["rejects"] = rejects
+            metadata["metadata"] = pd.DataFrame(rejects.count()).T
+        df.drop(index=[i for i in range(header_idx)], inplace=True)
         df.reset_index(drop=True, inplace=True)
         return df, metadata
     else:
         return df
 
 
-@u.transmutation(stage='h_preprocess', priority=100)
-def detect_header(
-        df: pd.DataFrame,
-        manual_header: Optional[Sequence] = None) -> tuple:
+@u.transmutation(stage="h_preprocess", priority=100)
+def detect_header(df: pd.DataFrame, manual_header: Optional[Sequence] = None) -> tuple:
     """
     Takes a pandas DataFrame and sets its column names to be the
     values of the first row containing all true strings and removes
@@ -63,22 +58,17 @@ def detect_header(
         header_idx = None
         df.columns, o_header = u.standardize_header(manual_header)
     else:
-        true_str_series = df.apply(
-            lambda x: u.count_true_str(x) == len(x), axis=1
-        )
-        first_idx = next(
-            (i for i, v in true_str_series.items() if v), None)
+        true_str_series = df.apply(lambda x: u.count_true_str(x) == len(x), axis=1)
+        first_idx = next((i for i, v in true_str_series.items() if v), None)
         if first_idx is not None:
-            df.columns, o_header = u.standardize_header(
-                df.iloc[first_idx])
+            df.columns, o_header = u.standardize_header(df.iloc[first_idx])
             header_idx = first_idx
             df = df.drop(index=first_idx).reset_index(drop=True)
-            return df, {'new_kwargs': dict(header_idx=header_idx)}
-    return df, {'new_kwargs': dict(header_idx=header_idx),
-                'orig_header': o_header}
+            return df, {"new_kwargs": dict(header_idx=header_idx)}
+    return df, {"new_kwargs": dict(header_idx=header_idx), "orig_header": o_header}
 
 
-@u.transmutation(stage='preprocess')
+@u.transmutation(stage="preprocess")
 def normalize_whitespace(df: pd.DataFrame) -> tuple:
     """
     Simple function that applies util.clean_whitespace to every cell
@@ -98,4 +88,4 @@ def normalize_whitespace(df: pd.DataFrame) -> tuple:
         result = pd.DataFrame(result.to_list(), index=df.index)
         df[c] = result[1]
         md_df[c] = result[0].sum()
-    return df, {'metadata': md_df}
+    return df, {"metadata": md_df}

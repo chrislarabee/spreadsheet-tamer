@@ -17,6 +17,7 @@ class SheetsAPI:
     Uses locally stored credentials to connect to Google Drive and
     Google Sheets.
     """
+
     @property
     def drive(self):
         return self._drive
@@ -32,8 +33,8 @@ class SheetsAPI:
 
         """
         return {
-            'folder': 'application/vnd.google-apps.folder',
-            'sheet': 'application/vnd.google-apps.spreadsheet',
+            "folder": "application/vnd.google-apps.folder",
+            "sheet": "application/vnd.google-apps.spreadsheet",
         }
 
     @property
@@ -44,11 +45,7 @@ class SheetsAPI:
         self._drive = self._connect_drive()
         self._sheets = self._connect_sheets()
 
-    def create_object(
-            self,
-            obj_name: str,
-            obj_type: str,
-            parent_id: str = None):
+    def create_object(self, obj_name: str, obj_type: str, parent_id: str = None):
         """
         Creates a file or folder via the Google Drive connection.
 
@@ -65,16 +62,14 @@ class SheetsAPI:
         """
         kwargs = dict(parents=[parent_id]) if parent_id else dict()
         file_metadata = dict(
-            name=obj_name,
-            mimeType=self.google_obj_types[obj_type],
-            **kwargs
+            name=obj_name, mimeType=self.google_obj_types[obj_type], **kwargs
         )
-        file = self.drive.files().create(
-            body=file_metadata,
-            fields='id',
-            supportsAllDrives=True
-        ).execute()
-        return file.get('id')
+        file = (
+            self.drive.files()
+            .create(body=file_metadata, fields="id", supportsAllDrives=True)
+            .execute()
+        )
+        return file.get("id")
 
     def delete_object(self, object_id: str) -> None:
         """
@@ -87,16 +82,11 @@ class SheetsAPI:
         Returns: None
 
         """
-        self.drive.files().delete(
-            fileId=object_id,
-            supportsAllDrives=True
-        ).execute()
+        self.drive.files().delete(fileId=object_id, supportsAllDrives=True).execute()
 
     def find_object(
-            self,
-            obj_name: str,
-            obj_type: str = None,
-            drive_id: str = None) -> list:
+        self, obj_name: str, obj_type: str = None, drive_id: str = None
+    ) -> list:
         """
         Searches for a Google Drive Object in the attached Google Drive
         by name.
@@ -118,31 +108,37 @@ class SheetsAPI:
         page_token = None
         results = []
         while True:
-            response = self.drive.files().list(
-                q=query,
-                spaces='drive',
-                fields='nextPageToken, files(id, name, parents)',
-                pageToken=page_token,
-                **kwargs
-            ).execute()
-            for file in response.get('files', []):
-                results.append(dict(
-                    name=file.get('name'),
-                    id=file.get('id'),
-                    parents=file.get('parents')
+            response = (
+                self.drive.files()
+                .list(
+                    q=query,
+                    spaces="drive",
+                    fields="nextPageToken, files(id, name, parents)",
+                    pageToken=page_token,
+                    **kwargs,
+                )
+                .execute()
+            )
+            for file in response.get("files", []):
+                results.append(
+                    dict(
+                        name=file.get("name"),
+                        id=file.get("id"),
+                        parents=file.get("parents"),
                     )
                 )
-            page_token = response.get('nextPageToken', None)
+            page_token = response.get("nextPageToken", None)
             if page_token is None:
                 break
         return results
 
     def create_find(
-            self,
-            obj_name: str,
-            obj_type: str,
-            parent_folder: str = None,
-            drive_id: str = None) -> Tuple[str, bool]:
+        self,
+        obj_name: str,
+        obj_type: str,
+        parent_folder: str = None,
+        drive_id: str = None,
+    ) -> Tuple[str, bool]:
         """
         Convenience method for checking if an object exists and creating
         it if it does not.
@@ -163,34 +159,25 @@ class SheetsAPI:
         """
         p_folder_id = None
         if parent_folder:
-            search_res = self.find_object(
-                parent_folder,
-                'folder',
-                drive_id
-            )
+            search_res = self.find_object(parent_folder, "folder", drive_id)
             if len(search_res) == 1:
-                p_folder_id = search_res[0].get('id')
+                p_folder_id = search_res[0].get("id")
             else:
                 warnings.warn(
-                    f'Cannot find single exact match for {parent_folder}. '
-                    f'Saving {obj_name} to root Drive.'
+                    f"Cannot find single exact match for {parent_folder}. "
+                    f"Saving {obj_name} to root Drive."
                 )
-        search_res = self.find_object(
-            obj_name,
-            obj_type,
-            drive_id
-        )
+        search_res = self.find_object(obj_name, obj_type, drive_id)
         new_obj = False
         if len(search_res) > 1:
             for result in search_res:
-                if result.get('parents')[0] == p_folder_id:
-                    file_id = result.get('id')
+                if result.get("parents")[0] == p_folder_id:
+                    file_id = result.get("id")
                     break
             else:
-                raise ValueError(
-                    f'Cannot find {obj_name} in {parent_folder}')
+                raise ValueError(f"Cannot find {obj_name} in {parent_folder}")
         elif len(search_res) == 1:
-            file_id = search_res[0].get('id')
+            file_id = search_res[0].get("id")
         else:
             new_obj = True
             file_id = self.create_object(obj_name, obj_type, p_folder_id)
@@ -209,18 +196,18 @@ class SheetsAPI:
         Returns: The title and index position of the new sheet.
 
         """
-        result = self.sheets.spreadsheets().batchUpdate(
-            spreadsheetId=sheet_id,
-            body={'requests': [{
-                'addSheet': {
-                    'properties': sheet_properties
-                }
-            }]}
-        ).execute()
-        r = result.get('replies')
+        result = (
+            self.sheets.spreadsheets()
+            .batchUpdate(
+                spreadsheetId=sheet_id,
+                body={"requests": [{"addSheet": {"properties": sheet_properties}}]},
+            )
+            .execute()
+        )
+        r = result.get("replies")
         if r:
-            r = r[0]['addSheet']['properties']
-            return r.get('title'), r.get('index')
+            r = r[0]["addSheet"]["properties"]
+            return r.get("title"), r.get("index")
         else:
             return None
 
@@ -235,18 +222,22 @@ class SheetsAPI:
             sheet in the Google Sheet.
 
         """
-        return self.sheets.spreadsheets().get(
-            spreadsheetId=sheet_id,
-            fields=(
-                'sheets(data/rowData/values/userEnteredValue,'
-                'properties(index,sheetId,title))')
-        ).execute().get('sheets', [])
+        return (
+            self.sheets.spreadsheets()
+            .get(
+                spreadsheetId=sheet_id,
+                fields=(
+                    "sheets(data/rowData/values/userEnteredValue,"
+                    "properties(index,sheetId,title))"
+                ),
+            )
+            .execute()
+            .get("sheets", [])
+        )
 
     def check_sheet_titles(
-            self,
-            sheet_title: str,
-            sheet_id: str = None,
-            sheets: list = None) -> (int, None):
+        self, sheet_title: str, sheet_id: str = None, sheets: list = None
+    ) -> (int, None):
         """
         Checks the sheets of the Google Sheet at the passed sheet_id,
         or just the passed sheets, for a sheet with a title matching
@@ -264,19 +255,17 @@ class SheetsAPI:
 
         """
         if sheets is None and sheet_id is None:
-            raise ValueError(
-                'Must pass sheet_id or sheets to check_sheet_titles.')
+            raise ValueError("Must pass sheet_id or sheets to check_sheet_titles.")
         sheets = self.get_sheets(sheet_id) if not sheets else sheets
         idx = None
         for s in sheets:
-            if s['properties']['title'] == sheet_title:
-                idx = s['properties']['index']
+            if s["properties"]["title"] == sheet_title:
+                idx = s["properties"]["index"]
         return idx
 
     def get_sheet_metadata(
-            self,
-            sheet_id: str,
-            sheet_title: str = None) -> (dict, None):
+        self, sheet_id: str, sheet_title: str = None
+    ) -> (dict, None):
         """
         Retrieves metadata about the first sheet in the Google Sheet
         corresponding to the passed sheet_id.
@@ -299,27 +288,24 @@ class SheetsAPI:
         if s_idx is not None:
             sheet = raw[s_idx]
             # Newly created Google Sheets have no rowData.
-            row_data = sheet['data'][0].get('rowData')
+            row_data = sheet["data"][0].get("rowData")
             if row_data:
                 last_row_idx = len(row_data)
-                last_col_idx = max([len(e['values']) for e in row_data if e])
+                last_col_idx = max([len(e["values"]) for e in row_data if e])
             else:
                 last_row_idx = 0
                 last_col_idx = 0
             return dict(
-                id=sheet['properties']['sheetId'],
+                id=sheet["properties"]["sheetId"],
                 index=s_idx,
-                title=sheet['properties']['title'],
+                title=sheet["properties"]["title"],
                 row_limit=last_row_idx,
                 col_limit=last_col_idx,
             )
 
     def write_values(
-            self,
-            file_id: str,
-            data: list,
-            sheet_title: str = '',
-            start_cell: str = 'A1') -> tuple:
+        self, file_id: str, data: list, sheet_title: str = "", start_cell: str = "A1"
+    ) -> tuple:
         """
         Writes the passed data to the passed Google Sheet.
 
@@ -336,19 +322,24 @@ class SheetsAPI:
 
         """
         if sheet_title is not None:
-            r = sheet_title + '!'
+            r = sheet_title + "!"
             s = self.check_sheet_titles(sheet_title, sheet_id=file_id)
             if s is None:
                 self.add_sheet(file_id, title=sheet_title)
         else:
-            r = ''
-        result = self.sheets.spreadsheets().values().update(
-            spreadsheetId=file_id,
-            range=r + start_cell,
-            valueInputOption='USER_ENTERED',
-            body=dict(values=data)
-        ).execute()
-        return result.get('updatedRows'), result.get('updatedColumns')
+            r = ""
+        result = (
+            self.sheets.spreadsheets()
+            .values()
+            .update(
+                spreadsheetId=file_id,
+                range=r + start_cell,
+                valueInputOption="USER_ENTERED",
+                body=dict(values=data),
+            )
+            .execute()
+        )
+        return result.get("updatedRows"), result.get("updatedColumns")
 
     def get_sheet_values(self, file_id: str, sheet_title: str = None):
         """
@@ -364,14 +355,19 @@ class SheetsAPI:
 
         """
         sheet_md = self.get_sheet_metadata(file_id, sheet_title)
-        r = sheet_title + '!' if sheet_title else ''
-        last_col_alpha = u.gen_alpha_keys(sheet_md['col_limit'])
-        col_letter = last_col_alpha[sheet_md['col_limit'] - 1]
-        result = self.sheets.spreadsheets().values().get(
-            spreadsheetId=file_id,
-            range=f"{r}A1:{col_letter}{sheet_md['row_limit']}"
-        ).execute()
-        return result.get('values', [])
+        r = sheet_title + "!" if sheet_title else ""
+        last_col_alpha = u.gen_alpha_keys(sheet_md["col_limit"])
+        col_letter = last_col_alpha[sheet_md["col_limit"] - 1]
+        result = (
+            self.sheets.spreadsheets()
+            .values()
+            .get(
+                spreadsheetId=file_id,
+                range=f"{r}A1:{col_letter}{sheet_md['row_limit']}",
+            )
+            .execute()
+        )
+        return result.get("values", [])
 
     def batch_update(self, file_id: str, requests: list):
         """
@@ -383,10 +379,11 @@ class SheetsAPI:
         Returns: The results of the batchUpdate.
 
         """
-        return self._sheets.spreadsheets().batchUpdate(
-            spreadsheetId=file_id,
-            body=dict(requests=requests)
-        ).execute()
+        return (
+            self._sheets.spreadsheets()
+            .batchUpdate(spreadsheetId=file_id, body=dict(requests=requests))
+            .execute()
+        )
 
     def format_sheet(self, file_id: str, sheet_title: str = None):
         """
@@ -404,7 +401,7 @@ class SheetsAPI:
             to apply the formatting, or used for other purposes.
 
         """
-        sheet_id = self.get_sheet_metadata(file_id, sheet_title)['id']
+        sheet_id = self.get_sheet_metadata(file_id, sheet_title)["id"]
         return GSheetFormatting(file_id, sheet_id, self)
 
     @staticmethod
@@ -428,8 +425,8 @@ class SheetsAPI:
         # The file token.pickle stores the user's access and refresh
         # tokens, and is created automatically when the authorization
         # flow completes for the first time.
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
+        if os.path.exists("token.pickle"):
+            with open("token.pickle", "rb") as token:
                 creds = pickle.load(token)
         # If there are no (valid) credentials available, let the user
         # log in.
@@ -438,10 +435,11 @@ class SheetsAPI:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', scopes)
+                    "credentials.json", scopes
+                )
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
-            with open('token.pickle', 'wb') as token:
+            with open("token.pickle", "wb") as token:
                 pickle.dump(creds, token)
 
         return creds
@@ -462,10 +460,10 @@ class SheetsAPI:
         """
         kwargs = dict()
         if drive_id:
-            kwargs['corpora'] = 'drive'
-            kwargs['driveId'] = drive_id
-            kwargs['includeItemsFromAllDrives'] = True
-            kwargs['supportsAllDrives'] = True
+            kwargs["corpora"] = "drive"
+            kwargs["driveId"] = drive_id
+            kwargs["includeItemsFromAllDrives"] = True
+            kwargs["supportsAllDrives"] = True
         return kwargs
 
     @classmethod
@@ -477,12 +475,10 @@ class SheetsAPI:
         Returns: A connection to Google Drive.
 
         """
-        scopes = [
-            'https://www.googleapis.com/auth/drive'
-        ]
+        scopes = ["https://www.googleapis.com/auth/drive"]
         creds = cls._authenticate(scopes)
 
-        return build('drive', 'v3', credentials=creds)
+        return build("drive", "v3", credentials=creds)
 
     @classmethod
     def _connect_sheets(cls):
@@ -493,26 +489,17 @@ class SheetsAPI:
         Returns: A connection to Google Sheets.
 
         """
-        scopes = [
-            'https://www.googleapis.com/auth/spreadsheets'
-        ]
+        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
         creds = cls._authenticate(scopes)
 
-        return build('sheets', 'v4', credentials=creds)
+        return build("sheets", "v4", credentials=creds)
 
 
 class GSheetFormatting:
-    number_fmt = ''
-    accounting_fmt = (
-        'NUMBER',
-        '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)'
-    )
+    number_fmt = ""
+    accounting_fmt = ("NUMBER", '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)')
 
-    def __init__(
-            self,
-            file_id: str,
-            sheet_id: int = 0,
-            parent: SheetsAPI = None):
+    def __init__(self, file_id: str, sheet_id: int = 0, parent: SheetsAPI = None):
         """
         This object contains methods for creating a list of formatting
         requests and row/column operation requests that can then be
@@ -556,7 +543,7 @@ class GSheetFormatting:
         request = dict(
             autoResizeDimensions=dict(
                 dimensions=self._build_dims_dict(
-                    self.sheet_id, 'COLUMNS', start_col, end_col
+                    self.sheet_id, "COLUMNS", start_col, end_col
                 )
             )
         )
@@ -575,9 +562,7 @@ class GSheetFormatting:
         """
         request = dict(
             appendDimension=dict(
-                sheetId=self.sheet_id,
-                dimension='ROWS',
-                length=num_rows
+                sheetId=self.sheet_id, dimension="ROWS", length=num_rows
             )
         )
         self.requests.append(request)
@@ -599,8 +584,7 @@ class GSheetFormatting:
         Returns: self.
 
         """
-        request = self._insert_dims(
-            self.sheet_id, 'ROWS', at_row, at_row + num_rows)
+        request = self._insert_dims(self.sheet_id, "ROWS", at_row, at_row + num_rows)
         self.requests.append(request)
         return self
 
@@ -616,17 +600,12 @@ class GSheetFormatting:
         Returns: self.
 
         """
-        request = self._delete_dims(
-            self.sheet_id, 'ROWS', start_row, end_row)
+        request = self._delete_dims(self.sheet_id, "ROWS", start_row, end_row)
         self.requests.append(request)
         return self
 
     def _delete_dims(self, *vals) -> dict:
-        return dict(
-            deleteDimension=dict(
-                range=self._build_dims_dict(*vals)
-            )
-        )
+        return dict(deleteDimension=dict(range=self._build_dims_dict(*vals)))
 
     def _insert_dims(self, *vals, inherit: bool = False) -> dict:
         """
@@ -643,8 +622,7 @@ class GSheetFormatting:
         """
         return dict(
             insertDimension=dict(
-                range=self._build_dims_dict(*vals),
-                inheritFromBefore=inherit
+                range=self._build_dims_dict(*vals), inheritFromBefore=inherit
             )
         )
 
@@ -664,20 +642,16 @@ class GSheetFormatting:
             dictionary as either the range or dimensions value.
 
         """
-        d = dict(
-            sheetId=None,
-            dimension=None,
-            startIndex=None,
-            endIndex=None
-        )
+        d = dict(sheetId=None, dimension=None, startIndex=None, endIndex=None)
         return dict(zip(d.keys(), vals))
 
     def apply_font(
-            self,
-            row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None),
-            size: int = None,
-            style: (str, tuple) = None):
+        self,
+        row_idxs: tuple = (None, None),
+        col_idxs: tuple = (None, None),
+        size: int = None,
+        style: (str, tuple) = None,
+    ):
         """
         Adds a textFormat request to the GSheetFormatting object's
         request queue.
@@ -696,27 +670,22 @@ class GSheetFormatting:
         """
         text_format = dict()
         if size:
-            text_format['fontSize'] = size
+            text_format["fontSize"] = size
         if style:
             style = u.tuplify(style)
             for s in style:
                 text_format[s] = True
         repeat_cell = self._build_repeat_cell_dict(
-            dict(textFormat=text_format),
-            row_idxs,
-            col_idxs,
-            self.sheet_id
+            dict(textFormat=text_format), row_idxs, col_idxs, self.sheet_id
         )
-        repeat_cell['fields'] = 'userEnteredFormat(textFormat)'
+        repeat_cell["fields"] = "userEnteredFormat(textFormat)"
         request = dict(repeatCell=repeat_cell)
         self.requests.append(request)
         return self
 
     def apply_nbr_format(
-            self,
-            fmt: str,
-            row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None)):
+        self, fmt: str, row_idxs: tuple = (None, None), col_idxs: tuple = (None, None)
+    ):
         """
         Adds a numberFormat request to the GSheetFormatting object's
         request queue.
@@ -732,17 +701,14 @@ class GSheetFormatting:
         Returns: self.
 
         """
-        fmt += '_fmt' if fmt[-4:] != '_fmt' else ''
+        fmt += "_fmt" if fmt[-4:] != "_fmt" else ""
         t, p = getattr(self, fmt)
         nbr_format = dict(type=t, pattern=p)
 
         repeat_cell = self._build_repeat_cell_dict(
-            dict(numberFormat=nbr_format),
-            row_idxs,
-            col_idxs,
-            self.sheet_id
+            dict(numberFormat=nbr_format), row_idxs, col_idxs, self.sheet_id
         )
-        repeat_cell['fields'] = 'userEnteredFormat.numberFormat'
+        repeat_cell["fields"] = "userEnteredFormat.numberFormat"
         request = dict(repeatCell=repeat_cell)
         self.requests.append(request)
         return self
@@ -761,28 +727,23 @@ class GSheetFormatting:
         """
         grid_prop = dict()
         if not rows and not columns:
-            raise ValueError('One of rows or columns must not be None.')
+            raise ValueError("One of rows or columns must not be None.")
         if rows:
-            grid_prop['frozenRowCount'] = rows
+            grid_prop["frozenRowCount"] = rows
         if columns:
-            grid_prop['frozenColumnCount'] = columns
+            grid_prop["frozenColumnCount"] = columns
         request = dict(
             updateSheetProperties=dict(
-                properties=dict(
-                    sheetId=self.sheet_id,
-                    gridProperties=grid_prop
-                ),
-                fields='gridProperties(frozenRowCount, frozenColumnCount)'
+                properties=dict(sheetId=self.sheet_id, gridProperties=grid_prop),
+                fields="gridProperties(frozenRowCount, frozenColumnCount)",
             )
         )
         self.requests.append(request)
         return self
 
     def alternate_row_background(
-            self,
-            *rgb_vals,
-            row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None)):
+        self, *rgb_vals, row_idxs: tuple = (None, None), col_idxs: tuple = (None, None)
+    ):
         """
         Adds a background of the specified color to every other row in
         the passed range.
@@ -800,23 +761,16 @@ class GSheetFormatting:
         request = dict(
             addConditionalFormatRule=dict(
                 rule=dict(
-                    ranges=[
-                        self._build_range_dict(
-                            self.sheet_id, row_idxs, col_idxs)
-                    ],
+                    ranges=[self._build_range_dict(self.sheet_id, row_idxs, col_idxs)],
                     booleanRule=dict(
                         condition=dict(
-                            type='CUSTOM_FORMULA',
-                            values=[
-                                dict(userEnteredValue="=MOD(ROW(), 2)")
-                            ]
+                            type="CUSTOM_FORMULA",
+                            values=[dict(userEnteredValue="=MOD(ROW(), 2)")],
                         ),
-                        format=dict(
-                            backgroundColor=self._build_color_dict(*rgb_vals)
-                        )
-                    )
+                        format=dict(backgroundColor=self._build_color_dict(*rgb_vals)),
+                    ),
                 ),
-                index=0
+                index=0,
             )
         )
         self.requests.append(request)
@@ -824,11 +778,12 @@ class GSheetFormatting:
 
     @classmethod
     def _build_repeat_cell_dict(
-            cls,
-            fmt_dict: dict,
-            row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None),
-            sheet_id: int = 0,) -> dict:
+        cls,
+        fmt_dict: dict,
+        row_idxs: tuple = (None, None),
+        col_idxs: tuple = (None, None),
+        sheet_id: int = 0,
+    ) -> dict:
         """
         Quick method for building a repeatCell dictionary for use in a
         request dictionary wrapper intended to change cell formatting or
@@ -848,16 +803,15 @@ class GSheetFormatting:
         """
         return dict(
             range=cls._build_range_dict(sheet_id, row_idxs, col_idxs),
-            cell=dict(
-                userEnteredFormat=fmt_dict
-            )
+            cell=dict(userEnteredFormat=fmt_dict),
         )
 
     @staticmethod
     def _build_range_dict(
-            sheet_id: int = 0,
-            row_idxs: tuple = (None, None),
-            col_idxs: tuple = (None, None)) -> dict:
+        sheet_id: int = 0,
+        row_idxs: tuple = (None, None),
+        col_idxs: tuple = (None, None),
+    ) -> dict:
         """
         Quick method for building a range dictionary for use in a
         request dictionary wrapper intended to change cell formatting or
@@ -881,20 +835,19 @@ class GSheetFormatting:
         for r in range_:
             non_nulls += 1 if r is not None else 0
         if non_nulls < 2:
-            raise ValueError(
-                'Must pass one or both of row_idxs, col_idxs.')
+            raise ValueError("Must pass one or both of row_idxs, col_idxs.")
 
         start_row_idx, end_row_idx = row_idxs
         start_col_idx, end_col_idx = col_idxs
         # Must specify is not None because python interprets 0 as false.
         if start_row_idx is not None:
-            range_dict['startRowIndex'] = start_row_idx
+            range_dict["startRowIndex"] = start_row_idx
         if end_row_idx is not None:
-            range_dict['endRowIndex'] = end_row_idx
+            range_dict["endRowIndex"] = end_row_idx
         if start_col_idx is not None:
-            range_dict['startColumnIndex'] = start_col_idx
+            range_dict["startColumnIndex"] = start_col_idx
         if end_col_idx is not None:
-            range_dict['endColumnIndex'] = end_col_idx
+            range_dict["endColumnIndex"] = end_col_idx
         return range_dict
 
     @staticmethod
@@ -912,18 +865,17 @@ class GSheetFormatting:
 
         """
         rgb_vals = list(rgb_vals)
-        rgb = ['red', 'green', 'blue']
+        rgb = ["red", "green", "blue"]
         rgb_vals += [0] * (3 - len(rgb_vals))
-        return {
-            k: v for k, v in dict(zip(rgb, rgb_vals)).items()
-        }
+        return {k: v for k, v in dict(zip(rgb, rgb_vals)).items()}
 
 
 def from_gsheet(
-        sheet_name: str,
-        s_api: SheetsAPI = None,
-        sheet_title: str = None,
-        drive_id: str = None) -> pd.DataFrame:
+    sheet_name: str,
+    s_api: SheetsAPI = None,
+    sheet_title: str = None,
+    drive_id: str = None,
+) -> pd.DataFrame:
     """
     Creates a DataFrame from the first sheet of the passed Google Sheet
     name.
@@ -939,28 +891,29 @@ def from_gsheet(
 
     """
     # GeniusAccessor.from_file will pass fake .sheet extension.
-    sheet_name = re.sub(r'\.sheet$', '', sheet_name)
+    sheet_name = re.sub(r"\.sheet$", "", sheet_name)
     s_api = SheetsAPI() if s_api is None else s_api
-    search_res = s_api.find_object(sheet_name, 'sheet', drive_id)
-    sheet_id = search_res[0].get('id')
+    search_res = s_api.find_object(sheet_name, "sheet", drive_id)
+    sheet_id = search_res[0].get("id")
     if len(search_res) > 1:
         warnings.warn(
-            f'Cannot find single exact match for {sheet_name}. '
-            f'Taking data from the first match.'
+            f"Cannot find single exact match for {sheet_name}. "
+            f"Taking data from the first match."
         )
     rows = s_api.get_sheet_values(sheet_id, sheet_title)
     return pd.DataFrame(rows)
 
 
 def write_gsheet(
-        gsheet_name: str,
-        df: pd.DataFrame,
-        sheet_title: str = None,
-        s_api: SheetsAPI = None,
-        columns: list = None,
-        parent_folder: str = None,
-        drive_id: str = None,
-        append: bool = False) -> tuple:
+    gsheet_name: str,
+    df: pd.DataFrame,
+    sheet_title: str = None,
+    s_api: SheetsAPI = None,
+    columns: list = None,
+    parent_folder: str = None,
+    drive_id: str = None,
+    append: bool = False,
+) -> tuple:
     """
     Uses the passed SheetsAPI object to write the passed DataFrame to a
     new Google Sheet.
@@ -988,21 +941,16 @@ def write_gsheet(
 
     """
     s_api = SheetsAPI() if s_api is None else s_api
-    file_id, new_file = s_api.create_find(
-        gsheet_name,
-        'sheet',
-        parent_folder,
-        drive_id
-    )
+    file_id, new_file = s_api.create_find(gsheet_name, "sheet", parent_folder, drive_id)
     df_rows = [*df.values.tolist()]
     sheet_md = s_api.get_sheet_metadata(file_id, sheet_title)
     if not new_file and append and sheet_md:
-        start_row = sheet_md['row_limit'] + 1
+        start_row = sheet_md["row_limit"] + 1
     else:
         start_row = 1
         columns = list(df.columns) if columns is None else columns
         df_rows.insert(0, columns)
-    result = s_api.write_values(file_id, df_rows, sheet_title, f'A{start_row}')
+    result = s_api.write_values(file_id, df_rows, sheet_title, f"A{start_row}")
     return file_id, result
 
 

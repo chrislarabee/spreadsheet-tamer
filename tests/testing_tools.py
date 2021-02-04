@@ -19,4 +19,4 @@ def check_sheets_api_skip(s_api: SheetsAPI):
 
     """
     if not s_api:
-        pytest.skip('No credentials set up for google api.')
+        pytest.skip("No credentials set up for google api.")

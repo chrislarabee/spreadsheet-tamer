@@ -1,0 +1,6 @@
+name_columns:
+  - prefix
+  - fname
+  - mname
+  - lname
+  - suffix
