@@ -36,6 +36,18 @@ class TestAllocate:
         assert n.fname2 == "Helen"
         assert n.mname2 is None
         assert n.lname2 == "Parr"
+        assert n.to_list() == [
+            None,
+            "Bob",
+            None,
+            "Parr",
+            None,
+            None,
+            "Helen",
+            None,
+            "Parr",
+            None,
+        ]
 
     def test_that_it_can_handle_a_similar_prefix_and_middle_initial(self):
         n = Namestring("Dr. Bob D. Parr")

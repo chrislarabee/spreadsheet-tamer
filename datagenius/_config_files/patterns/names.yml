@@ -11,7 +11,11 @@ compound_fnames:
   - mary ellen
   - mary alice
   - mary kate
-  - anne? marie
+  - ann[ae]? marie
+  - betty lo?u 
+  - rae ann
+  - rae jean
+  - polly ann
 
 lname_particles:
   - v[ao]n$
@@ -23,6 +27,9 @@ lname_particles:
   - zie$
   - st\.?$
   - o$
+  - ma?c$
+  - vande[rn]$
+  - della$
 
 invalid_words:
   - the

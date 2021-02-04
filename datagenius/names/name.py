@@ -258,9 +258,14 @@ class Name:
             if attr is not None:
                 record_dict[key] = attr
 
-    def to_list(self) -> List[Optional[str]]:
+    def to_list(self, force_name2: bool = False) -> List[Optional[str]]:
         """
         Generates a list of the name's components.
+        -
+        Args:
+            force_name2 (bool): True to include name2 values in the list even if
+                they are all null. Will be a list of length 10 instead of length
+                5. Default is False.
         -
         Returns:
             List[Optional[str]]: A list consisting of the name's prefix, first
@@ -268,7 +273,12 @@ class Name:
         """
         self._allocate()
         self._validate(True)
-        return [self.prefix, self.fname, self.mname, self.lname, self.suffix]
+        name1 = [self.prefix, self.fname, self.mname, self.lname, self.suffix]
+        if (self.fname2 and self.lname2) or force_name2:
+            name2 = [self.prefix2, self.fname2, self.mname2, self.lname2, self.suffix2]
+        else:
+            name2 = []
+        return name1 + name2
 
     @staticmethod
     def search_and_split(s: str, search_char: str) -> str:
