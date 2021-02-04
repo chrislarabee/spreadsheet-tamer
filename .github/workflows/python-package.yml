@@ -17,24 +17,39 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-        source $HOME/.poetry/env
-        poetry install
+
+    - name: Install Poetry
+      uses: dschep/install-poetry-action@v1.2
+
+    - name: Cache Poetry virtualenv
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: ~/.virtualenvs
+        key: poetry-$
+        restore-keys: |
+          poetry-$
+
+    - name: Config Github URL to download Private Repo
+      env:
+        GITHUB_TOKEN: $
+      run: git config --global url."https://$GITHUB_TOKEN@github.com/".insteadOf "https://github.com/"
+
+    - name: Install Dependencies using Poetry
+      run: poetry install
+      if: steps.cache.outputs.cache-hit != 'true'
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        poetry shell
-        pytest
+
+    - name: Run pytest
+      run: PYTHONPATH=src/ poetry run python -m pytest -v --cov=src/ tests/
