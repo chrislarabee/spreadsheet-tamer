@@ -23,29 +23,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Poetry
+    - name: Install dependencies
       run: |
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-        source $HOME/.poetry/env
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest poetry
         poetry install
-
-    - name: Cache Poetry virtualenv
-      uses: actions/cache@v1
-      id: cache
-      with:
-        path: ~/.virtualenvs
-        key: poetry-$
-        restore-keys: |
-          poetry-$
-
-    - name: Config Github URL to download Private Repo
-      env:
-        GITHUB_TOKEN: $
-      run: git config --global url."https://$GITHUB_TOKEN@github.com/".insteadOf "https://github.com/"
-
-    - name: Install Dependencies using Poetry
-      run: poetry install
-      if: steps.cache.outputs.cache-hit != 'true'
 
     - name: Lint with flake8
       run: |
