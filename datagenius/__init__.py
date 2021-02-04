@@ -47,4 +47,6 @@ __all__ = [
     "broadcast_suffix",
     "broadcast_type",
     "standardize_header",
+    "odbc",
+    "GeniusAccessor",
 ]

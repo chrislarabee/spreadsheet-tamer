@@ -219,7 +219,8 @@ class GConfig:
             self._name_columns = value
         else:
             raise ValueError(
-                f"name_column_labels must be a tuple. Passed value type is {type(value)}"
+                "name_column_labels must be a tuple. Passed value type is "
+                f"{type(value)}"
             )
 
     def add_custom_pattern_file(self, p: Union[str, Path]) -> None:

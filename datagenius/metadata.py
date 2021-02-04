@@ -1,5 +1,4 @@
 from typing import Callable
-import collections as col
 
 import pandas as pd
 

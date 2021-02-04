@@ -156,7 +156,7 @@ class ODBConnector:
         self._db_path = db_path
         if purge:
             self.purge()
-        self.engine = sa.create_engine(f"sqlite:///" + self._db_path, echo=False)
+        self.engine = sa.create_engine(f"sqlite:///{self._db_path}", echo=False)
         # Check if the database already exists, and load its schema
         # into the ODBConnector object:
         self._metadata.reflect(bind=self.engine)

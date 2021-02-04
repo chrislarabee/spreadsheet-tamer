@@ -44,7 +44,7 @@ def parse_name_string_column(
         names.apply(lambda n: n.to_list(force_name2=include_name2)).to_list(),
         columns=labels,
     )
-    name_df[f"valid"] = names.apply(lambda n: n.valid)
+    name_df["valid"] = names.apply(lambda n: n.valid)
     df = df.join(name_df)
     return df
 

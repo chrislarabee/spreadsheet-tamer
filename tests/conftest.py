@@ -38,7 +38,7 @@ def sheets_api():
     if os.path.exists("token.pickle") or os.path.exists("credentials.json"):
         s = SheetsAPI()
         yield s
-        print(f"\n-- Cleaning up google drive objects created for " f"tests...")
+        print("\n-- Cleaning up google drive objects created for tests...")
         ids = testing_tools.created_ids
         for i in ids:
             s.delete_object(i)

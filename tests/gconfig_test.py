@@ -31,7 +31,7 @@ class TestLoadCustomPattern:
     def test_that_it_errors_on_non_yaml(self):
         with pytest.raises(
             ValueError,
-            match="custom_pattern_file tests/samples/custom_pattern.csv must be a .yml ",
+            match="custom_pattern_file tests/samples/custom_pattern.csv must be a .yml",
         ):
             Patterns._load_custom_pattern(Path("tests/samples/custom_pattern.csv"))
 
