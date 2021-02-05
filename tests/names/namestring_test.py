@@ -1,4 +1,4 @@
-from datagenius.names.namestring import Namestring
+from tamer.names.namestring import Namestring
 
 
 class TestAllocate:

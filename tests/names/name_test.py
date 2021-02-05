@@ -1,7 +1,7 @@
 import re
 import numpy as np
 
-from datagenius.names.name import Name
+from tamer.names.name import Name
 
 
 class TestName:

@@ -1,8 +1,8 @@
 import pytest
 import pandas as pd
 
-import datagenius.names.df_tms as tms
-from datagenius.config import config
+import tamer.names.df_tms as tms
+from tamer.config import config
 
 
 class TestParseNameStringColumn:
