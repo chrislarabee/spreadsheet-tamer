@@ -5,3 +5,4 @@ venv
 !read_testing.db
 *.json
 *.pickle
+.vscode
