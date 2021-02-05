@@ -1,12 +1,34 @@
-from typing import Union, Tuple, Any, Optional, Type, List
+from typing import Tuple, Any, Optional, Type
 import re
 
-from .zero_numeric import ZeroNumeric
+from .numerics.zero_numeric import ZeroNumeric
+from .decorators import nullable
+
+
+@nullable
+def convertplus(obj: Any, target_type: Type) -> Any:
+    """
+    Smarter type conversion that avoids errors when converting to numeric from 
+    non-standard strings and which can be used in pd.Series.apply calls.
+    -
+    Args:
+        obj (Any): Any object.
+        target_type (Type): The target type to convert to.
+    -
+    Returns:
+        Any: The passed object converted to the target type.
+    """
+    if isinstance(obj, str) and target_type == float and isnumericplus(obj):
+        pts = re.search(r"\.+", obj)
+        point_ct = len(pts.group()) if pts else 0
+        if point_ct > 1:
+            obj = re.sub(r"\.+", ".", obj)
+    return target_type(obj)
 
 
 def isnumericplus(x: Any, return_type: bool = False) -> Tuple[bool, Optional[Type]]:
     """
-    A better version of the str.isnumeric test that correctly identifies floats 
+    A better version of the str.isnumeric test that correctly identifies floats
     stored as strings as numeric.
     -
     Args:

@@ -8,6 +8,8 @@ _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
 
 
 def nullable(
+    # TODO: Fix bug here that forces args passed by pandas.apply to be kwargs. 
+    #       The decorator is forcing the positional args to be iterables.
     func: Optional[Any] = None, *, nan_return: Optional[Any] = nan
 ) -> Union[Any, _TFunc]:
     """
