@@ -1,14 +1,25 @@
-from typing import Tuple, Any, Optional, Type
+from typing import Tuple, Any, Optional, Type, TypeVar, Union
 import re
+
+import numpy as np
 
 from .numerics.zero_numeric import ZeroNumeric
 from .decorators import nullable
 
 
+Numeric = TypeVar(
+    "Numeric",
+    int, 
+    float,
+    np.int64,
+    np.float32,
+    np.float64
+)
+
 @nullable
 def convertplus(obj: Any, target_type: Type) -> Any:
     """
-    Smarter type conversion that avoids errors when converting to numeric from 
+    Smarter type conversion that avoids errors when converting to numeric from
     non-standard strings and which can be used in pd.Series.apply calls.
     -
     Args:
