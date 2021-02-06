@@ -19,7 +19,7 @@ class ZeroNumeric:
         Args:
             value (Union[int, float, str]): The string, integer, or float to
                 reinterpret as a ZeroNumeric.
-
+        -
         Raises:
             ValueError: Will raise a ValueError if passed a float NaN.
             ValueError: Will raise a ValueError if passed a string that can't be
