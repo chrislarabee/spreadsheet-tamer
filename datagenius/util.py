@@ -300,6 +300,7 @@ def gen_empty_md_df(columns: Sequence, default_val=0) -> pd.DataFrame:
 @nullable(nan_return="nan")
 def get_class_name(obj) -> str:
     """
+    # TODO: Deprecate.
     Gets the name of the passed object's class, even if it doesn't
     have a __name__ attribute.
 

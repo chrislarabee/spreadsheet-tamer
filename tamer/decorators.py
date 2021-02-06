@@ -12,7 +12,7 @@ def nullable(
     #       The decorator is forcing the positional args to be iterables.
     func: Optional[Any] = None,
     *,
-    nan_return: Optional[Any] = nan
+    null_return: Optional[Any] = nan
 ) -> Union[Any, _TFunc]:  # type: ignore
     """
     An easy way to wrap functions that need to not execute if they are used in a
@@ -21,7 +21,7 @@ def nullable(
     -
     Args:
         func (Optional[Any], optional): A callable object Defaults to None.
-        nan_return (Optional[Any], optional): Value to return if the wrapped func
+        null_return (Optional[Any], optional): Value to return if the wrapped func
             is passed a nan. Defaults to nan.
     -
     Returns:
@@ -39,7 +39,7 @@ def nullable(
             if isinstance(arg1, Collection) or pd.notna(arg1):
                 return _func(*args, **kwargs)
             else:
-                return nan_return
+                return null_return
 
         return wrapper_nullable
 

@@ -31,6 +31,25 @@ def convertplus(obj: Any, target_type: Type) -> Any:
     return target_type(obj)
 
 
+@nullable(null_return="nan")
+def get_class_name(obj: Any) -> str:
+    """
+    Gets the name of the passed object's class, even if it doesn't have a 
+    __name__ attribute.
+    -
+    Args:
+        obj (Any): An object.
+    -
+    Returns: 
+        str: The name of the object's class.
+    """
+    t = type(obj)
+    c = re.findall(r"<class '(.+)'>", str(t))[0]
+    # Avoids including the whole import chain heritage of the class.
+    c = c.split(".")
+    return c[-1]
+
+
 def isnumericplus(x: Any, return_type: bool = False) -> Tuple[bool, Optional[Type]]:
     """
     A better version of the str.isnumeric test that correctly identifies floats

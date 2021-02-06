@@ -29,6 +29,19 @@ class TestConvertPlus:
         assert t.convertplus("1..23", float) == 1.23
 
 
+class TestGetClassName:
+    def that_that_it_can_handle_nans(self):
+        assert t.get_class_name(nan) == "nan"
+
+    def test_that_it_can_handle_any_other_object_classes(self):
+        assert t.get_class_name("string") == "str"
+        assert t.get_class_name(123) == "int"
+        assert t.get_class_name(1.245) == "float"
+        assert t.get_class_name([1, 2, 3]) == "list"
+        assert t.get_class_name(dict(a=1, b=2, c=3)) == "dict"
+        assert t.get_class_name(ZeroNumeric("000123")) == "ZeroNumeric"
+
+
 class TestIsNumericPlus:
     def test_that_it_can_handle_an_integer(self):
         x = 1
