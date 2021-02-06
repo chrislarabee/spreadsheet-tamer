@@ -1,11 +1,9 @@
-from typing import Union, Any, List, Callable, Iterable, Type
-
-import pandas as pd
+from typing import Union, Any, Callable, Iterable, Type
 
 from .type_handling import isnumericplus
 
 
-def broadcast_affix(x: Iterable[str], affix: str, pos: int = -1) -> List[str]:
+def broadcast_affix(x: Iterable[str], affix: str, pos: int = -1) -> Iterable[str]:
     """
     Appends or prepends the passed affix to every value in the passed list.
     -
@@ -16,16 +14,25 @@ def broadcast_affix(x: Iterable[str], affix: str, pos: int = -1) -> List[str]:
             Defaults to -1.
     -
     Returns:
-        List[str]: x as a list with affix added to each element.
+        Iterable[str]: x with affix added to each element.
+    -
+    Raises:
+        ValueError: If a non-iterable is passed for x.
     """
-    prefix = affix if pos == 0 else ""
-    suffix = affix if pos == -1 else ""
-    return [f"{prefix}{i}{suffix}" for i in list(x)]
+    if isinstance(x, Iterable):
+        iter_type = type(x)
+        prefix = affix if pos == 0 else ""
+        suffix = affix if pos == -1 else ""
+        # This must be flagged as type: ignore because pyright doesn't like the
+        # variability of the flexible constructor derived from the type of x.
+        return iter_type([f"{prefix}{i}{suffix}" for i in x])  # type: ignore
+    else:
+        raise ValueError(f"x must be iterable. Passed type = {type(x)}.")
 
 
 def broadcast_type(
     x: Iterable[Any], type_func: Union[Callable[[Any], Any], Type]
-) -> List[Any]:
+) -> Iterable[Any]:
     """
     Applies the passed type conversion function to each element in the passed
     list. Note that if you pass isnumeric plus broadcast_type has special
@@ -39,13 +46,22 @@ def broadcast_type(
             single object.
     -
     Returns:
-        List[Any]: x as a list with type_func applied to each element.
+        Iterable[Any]: x with type_func applied to each element.
+    -
+    Raises:
+        ValueError: If a non-iterable is passed for x.
     """
-    result = []
-    for val in x:
-        if type_func.__name__ == "isnumericplus":
-            _, t = isnumericplus(val, return_type=True)
-        else:
-            t = type_func
-        result.append(t(val))
-    return result
+    if isinstance(x, Iterable):
+        result = []
+        iter_type = type(x)
+        for val in x:
+            if type_func.__name__ == "isnumericplus":
+                _, t = isnumericplus(val, return_type=True)
+            else:
+                t = type_func
+            result.append(t(val))
+        # This must be flagged as type: ignore because pyright doesn't like the
+        # variability of the flexible constructor derived from the type of x.
+        return iter_type(result)  # type: ignore
+    else:
+        raise ValueError(f"x must be iterable. Passed type = {type(x)}.")
