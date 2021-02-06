@@ -1,4 +1,4 @@
-from tamer.strings import string_util as u
+from tamer.strings import util as u
 
 
 class TestCleanWhitespace:
