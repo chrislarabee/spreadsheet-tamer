@@ -1,4 +1,4 @@
-from typing import Tuple, Any, Optional, Type, TypeVar, Union
+from typing import Tuple, Any, Optional, Type, TypeVar
 import re
 
 import numpy as np
@@ -64,3 +64,17 @@ def isnumericplus(x: Any, return_type: bool = False) -> Tuple[bool, Optional[Typ
     if return_type:
         result.append(v)
     return tuple(result) if len(result) > 1 else result[0]
+
+
+@nullable
+def type_plus(obj: Any) -> Type:
+    """
+    Wrapper for type that distinguishes nan values as nan and not float.
+    -
+    Args:
+        obj (Any): Any object.
+    -
+    Returns:
+        Any: The type of the object, or nan if it is a numpy nan.
+    """
+    return type(obj)

@@ -86,6 +86,7 @@ def nullable(
     func: Optional[Any] = None, *, nan_return: Optional[Any] = nan
 ) -> Union[Any, _TFunc]:
     """
+    TODO: Deprecate.
     An easy way to wrap functions that need to not execute if they are
     used in a DataFrame/Series.apply call on data that contains nan
     values. Simply use this decorator and the function will simply
@@ -197,6 +198,7 @@ def broadcast_type(x: Union[List[Any], pd.Series], type_func: Callable):
 
 def clean_whitespace(x: Any) -> Tuple[bool, Any]:
     """
+    # TODO: Deprecate.
     When passed a string, removes leading and trailing whitespace from
     it and also replaces any chains of more than one space with a
     single space.
@@ -332,6 +334,7 @@ def get_class_name(obj) -> str:
 @nullable
 def gconvert(obj: Any, target_type: Callable):
     """
+    TODO: Deprecate.
     Smart type conversion that avoids errors when converting to numeric
     from non-standard strings.
 
@@ -353,6 +356,7 @@ def gconvert(obj: Any, target_type: Callable):
 @nullable
 def gtype(obj: Any):
     """
+    # TODO: Deprecate.
     Wrapper for type that distinguishes nan values as nan and not
     float.
 
@@ -398,6 +402,7 @@ def gwithin(within: Sequence, *values) -> bool:
 
 def isnumericplus(x, *options) -> Union[bool, Tuple[bool, Any]]:
     """
+    TODO: Deprecate.
     A better version of the str.isnumeric test that correctly
     identifies floats stored as strings as numeric.
 

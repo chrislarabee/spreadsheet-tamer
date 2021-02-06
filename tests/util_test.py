@@ -31,15 +31,6 @@ def test_transmutation():
     assert _func3.stage == "a_custom_stage"
 
 
-def test_nullable():
-    @u.nullable
-    def _func(x):
-        return x[0]
-
-    assert _func([1, 2, 3]) == 1
-    assert pd.isna(_func(nan))
-
-
 def test_align_args():
     assert u.align_args(lambda x, y: x + y, kwargs=dict(x=1, y=3)) == dict(x=1, y=3)
     assert u.align_args(lambda x, y: x + y, dict(x=1, y=3, z=2), "y") == dict(x=1)
@@ -61,13 +52,6 @@ def test_broadcast_suffix():
 def test_broadcast_type():
     assert u.broadcast_type(["1", "2", "3"], int) == [1, 2, 3]
     assert u.broadcast_type(["1", "0.5", "2"], u.isnumericplus) == [1, 0.5, 2]
-
-
-def test_clean_whitespace():
-    assert u.clean_whitespace(1) == (False, 1)
-    assert u.clean_whitespace(" a bad  string ") == (True, "a bad string")
-    assert u.clean_whitespace("a good string") == (False, "a good string")
-    assert u.clean_whitespace("     what       even     ") == (True, "what even")
 
 
 def test_collect_by_keys():
@@ -121,26 +105,6 @@ def test_get_class_name():
     assert u.get_class_name(dict(a=1, b=2, c=3)) == "dict"
 
 
-def test_gconvert():
-    assert u.gconvert(123, target_type=str) == "123"
-    assert u.gconvert("1..23", float) == 1.23
-    assert isinstance(u.gconvert("00123", e.ZeroNumeric), e.ZeroNumeric)
-    assert u.gconvert(1.23, int) == 1
-    x = u.gconvert(1234.0, int)
-    assert isinstance(x, int)
-    assert pd.isna(u.gconvert(nan, int))
-    assert u.gconvert([1, 2, 3], str) == "[1, 2, 3]"
-    assert u.gconvert(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
-    assert u.gconvert("0", float) == 0.0
-    assert u.gconvert("1", float) == 1.0
-
-
-def test_gtype():
-    assert u.gtype(1) == int
-    assert u.gtype("test") == str
-    assert u.gtype(2.1) == float
-    assert pd.isna(u.gtype(nan))
-
 
 def test_gwithin():
     assert u.gwithin([1, 2, 3], 1)
@@ -151,27 +115,6 @@ def test_gwithin():
     assert u.gwithin(pd.Index(["unnamed_0", "unnamed_1"]), r"[Uu]nnamed:*[ _]\d")
     assert u.gwithin(pd.Index(["Unnamed: 0", "Unnamed: 1"]), r"[Uu]nnamed:*[ _]\d")
     assert u.gwithin(pd.Index(["Unnamed:_0", "Unnamed:_1"]), r"[Uu]nnamed:*[ _]\d")
-
-
-def test_isnumericplus():
-    assert u.isnumericplus(1)
-    assert u.isnumericplus(2.25)
-    assert u.isnumericplus("1234")
-    assert u.isnumericplus("1234.56")
-    assert u.isnumericplus("1234..56")
-    assert u.isnumericplus("1234.56789")
-    assert not u.isnumericplus("100 strings")
-    assert u.isnumericplus(1, "-v") == (True, int)
-    assert u.isnumericplus(1.0, "-v") == (True, float)
-    assert u.isnumericplus(2.25, "-v") == (True, float)
-    assert u.isnumericplus("100 strings", "-v") == (False, str)
-    assert u.isnumericplus("00123")
-    assert u.isnumericplus("00123", "-v") == (True, e.ZeroNumeric)
-    assert u.isnumericplus("0.00", "-v") == (True, float)
-    assert u.isnumericplus("-123")
-    assert u.isnumericplus("-12.02")
-    assert u.isnumericplus("-0.12")
-    assert not u.isnumericplus("-abc")
 
 
 def test_purge_gap_rows(gaps, gaps_totals):

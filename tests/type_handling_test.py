@@ -68,3 +68,20 @@ class TestIsNumericPlus:
         x = [1, 2, 3]
         assert t.isnumericplus(x) == False
         assert t.isnumericplus(x, return_type=True) == (False, list)
+
+    
+class TestTypePlus:
+    def test_that_it_can_handle_non_nans(self):
+        assert t.type_plus(1) == int
+        assert t.type_plus("test") == str
+        assert t.type_plus(2.1) == float
+
+    def test_that_it_can_handle_nans(self):
+        assert pd.isna(t.type_plus(nan))
+
+    def test_that_it_can_be_used_in_pandas_apply(self):
+        s = pd.Series([1, nan, "2", 1.2])
+        expected = pd.Series([int, nan, str, float])
+        result = s.apply(t.type_plus)
+        pd.testing.assert_series_equal(expected, result)
+

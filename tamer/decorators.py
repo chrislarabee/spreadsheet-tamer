@@ -13,7 +13,7 @@ def nullable(
     func: Optional[Any] = None,
     *,
     nan_return: Optional[Any] = nan
-) -> Union[Any, _TFunc]:
+) -> Union[Any, _TFunc]: # type: ignore
     """
     An easy way to wrap functions that need to not execute if they are used in a
     DataFrame/Series.apply call on data that contains nan values. Simply use this
