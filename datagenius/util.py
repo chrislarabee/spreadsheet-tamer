@@ -220,26 +220,6 @@ def clean_whitespace(x: Any) -> Tuple[bool, Any]:
     return cleaned, clean_x
 
 
-def collect_by_keys(x: Union[Dict, OrderedDict], *keys) -> Union[Dict, OrderedDict]:
-    """
-    A simple function to collect an arbitrary and not-necessarily
-    ordered subset of a dictionary.
-
-    Args:
-        x: A dictionary or OrderedDict.
-        *keys: An arbitrary list of keys that could be found in x.
-
-    Returns: A dictionary or OrderedDict containing only the passed
-        keys. Returns an object of the same type passed.
-
-    """
-    result = type(x)()
-    for k, v in x.items():
-        if k in keys:
-            result[k] = v
-    return result
-
-
 def count_true_str(x: Union[list, pd.Series]) -> int:
     """
     Takes a list or pandas Series and returns the number of values in

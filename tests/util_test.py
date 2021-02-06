@@ -43,15 +43,6 @@ def test_align_args():
     assert u.align_args(_func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
-def test_collect_by_keys():
-    x = u.collect_by_keys({"a": 1, "b": 2, "c": 3, "d": 4}, "a", "c")
-    assert x == {"a": 1, "c": 3}
-    assert isinstance(x, dict) and not isinstance(x, od)
-    x = u.collect_by_keys(od(e=5, f=6, g=7), "e", "f")
-    assert x == od(e=5, f=6)
-    assert type(x) == od and type(x) != dict
-
-
 def test_count_true_str():
     assert u.count_true_str(["", "", ""]) == 0
     assert u.count_true_str(["a", "test", 1]) == 2

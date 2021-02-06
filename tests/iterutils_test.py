@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import pandas as pd
 
 from tamer import iterutils as u
@@ -28,3 +30,15 @@ class TestBroadcastType:
 
     def test_special_isnumericplus_functionality(self):
         assert u.broadcast_type(["1", "0.5", "2"], isnumericplus) == [1, 0.5, 2]
+
+
+class TestCollectByKeys:
+    def test_that_it_works_with_dict_and_ordered_dict(self):
+        x = u.collect_by_keys({"a": 1, "b": 2, "c": 3, "d": 4}, "a", "c")
+        assert x == {"a": 1, "c": 3}
+        assert isinstance(x, dict) and not isinstance(x, OrderedDict)
+        x = u.collect_by_keys(OrderedDict(e=5, f=6, g=7), "e", "f")
+        assert x == OrderedDict(e=5, f=6)
+        # OrderedDict IS an an instance of dict, so we must directly test against
+        # type here.
+        assert type(x) == OrderedDict and type(x) != dict

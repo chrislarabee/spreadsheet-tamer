@@ -1,4 +1,4 @@
-from typing import Union, Any, Callable, Iterable, Type
+from typing import Union, Any, Callable, Iterable, Type, Dict
 
 from .type_handling import isnumericplus
 
@@ -65,3 +65,22 @@ def broadcast_type(
         return iter_type(result)  # type: ignore
     else:
         raise ValueError(f"x must be iterable. Passed type = {type(x)}.")
+
+
+def collect_by_keys(x: Dict[Any, Any], *keys: Any) -> Dict[Any, Any]:
+    """
+    A simple function to collect an arbitrary and not-necessarily ordered subset
+    of a dictionary.
+    -
+    Args:
+        x (Dict[Any, Any]): Any dict-like.
+    -
+    Returns:
+        Dict[Any, Any]: A dictionary or OrderedDict containing only the passed
+            keys. Returns an object of the same type passed.
+    """
+    result = type(x)()
+    for k, v in x.items():
+        if k in keys:
+            result[k] = v
+    return result
