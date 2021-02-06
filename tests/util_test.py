@@ -85,17 +85,6 @@ def test_get_class_name():
     assert u.get_class_name(dict(a=1, b=2, c=3)) == "dict"
 
 
-def test_gwithin():
-    assert u.gwithin([1, 2, 3], 1)
-    assert u.gwithin([1, 2, 3], 1, 4)
-    assert not u.gwithin([1, 2, 3], 4, 5)
-    assert u.gwithin(["xyz", "a23"], r"[a-z]\d+")
-    assert not u.gwithin(["xyz", "a23"], r"[a-z]\d[a-z]")
-    assert u.gwithin(pd.Index(["unnamed_0", "unnamed_1"]), r"[Uu]nnamed:*[ _]\d")
-    assert u.gwithin(pd.Index(["Unnamed: 0", "Unnamed: 1"]), r"[Uu]nnamed:*[ _]\d")
-    assert u.gwithin(pd.Index(["Unnamed:_0", "Unnamed:_1"]), r"[Uu]nnamed:*[ _]\d")
-
-
 def test_purge_gap_rows(gaps, gaps_totals):
     d = pd.DataFrame(gaps)
     d = u.purge_gap_rows(d)

@@ -1,4 +1,5 @@
 from typing import Union, Any, Callable, Iterable, Type, Dict
+import re
 
 from .type_handling import isnumericplus
 
@@ -83,4 +84,35 @@ def collect_by_keys(x: Dict[Any, Any], *keys: Any) -> Dict[Any, Any]:
     for k, v in x.items():
         if k in keys:
             result[k] = v
+    return result
+
+
+def withinplus(within: Iterable, *values: Any) -> bool:
+    """
+    A more sophisticated way to execute "x in iterable" type python
+    statements. Allows searching for multiple values at once and using
+    regex.
+
+    Args:
+        within: A sequence to search within.
+        *values: An arbitrary list of values. Strings will be used to
+            create regex-based matches against each value in within. If
+            any of the values are found in within, gwithin will return
+            True.
+
+    Returns: A boolean indicating whether any of the objects in values
+        are contained in within.
+
+    """
+    result = False
+    for v in values:
+        if isinstance(v, str):
+            for w in within:
+                if re.search(v, str(w)) is not None:
+                    result = True
+                    break
+        else:
+            if v in within:
+                result = True
+                break
     return result

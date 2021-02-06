@@ -353,6 +353,7 @@ def gtype(obj: Any):
 
 def gwithin(within: Sequence, *values) -> bool:
     """
+    TODO: Deprecate.
     A more sophisticated way to execute "x in iterable" type python
     statements. Allows searching for multiple values at once and using
     regex.

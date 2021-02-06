@@ -42,3 +42,27 @@ class TestCollectByKeys:
         # OrderedDict IS an an instance of dict, so we must directly test against
         # type here.
         assert type(x) == OrderedDict and type(x) != dict
+
+
+class TestWithinPlus:
+    def test_that_it_works_with_a_single_value(self):
+        assert u.withinplus([1, 2, 3], 1)
+
+    def test_that_it_works_with_multiple_values(self):
+        assert u.withinplus([1, 2, 3], 1, 4)
+        assert not u.withinplus([1, 2, 3], 4, 5)
+    
+    def test_that_it_works_with_single_regex(self):
+        assert u.withinplus(["xyz", "a23"], r"[a-z]\d+")
+        assert not u.withinplus(["xyz", "a23"], r"[a-z]\d[a-z]")
+
+    def test_that_it_works_with_multiple_regex(self):
+        patterns = (r"[a-z]\d+", r"[a-z]\d[a-z]")
+        assert u.withinplus(["xyz", "a2a"], *patterns)
+        assert not u.withinplus(["xyz", "abc"], *patterns)
+
+    def test_that_regex_works_with_pandas_index(self):
+        pattern = r"[Uu]nnamed:*[ _]\d"
+        assert u.withinplus(pd.Index(["unnamed_0", "unnamed_1"]), pattern)
+        assert u.withinplus(pd.Index(["Unnamed: 0", "Unnamed: 1"]), pattern)
+        assert u.withinplus(pd.Index(["Unnamed:_0", "Unnamed:_1"]), pattern)
