@@ -43,17 +43,6 @@ def test_align_args():
     assert u.align_args(_func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
-def test_broadcast_suffix():
-    assert u.broadcast_suffix(["x", "y", "z"], "_1") == ["x_1", "y_1", "z_1"]
-    assert u.broadcast_suffix(pd.Index(["x", "y", "z"]), "_1") == ["x_1", "y_1", "z_1"]
-    assert u.broadcast_suffix(pd.Series(["x", "y", "z"]), "_1") == ["x_1", "y_1", "z_1"]
-
-
-def test_broadcast_type():
-    assert u.broadcast_type(["1", "2", "3"], int) == [1, 2, 3]
-    assert u.broadcast_type(["1", "0.5", "2"], u.isnumericplus) == [1, 0.5, 2]
-
-
 def test_collect_by_keys():
     x = u.collect_by_keys({"a": 1, "b": 2, "c": 3, "d": 4}, "a", "c")
     assert x == {"a": 1, "c": 3}

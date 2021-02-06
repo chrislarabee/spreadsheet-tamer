@@ -160,6 +160,7 @@ def broadcast_suffix(
     x: Union[List[str], Tuple[str, ...], pd.Series, pd.Index], suffix: str
 ) -> List[str]:
     """
+    TODO: Deprecate.
     Appends the passed suffix to every value in the passed list.
 
     Args:
@@ -174,6 +175,7 @@ def broadcast_suffix(
 
 def broadcast_type(x: Union[List[Any], pd.Series], type_func: Callable):
     """
+    TODO: Deprecate.
     Applies the passed type conversion function to each element in the
     passed list. Note that if you pass isnumeric plus broadcast_type
     has special functionality and will use the results of isnumericplus
