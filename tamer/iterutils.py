@@ -1,4 +1,4 @@
-from typing import Union, Any, Callable, Iterable, Type, Dict
+from typing import Union, Any, Callable, Iterable, Type, Dict, Tuple, MutableSequence
 import re
 
 from .type_handling import isnumericplus
@@ -85,6 +85,61 @@ def collect_by_keys(x: Dict[Any, Any], *keys: Any) -> Dict[Any, Any]:
         if k in keys:
             result[k] = v
     return result
+
+
+def tuplify(value: Any, do_none: bool = False) -> Union[Tuple[Any, ...], None]:
+    """
+    Simple function that puts the passed object value into a tuple, if it is not
+    already.
+    -
+    Args:
+        value (Any): Any object.
+        do_none (bool, optional): Set to True in order to wrap None values in a
+            tuple. Otherwise, tuplify will leave them as bare None. Defaults to
+            False.
+    -
+    Returns:
+        Union[Tuple[Any, ...], None]: The passed value as a tuple, or None.
+    """
+    if not isinstance(value, tuple) and (value is not None or do_none):
+        # Covers dicts and OrderedDicts:
+        if isinstance(value, dict):
+            value = [(k, v) for k, v in value.items()]
+        # Ensures it doesn't accidentally unpack strings or iterables:
+        elif not isinstance(value, Iterable) or isinstance(value, str):
+            value = [value]
+        return tuple(value)
+    else:
+        return value
+
+
+def tuplify_iterable(
+    value: Union[Dict[Any, Any], MutableSequence[Any]], do_none: bool = False
+) -> Union[Dict[Any, Tuple[Any]], MutableSequence[Tuple[Any]]]:
+    """
+    Convenience function for broadcasting tuplify over the elements of a
+    dictionary or mutable sequence.
+    -
+    Args:
+        value (Union[Dict[Any, Any], MutableSequence[Any]]): Dict-like or list-
+            like.
+        do_none (bool, optional): Set to True in order to wrap None values in a
+            tuple. Otherwise, tuplify will leave them as bare None. Defaults to
+            False.
+    -
+    Returns:
+        Union[Dict[Any, Tuple[Any]], MutableSequence[Tuple[Any]]]: The passed
+            dictionary (with values wrapped in tuples) or mutable sequence (with
+            elements wraped in tuples).
+    """
+    # Covers dicts and OrderedDicts.
+    if isinstance(value, dict):
+        iterable = value.items()
+    else:
+        iterable = enumerate(value)
+    for k, v in iterable:
+        value[k] = tuplify(v, do_none)
+    return value
 
 
 def withinplus(within: Iterable, *values: Any) -> bool:

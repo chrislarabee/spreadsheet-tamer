@@ -128,22 +128,6 @@ def test_translate_null():
         u.translate_null(1, int)
 
 
-def test_tuplify():
-    assert isinstance(u.tuplify("test"), tuple)
-    assert u.tuplify("test") == ("test",)
-    assert u.tuplify(None) is None
-    assert u.tuplify(None, True) == (None,)
-    assert u.tuplify([1, 2, 3]) == (1, 2, 3)
-    assert u.tuplify({1, 2, 3}) == (1, 2, 3)
-    assert u.tuplify({"a": 1, "b": 2}) == (("a", 1), ("b", 2))
-    assert u.tuplify(1) == (1,)
-    assert u.tuplify(1.23) == (1.23,)
-
-
-def test_tuplify_iterable():
-    assert u.tuplify_iterable([1, 2, 3]) == [(1,), (2,), (3,)]
-
-
 def test_validate_attr():
     df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
     assert u.validate_attr(df, "shape", (2, 3))

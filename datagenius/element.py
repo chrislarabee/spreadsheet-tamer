@@ -8,6 +8,7 @@ import datagenius.util as u
 
 class ZeroNumeric:
     """
+    TODO: Deprecate.
     Numeric strings that need to have one or more zeros on their left
     side.
     """

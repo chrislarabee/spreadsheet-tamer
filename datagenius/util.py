@@ -488,6 +488,7 @@ def translate_null(obj: Any, to=nan):
 
 def tuplify(value, do_none: bool = False) -> Optional[tuple]:
     """
+    # TODO: Deprecate.
     Simple function that puts the passed object value into a tuple, if
     it is not already.
 
@@ -513,6 +514,7 @@ def tuplify_iterable(
     value: Union[MutableSequence[Any], MutableMapping[Any, Any]], do_none: bool = False
 ) -> Union[MutableSequence[tuple], MutableMapping[str, tuple]]:
     """
+    # TODO: Deprecate.
     Convenience method to apply tuplify function to the values of a mutable
     mapping or sequence.
 

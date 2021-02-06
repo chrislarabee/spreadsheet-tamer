@@ -44,6 +44,31 @@ class TestCollectByKeys:
         assert type(x) == OrderedDict and type(x) != dict
 
 
+class TestTuplify:
+    def test_that_it_works_on_strings(self):
+        assert isinstance(u.tuplify("test"), tuple)
+        assert u.tuplify("test") == ("test",)
+
+    def test_that_it_works_on_none(self):
+        assert u.tuplify(None) is None
+        assert u.tuplify(None, True) == (None,)
+
+    def test_that_it_works_on_any_iterable(self):
+        assert u.tuplify([1, 2, 3]) == (1, 2, 3)
+        assert u.tuplify({1, 2, 3}) == (1, 2, 3)
+        assert u.tuplify({"a": 1, "b": 2}) == (("a", 1), ("b", 2))
+
+    def test_that_it_works_on_single_values(self):
+        assert u.tuplify(1) == (1,)
+        assert u.tuplify(1.23) == (1.23,)
+
+
+class TestTuplifyIterable:
+    def test_that_it_can_tuplify_iterable_elements(self):
+        assert u.tuplify_iterable([1, 2, 3]) == [(1,), (2,), (3,)]
+        assert u.tuplify_iterable({"a": 1, "b": 2}) == {"a": (1,), "b": (2,)}
+
+
 class TestWithinPlus:
     def test_that_it_works_with_a_single_value(self):
         assert u.withinplus([1, 2, 3], 1)
@@ -51,7 +76,7 @@ class TestWithinPlus:
     def test_that_it_works_with_multiple_values(self):
         assert u.withinplus([1, 2, 3], 1, 4)
         assert not u.withinplus([1, 2, 3], 4, 5)
-    
+
     def test_that_it_works_with_single_regex(self):
         assert u.withinplus(["xyz", "a23"], r"[a-z]\d+")
         assert not u.withinplus(["xyz", "a23"], r"[a-z]\d[a-z]")
