@@ -4,7 +4,7 @@ import re
 
 def clean_whitespace(x: Any) -> Tuple[bool, Any]:
     """
-    When passed a string, removes leading and trailing whitespace from it and 
+    When passed a string, removes leading and trailing whitespace from it and
     also replaces any chains of more than one space with a single space.
     -
     Args:
@@ -12,7 +12,7 @@ def clean_whitespace(x: Any) -> Tuple[bool, Any]:
     -
     Returns:
         Tuple[bool, Any]: A tuple containing a boolean that indicates whether x was
-        cleaned, and x, cleaned of whitespace if applicable.
+            cleaned, and x, cleaned of whitespace if applicable.
     """
     cleaned = False
     clean_x = x

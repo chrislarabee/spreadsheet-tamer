@@ -7,14 +7,8 @@ from .numerics.zero_numeric import ZeroNumeric
 from .decorators import nullable
 
 
-Numeric = TypeVar(
-    "Numeric",
-    int, 
-    float,
-    np.int64,
-    np.float32,
-    np.float64
-)
+Numeric = TypeVar("Numeric", int, float, np.int64, np.float32, np.float64)
+
 
 @nullable
 def convertplus(obj: Any, target_type: Type) -> Any:

@@ -77,6 +77,20 @@ class Name:
             else:
                 break
 
+    @staticmethod
+    def _preprocess(
+        name: Union[str, List[str], List[Optional[str]]]
+    ) -> Union[List[str], List[Optional[str]]]:
+        name_list = []
+        if isinstance(name, str):
+            name_list = name.lower().split(" ")
+        else:
+            for n in name:
+                if n is not None:
+                    n = n.lower()
+                name_list.append(n)
+        return name_list
+
     def _intake(self, name: Union[str, List[str], List[Optional[str]]]):
         """
         Takes a passed name, which must either be a string or a list of strings,

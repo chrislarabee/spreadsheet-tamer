@@ -4,12 +4,24 @@ import numpy as np
 from tamer.names.name import Name
 
 
+class TestNamePreprocess:
+    def test_that_it_can_handle_a_simple_string(self):
+        result = Name._preprocess("Fiddleford McGucket")
+        assert result == ["fiddleford", "mcgucket"]
+
+    def test_that_it_can_handle_a_list_of_strings(self):
+        result = Name._preprocess(["Fiddleford", "Cyrus", "McGucket"])
+        assert result == ["fiddleford", "cyrus", "mcgucket"]
+
+    def test_that_it_can_handle_a_list_of_strings_with_nulls(self):
+        result = Name._preprocess([None, "Fiddleford", None, "McGucket"])
+        assert result == [None, "fiddleford", None, "mcgucket"]
+
+
 class TestName:
     def test_allocate(self):
         n = Name("William Cyrus Jehosephat")
-
         n._allocate()
-
         assert n.fname == "William"
         assert n.mname == "Cyrus"
         assert n.lname == "Jehosephat"

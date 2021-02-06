@@ -11,4 +11,3 @@ class TestCleanWhitespace:
     def test_that_it_can_clean_strings_with_bizarre_spacing(self):
         assert u.clean_whitespace(" a bad  string ") == (True, "a bad string")
         assert u.clean_whitespace("     what       even     ") == (True, "what even")
-        

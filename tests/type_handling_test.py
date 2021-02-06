@@ -5,7 +5,6 @@ from tamer import type_handling as t
 from tamer.numerics.zero_numeric import ZeroNumeric
 
 
-
 class TestConvertPlus:
     def test_that_it_can_convert_various_types(self):
         assert t.convertplus(123, target_type=str) == "123"
@@ -28,7 +27,7 @@ class TestConvertPlus:
 
     def test_that_it_can_handle_weird_strings(self):
         assert t.convertplus("1..23", float) == 1.23
-    
+
 
 class TestIsNumericPlus:
     def test_that_it_can_handle_an_integer(self):
@@ -69,7 +68,7 @@ class TestIsNumericPlus:
         assert t.isnumericplus(x) == False
         assert t.isnumericplus(x, return_type=True) == (False, list)
 
-    
+
 class TestTypePlus:
     def test_that_it_can_handle_non_nans(self):
         assert t.type_plus(1) == int
@@ -84,4 +83,3 @@ class TestTypePlus:
         expected = pd.Series([int, nan, str, float])
         result = s.apply(t.type_plus)
         pd.testing.assert_series_equal(expected, result)
-

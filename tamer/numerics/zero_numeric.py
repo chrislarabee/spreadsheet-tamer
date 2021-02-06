@@ -13,11 +13,11 @@ from .. import decorators
 class ZeroNumeric:
     def __init__(self, value: Union[str, tc.Numeric]):
         """
-        Numeric values that need to have one or more zeros on their left side, 
+        Numeric values that need to have one or more zeros on their left side,
         thus making them somewhat string-like.
         -
         Args:
-            value (Union[int, float, str]): The string, integer, or float to 
+            value (Union[int, float, str]): The string, integer, or float to
                 reinterpret as a ZeroNumeric.
 
         Raises:
@@ -82,8 +82,8 @@ class ZeroNumeric:
             value: A numeric value stored as a string.
         -
         Returns:
-            Tuple[str, Union[int, float]]: A tuple of zeros stored as string, and 
-                an integer or float value representing the remainder of the 
+            Tuple[str, Union[int, float]]: A tuple of zeros stored as string, and
+                an integer or float value representing the remainder of the
                 numeric value.
         """
         pieces = re.findall(r"(^0*)([1-9]+\d*\.*\d*)", value)[0]
@@ -114,7 +114,7 @@ class ZeroNumeric:
             zn: A ZeroNumeric object.
         -
         Returns:
-            ZeroNumeric: A ZeroNumeric object with the numeric portion as an 
+            ZeroNumeric: A ZeroNumeric object with the numeric portion as an
                 integer.
         """
         return ZeroNumeric(zn.zeros + str(int(zn.numeric)))
@@ -123,8 +123,8 @@ class ZeroNumeric:
         """
         Converts the numeric portion of the ZeroNumeric to a float.
         -
-        Returns: 
-            ZeroNumeric: A new ZeroNumeric with the same zeros and the numeric 
+        Returns:
+            ZeroNumeric: A new ZeroNumeric with the same zeros and the numeric
                 portion in float format.
         """
         return self.zn_float(self)
@@ -133,15 +133,15 @@ class ZeroNumeric:
         """
         Converts the numeric portion of the ZeroNumeric to a float.
         -
-        Returns: 
-            ZeroNumeric: A new ZeroNumeric with the same zeros and the numeric 
+        Returns:
+            ZeroNumeric: A new ZeroNumeric with the same zeros and the numeric
                 portion in int format.
         """
         return self.zn_int(self)
 
     def _do_op(self, op: Callable[[Any, Any], Any], other) -> Any:
         """
-        Runs a python operation on self._numeric or self._value if other is a 
+        Runs a python operation on self._numeric or self._value if other is a
         string.
         -
         Args:

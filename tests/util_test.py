@@ -105,7 +105,6 @@ def test_get_class_name():
     assert u.get_class_name(dict(a=1, b=2, c=3)) == "dict"
 
 
-
 def test_gwithin():
     assert u.gwithin([1, 2, 3], 1)
     assert u.gwithin([1, 2, 3], 1, 4)

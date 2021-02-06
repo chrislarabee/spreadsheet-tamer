@@ -18,7 +18,7 @@ class TestZeroNumeric:
         z = ZeroNumeric(123)
         assert z.numeric == 123
         assert z.value == "123"
-    
+
     def test_that_it_can_handle_numpy_numeric_objects(self):
         z = ZeroNumeric(np.int64(123))
         assert z.numeric == 123
@@ -47,7 +47,7 @@ class TestZeroNumericOperations:
 
     def test_that_str_operator_adds_apostrophe(self, sample_zn):
         assert str(sample_zn) == "'00124"
-    
+
     def test_that_it_can_handle_math(self, sample_zn):
         x = sample_zn + 1
         assert x == 125
