@@ -1,8 +1,11 @@
 from typing import Optional, Any, Union, Collection, Callable, TypeVar
 import functools
+import warnings
 
 import pandas as pd
 from numpy import nan
+
+from . import metadata
 
 _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
 
@@ -47,3 +50,19 @@ def nullable(
         return decorator_nullable
     else:
         return decorator_nullable(func)
+
+
+def resolution(
+    func: Callable,
+) -> Union[Any, _TFunc]: # type: ignore
+    @functools.wraps(func)
+    def wrapper_resolution(*args, **kwargs):
+        result = func(*args, **kwargs)
+        if isinstance(result, tuple):
+            result1 = result[1]
+            result = result[0]
+            if isinstance(result1, dict):
+                metadata.METADATA.collect(func.__name__, **result1)
+        return result
+            
+    return wrapper_resolution
