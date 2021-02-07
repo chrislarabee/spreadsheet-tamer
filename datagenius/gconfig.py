@@ -7,11 +7,11 @@ import yaml
 
 mod_path = Path(__file__).parent
 
+# TODO: gconfig module is ready for deprecation.
 
 class Patterns:
     def __init__(self) -> None:
         """
-        TODO: Deprecate.
         Stores the various string patterns used by Name and its subclasses to
         parse names.
         """
@@ -180,7 +180,6 @@ class Patterns:
 class GConfig:
     def __init__(self) -> None:
         """
-        TODO: Deprecate.
         One stop shop for all configuration used by datagenius. Customize to
         change core functionality.
         """

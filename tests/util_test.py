@@ -50,12 +50,6 @@ def test_count_true_str():
     assert u.count_true_str(pd.Series([np.nan, "test", 1])) == 1
 
 
-def test_enforce_uniques():
-    assert u.enforce_uniques([1, 2, 3]) == [1, 2, 3]
-    assert u.enforce_uniques(["x", "x", "y"]) == ["x", "x_1", "y"]
-    assert u.enforce_uniques([1, 2, 2]) == [1, 2, "2_1"]
-
-
 def test_gen_alpha_keys():
     assert u.gen_alpha_keys(5) == ["A", "B", "C", "D", "E"]
     assert u.gen_alpha_keys(26) == list(string.ascii_uppercase)
@@ -76,15 +70,6 @@ def test_gen_empty_md_df():
     pd.testing.assert_frame_equal(u.gen_empty_md_df(["a", "b", "c"], "x"), expected)
 
 
-def test_get_class_name():
-    assert u.get_class_name("string") == "str"
-    assert u.get_class_name(123) == "int"
-    assert u.get_class_name(1.245) == "float"
-    assert u.get_class_name(nan) == "nan"
-    assert u.get_class_name([1, 2, 3]) == "list"
-    assert u.get_class_name(dict(a=1, b=2, c=3)) == "dict"
-
-
 def test_purge_gap_rows(gaps, gaps_totals):
     d = pd.DataFrame(gaps)
     d = u.purge_gap_rows(d)
@@ -92,29 +77,6 @@ def test_purge_gap_rows(gaps, gaps_totals):
     d = pd.DataFrame(gaps_totals())
     d = u.purge_gap_rows(d)
     assert d.shape == (9, 3)
-
-
-def test_standardize_header():
-    header = pd.Index(
-        [
-            "Variant SKU",
-            " Barcode  2 ",
-            "Barcode  #3",
-            "Barcode 3",
-            "$ cost",
-        ]
-    )
-    expected = [
-        "variant_sku",
-        "barcode_2",
-        "barcode_3",
-        "barcode_3_1",
-        "cost",
-    ]
-    assert u.standardize_header(header) == (expected, list(header))
-
-    header = pd.RangeIndex(0, 2, 1)
-    assert u.standardize_header(header) == (["0", "1"], list(header))
 
 
 def test_translate_null():

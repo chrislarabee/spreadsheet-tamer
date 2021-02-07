@@ -18,6 +18,7 @@ from typing import (
     Tuple,
     TypeVar,
 )
+import warnings
 
 import pandas as pd
 from numpy import nan
@@ -27,7 +28,7 @@ from datagenius.tms_registry import TMS
 
 
 _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
-
+dep_warning = "{0} is deprecated but not copied to tamer."
 
 def transmutation(
     func: Optional[Any] = None, *, stage: str = None, priority: int = 10
@@ -86,7 +87,6 @@ def nullable(
     func: Optional[Any] = None, *, nan_return: Optional[Any] = nan
 ) -> Union[Any, _TFunc]:
     """
-    TODO: Deprecate.
     An easy way to wrap functions that need to not execute if they are
     used in a DataFrame/Series.apply call on data that contains nan
     values. Simply use this decorator and the function will simply
@@ -144,6 +144,7 @@ def align_args(
         that func can accept.
 
     """
+    warnings.warn(dep_warning.format("align_args"))
     func_args = getattr(func, "args", None)
     if func_args is None:
         func_args = inspect.getfullargspec(func).args
@@ -160,7 +161,6 @@ def broadcast_suffix(
     x: Union[List[str], Tuple[str, ...], pd.Series, pd.Index], suffix: str
 ) -> List[str]:
     """
-    TODO: Deprecate.
     Appends the passed suffix to every value in the passed list.
 
     Args:
@@ -175,7 +175,6 @@ def broadcast_suffix(
 
 def broadcast_type(x: Union[List[Any], pd.Series], type_func: Callable):
     """
-    TODO: Deprecate.
     Applies the passed type conversion function to each element in the
     passed list. Note that if you pass isnumeric plus broadcast_type
     has special functionality and will use the results of isnumericplus
@@ -200,7 +199,6 @@ def broadcast_type(x: Union[List[Any], pd.Series], type_func: Callable):
 
 def clean_whitespace(x: Any) -> Tuple[bool, Any]:
     """
-    # TODO: Deprecate.
     When passed a string, removes leading and trailing whitespace from
     it and also replaces any chains of more than one space with a
     single space.
@@ -231,6 +229,7 @@ def count_true_str(x: Union[list, pd.Series]) -> int:
     Returns: An integer, the count of non-blank strings.
 
     """
+    warnings.warn(dep_warning.format("count_true_str"))
     return sum([1 if isinstance(y, str) and y != "" else 0 for y in x])
 
 
@@ -268,6 +267,7 @@ def gen_alpha_keys(num: int) -> List[str]:
         desired. Can be used to generate sets up to 676 in length.
 
     """
+    warnings.warn(dep_warning.format("gen_alpha_keys"))
     a = string.ascii_uppercase
     result = list()
     x = num // 26
@@ -294,13 +294,13 @@ def gen_empty_md_df(columns: Sequence, default_val=0) -> pd.DataFrame:
         containing a zero in each of those columns.
 
     """
+    warnings.warn(dep_warning.format("gen_empty_df"))
     return pd.DataFrame([[default_val for _ in columns]], columns=columns)
 
 
 @nullable(nan_return="nan")
 def get_class_name(obj) -> str:
     """
-    # TODO: Deprecate.
     Gets the name of the passed object's class, even if it doesn't
     have a __name__ attribute.
 
@@ -317,7 +317,6 @@ def get_class_name(obj) -> str:
 @nullable
 def gconvert(obj: Any, target_type: Callable):
     """
-    TODO: Deprecate.
     Smart type conversion that avoids errors when converting to numeric
     from non-standard strings.
 
@@ -339,7 +338,6 @@ def gconvert(obj: Any, target_type: Callable):
 @nullable
 def gtype(obj: Any):
     """
-    # TODO: Deprecate.
     Wrapper for type that distinguishes nan values as nan and not
     float.
 
@@ -354,7 +352,6 @@ def gtype(obj: Any):
 
 def gwithin(within: Sequence, *values) -> bool:
     """
-    TODO: Deprecate.
     A more sophisticated way to execute "x in iterable" type python
     statements. Allows searching for multiple values at once and using
     regex.
@@ -386,7 +383,6 @@ def gwithin(within: Sequence, *values) -> bool:
 
 def isnumericplus(x, *options) -> Union[bool, Tuple[bool, Any]]:
     """
-    TODO: Deprecate.
     A better version of the str.isnumeric test that correctly
     identifies floats stored as strings as numeric.
 
@@ -426,6 +422,7 @@ def package_rejects_metadata(df: pd.DataFrame):
         counts of values in df.
 
     """
+    warnings.warn(dep_warning.format("package_rejects_metadata"))
     return dict(rejects=df, metadata=pd.DataFrame(df.count()).T)
 
 
@@ -439,6 +436,7 @@ def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     Returns: A DataFrame without entirely nan rows.
 
     """
+    warnings.warn(dep_warning.format("purge_gap_rows"))
     return df.dropna(how="all").reset_index(drop=True)
 
 
@@ -479,6 +477,7 @@ def translate_null(obj: Any, to=nan):
     Returns: The object, converted to None or nan as appropriate.
 
     """
+    warnings.warn(dep_warning.format("translate_null"))
     if not pd.isna(to) and to is not None:
         raise ValueError(f"to must be numpy nan or None. to={to}")
     if pd.isna(obj) or obj is None:
@@ -489,7 +488,6 @@ def translate_null(obj: Any, to=nan):
 
 def tuplify(value, do_none: bool = False) -> Optional[tuple]:
     """
-    # TODO: Deprecate.
     Simple function that puts the passed object value into a tuple, if
     it is not already.
 
@@ -515,7 +513,6 @@ def tuplify_iterable(
     value: Union[MutableSequence[Any], MutableMapping[Any, Any]], do_none: bool = False
 ) -> Union[MutableSequence[tuple], MutableMapping[str, tuple]]:
     """
-    # TODO: Deprecate.
     Convenience method to apply tuplify function to the values of a mutable
     mapping or sequence.
 
@@ -552,6 +549,7 @@ def validate_attr(obj, attr: str, match=None) -> bool:
         attribute and if it matches the passed match.
 
     """
+    warnings.warn(dep_warning.format("validate_attr"))
     result = False
     if hasattr(obj, attr):
         if match is None:
@@ -608,6 +606,7 @@ def gsheet_range_formula(
     Returns: The DataFrame, with a formula row or column added.
 
     """
+    warnings.warn(dep_warning.format("gsheet_range_formula"))
     col_order = list(col_order) if col_order else list(df.columns)
     # Translate columns into Google Sheet column names (i.e. A, B, C...)
     alpha_cols = gen_alpha_keys(len(col_order))

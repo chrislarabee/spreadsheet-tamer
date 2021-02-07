@@ -5,10 +5,10 @@ import pandas as pd
 
 import datagenius.util as u
 
+# TODO: element module is ready for deprecation.
 
 class ZeroNumeric:
     """
-    TODO: Deprecate.
     Numeric strings that need to have one or more zeros on their left
     side.
     """
