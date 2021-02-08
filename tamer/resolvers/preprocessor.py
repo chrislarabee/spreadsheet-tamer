@@ -13,14 +13,14 @@ from .. import iterutils
 class Preprocessor(Resolver):
     def __init__(self, manual_header: Header = None) -> None:
         """
-        Applies essentially mandatory preprocessing resolutions to the passed 
+        Applies essentially mandatory preprocessing resolutions to the passed
         DataFrame. This Resolver is used as part of spreadsheet-tamer's io
-        functionality, so probably doesn't need to be instantiated and called 
+        functionality, so probably doesn't need to be instantiated and called
         directly unless your data is coming from a source spreadsheet-tamer can't
         read.
         -
         Args:
-            manual_header (Header, optional): A Header to use in place of 
+            manual_header (Header, optional): A Header to use in place of
                 attempting to detect a header. Defaults to None.
         """
         self._manual_header = manual_header
@@ -31,16 +31,16 @@ class Preprocessor(Resolver):
         Applies Preprocessor's resolutions.
         -
         Args:
-            df (pd.DataFrame): The DataFrame to apply preprocessing resolutions 
+            df (pd.DataFrame): The DataFrame to apply preprocessing resolutions
                 to.
 
         Returns:
-            pd.DataFrame: The DataFrame, with any whitespace and header issues 
+            pd.DataFrame: The DataFrame, with any whitespace and header issues
                 resolved.
         """
         df = self._normalize_whitespace(df)
-        if (iterutils.withinplus(df.columns, r"[Uu]nnamed:*[ _]\d") 
-            or isinstance(df.columns, pd.RangeIndex)
+        if iterutils.withinplus(df.columns, r"[Uu]nnamed:*[ _]\d") or isinstance(
+            df.columns, pd.RangeIndex
         ):
             df, header_idx = self._detect_header(df, self._manual_header)
             df = self._purge_pre_header(df, header_idx=header_idx)
@@ -89,7 +89,7 @@ class Preprocessor(Resolver):
             df (pd.DataFrame): DataFrame to ensure whitespace is normalized.
         -
         Returns:
-            pd.DataFrame: The DataFrame, with any string values cleansed of 
+            pd.DataFrame: The DataFrame, with any string values cleansed of
                 excess whitespace.
         """
         md_df = md.gen_empty_md_df(df.columns)

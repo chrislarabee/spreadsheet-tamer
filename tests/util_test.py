@@ -55,7 +55,6 @@ def test_gen_alpha_keys():
     ]
 
 
-
 def test_purge_gap_rows(gaps, gaps_totals):
     d = pd.DataFrame(gaps)
     d = u.purge_gap_rows(d)

@@ -53,4 +53,3 @@ class TestResolution:
         assert y == 2
         assert z == 1
         md.collect.assert_not_called()
-

@@ -14,7 +14,7 @@ class Metadata:
 def gen_empty_md_df(columns: Sequence, default_val: Any = 0) -> pd.DataFrame:
     """
     Generates an empty DataFrame with the passed columns and a one row
-    placeholder. Used in resolution functions that need to accumulate metadata 
+    placeholder. Used in resolution functions that need to accumulate metadata
     into an empty DataFrame.
     -
     Args:
@@ -22,7 +22,7 @@ def gen_empty_md_df(columns: Sequence, default_val: Any = 0) -> pd.DataFrame:
         default_val (Any): The default value to put in each column in the
             empty df.
     -
-    Returns: 
+    Returns:
         pd.DataFrame: A DataFrame with the passed columns and a single row
             containing a zero in each of those columns.
     """

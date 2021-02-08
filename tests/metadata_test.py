@@ -118,4 +118,6 @@ class TestGenEmptyMDDF:
 
     def test_that_it_works_with_a_default_val(self):
         expected = pd.DataFrame([dict(a="x", b="x", c="x")])
-        pd.testing.assert_frame_equal(md.gen_empty_md_df(["a", "b", "c"], "x"), expected)
+        pd.testing.assert_frame_equal(
+            md.gen_empty_md_df(["a", "b", "c"], "x"), expected
+        )
