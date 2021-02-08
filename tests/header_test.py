@@ -15,14 +15,14 @@ class TestHeader:
 
     def test_that_it_can_handle_pandas_index_input(self):
         h = Header(pd.Index(["a", "b", "c"]))
-        assert h == ['a', 'b', 'c']
+        assert h == ["a", "b", "c"]
 
     def test_that_it_can_handle_args_input(self):
         h = Header("a", "b", "c")
-        assert h == ['a', 'b', 'c']
+        assert h == ["a", "b", "c"]
 
     def test_that_it_can_handle_list_input(self):
-        expected = ['a', 'b', 'c']
+        expected = ["a", "b", "c"]
         h = Header(*["a", "b", "c"])
         assert h == expected
         h = Header(["a", "b", "c"])
@@ -53,7 +53,9 @@ class TestHeader:
         assert sample_header[1] == "z_1"
         assert sample_header.original_form[1] == "Z"
 
-    def test_that_it_can_be_assigned_to_a_pandas_dataframe_as_columns(self, sample_header):
+    def test_that_it_can_be_assigned_to_a_pandas_dataframe_as_columns(
+        self, sample_header
+    ):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
         pd.testing.assert_index_equal(df.columns, pd.RangeIndex(0, 3, 1))
         df.columns = sample_header

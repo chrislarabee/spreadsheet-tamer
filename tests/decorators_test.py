@@ -32,11 +32,14 @@ class TestResolution:
         @decorators.resolution
         def _func(x):
             return x[0]
-        
+
         assert _func([1, 2, 3]) == 1
         md.collect.assert_not_called()
 
-    def test_that_it_logs_results_to_metadata_when_provided(self, md,):
+    def test_that_it_logs_results_to_metadata_when_provided(
+        self,
+        md,
+    ):
         @decorators.resolution
         def _func(x):
             return x[0], dict(metadata=x)

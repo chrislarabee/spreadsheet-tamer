@@ -7,25 +7,28 @@ from ..decorators import resolution
 from ..header import Header
 from ..strings import util as su
 
+
 class Preprocessor(Resolver):
     def __init__(self) -> None:
         super().__init__()
-    
+
     def resolve(self, df: pd.DataFrame) -> pd.DataFrame:
         return super().resolve(df)
 
     @staticmethod
     @resolution
-    def _detect_header(df: pd.DataFrame, manual_header: Header = None) -> Tuple[pd.DataFrame, Optional[int]]:
+    def _detect_header(
+        df: pd.DataFrame, manual_header: Header = None
+    ) -> Tuple[pd.DataFrame, Optional[int]]:
         """
-        Takes a pandas DataFrame and sets its column names to be the values of 
-        the first row containing all true strings and removes that row from the 
+        Takes a pandas DataFrame and sets its column names to be the values of
+        the first row containing all true strings and removes that row from the
         DataFrame.
         -
         Args:
             df (pd.DataFrame): The DataFrame to check for a valid header row.
-            manual_header (Header, optional): A manually supplied Header which 
-                will be used instead of attempting to detect a valid header. 
+            manual_header (Header, optional): A manually supplied Header which
+                will be used instead of attempting to detect a valid header.
                 Defaults to None.
         -
         Returns:
@@ -48,17 +51,17 @@ class Preprocessor(Resolver):
     @resolution
     def _purge_pre_header(df: pd.DataFrame, header_idx: int = None) -> pd.DataFrame:
         """
-        Removes any rows that appear before the header row in a DataFrame where 
-        the header row wasn't the first row in the source data. Purged rows are 
+        Removes any rows that appear before the header row in a DataFrame where
+        the header row wasn't the first row in the source data. Purged rows are
         stored in spreadsheet-tamer's metadata.
         -
         Args:
             df (pd.DataFrame): The DataFrame to purge rows from.
-            header_idx (int, optional): The index of the header row. Defaults to 
+            header_idx (int, optional): The index of the header row. Defaults to
                 None.
         -
         Returns:
-            pd.DataFrame: The DataFrame, with any rows appearing before the 
+            pd.DataFrame: The DataFrame, with any rows appearing before the
                 header removed.
         """
         if header_idx:

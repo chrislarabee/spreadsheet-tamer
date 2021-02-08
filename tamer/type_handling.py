@@ -34,13 +34,13 @@ def convertplus(obj: Any, target_type: Type) -> Any:
 @nullable(null_return="nan")
 def get_class_name(obj: Any) -> str:
     """
-    Gets the name of the passed object's class, even if it doesn't have a 
+    Gets the name of the passed object's class, even if it doesn't have a
     __name__ attribute.
     -
     Args:
         obj (Any): An object.
     -
-    Returns: 
+    Returns:
         str: The name of the object's class.
     """
     t = type(obj)

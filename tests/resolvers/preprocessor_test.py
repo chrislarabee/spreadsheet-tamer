@@ -38,7 +38,9 @@ class TestPreprocessor:
             expected = pd.DataFrame([{0: 2, 1: 0, 2: 0}])
             pd.testing.assert_frame_equal(md["metadata"], expected)
 
-        def test_that_it_can_handle_a_dataframe_that_doesnt_need_a_purge(self, customers):
+        def test_that_it_can_handle_a_dataframe_that_doesnt_need_a_purge(
+            self, customers
+        ):
             df = pd.DataFrame(**customers())
             df = Preprocessor._purge_pre_header(df)
             assert df.shape == (4, 4)

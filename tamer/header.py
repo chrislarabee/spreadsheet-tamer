@@ -6,11 +6,11 @@ import re
 class Header:
     def __init__(self, *labels) -> None:
         """
-        Use this to represent your list of header row labels instead of another 
+        Use this to represent your list of header row labels instead of another
         sequence to guarantee your header labels will be standardized and unique.
 
         Args:
-            labels: Any type of Sequence, either expanded with * or passed as a 
+            labels: Any type of Sequence, either expanded with * or passed as a
                 single object. You can also simply pass the labels as args.
         """
         if len(labels) == 1:
@@ -23,7 +23,7 @@ class Header:
     def original_form(self) -> List[Any]:
         """
         Returns:
-            List[Any]: The original contents of the labels passed on init as a 
+            List[Any]: The original contents of the labels passed on init as a
                 List.
         """
         return self._original
@@ -65,7 +65,7 @@ class Header:
             value (str): The value to delete.
         -
         Raises:
-            ValueError: If the passed value is not present in the Header or the 
+            ValueError: If the passed value is not present in the Header or the
                 original_form of the Header.
         """
         if value in self._header:
@@ -86,7 +86,7 @@ class Header:
             x (List[Any]): A list of any contents.
         -
         Returns:
-            List[str]: The passed list, but with any duplicates converted to 
+            List[str]: The passed list, but with any duplicates converted to
                 strings and with their contents appended with _n.
         """
         values = dict()
@@ -101,7 +101,7 @@ class Header:
     @classmethod
     def _standardize(cls, header: Sequence) -> List[str]:
         """
-        Standardizes the passed Sequence, converting it to a list of unique 
+        Standardizes the passed Sequence, converting it to a list of unique
         strings with no non-alphanumeric characters except _.
         -
         Args:
@@ -156,12 +156,9 @@ class Header:
             return True
         else:
             return False
-    
+
     def __ne__(self, o: object) -> bool:
         if self._header != o:
             return True
         else:
             return False
-        
-
-

@@ -24,7 +24,7 @@ def clean_whitespace(x: Any) -> Tuple[bool, Any]:
 
 def count_true_str(x: Sequence) -> int:
     """
-    Takes a list-like and returns the number of values in it that are strings and 
+    Takes a list-like and returns the number of values in it that are strings and
     that are not ''.
     -
     Args:
