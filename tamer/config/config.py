@@ -18,6 +18,20 @@ class Config:
         self._patterns = Patterns()
         raw = self._load_config()
         self._name_columns = tuple(raw.get("name_columns", []))
+        self._env = "prod"
+
+    @property
+    def env(self) -> str:
+        return self._env
+
+    @env.setter
+    def env(self, env: str) -> None:
+        if env in ("prod", "test"):
+            self._env = env
+        else:
+            raise ValueError(
+                f"Config.env must be one of 'prod' or 'test'. Passed {env}"
+            )
 
     @property
     def patterns(self) -> Patterns:

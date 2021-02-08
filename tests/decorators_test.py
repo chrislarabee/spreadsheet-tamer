@@ -4,6 +4,7 @@ from numpy import nan
 
 from tamer import decorators
 from tamer import metadata
+from tamer import config
 
 
 class TestNullable:
@@ -23,6 +24,10 @@ class TestResolution:
         monkeypatch.setattr(metadata, "METADATA", md)
         return md
 
+    @pytest.fixture(autouse=True)
+    def override_test_config(self, monkeypatch):
+        monkeypatch.setattr(config.config, "env", "prod")
+
     def test_that_it_can_wrap_a_function_with_no_md_return(self, md):
         @decorators.resolution
         def _func(x):
@@ -31,7 +36,7 @@ class TestResolution:
         assert _func([1, 2, 3]) == 1
         md.collect.assert_not_called()
 
-    def test_that_it_logs_results_to_metadata(self, md):
+    def test_that_it_logs_results_to_metadata_when_provided(self, md,):
         @decorators.resolution
         def _func(x):
             return x[0], dict(metadata=x)

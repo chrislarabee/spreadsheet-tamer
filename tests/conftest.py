@@ -6,6 +6,7 @@ from numpy import nan
 
 from datagenius.io.text import SheetsAPI
 from tests import testing_tools
+import tamer.config as config
 
 
 # SheetsAPI test marker
@@ -51,6 +52,11 @@ def sheets_api():
             f"credentials as described in the README."
         )
         yield None
+
+
+@pytest.fixture(autouse=True)
+def set_test_config(monkeypatch):
+    monkeypatch.setattr(config.config, "env", "test")
 
 
 @pytest.fixture

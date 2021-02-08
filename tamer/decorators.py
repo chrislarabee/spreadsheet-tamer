@@ -6,6 +6,7 @@ import pandas as pd
 from numpy import nan
 
 from . import metadata
+from .config import config
 
 _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
 
@@ -58,7 +59,7 @@ def resolution(
     @functools.wraps(func)
     def wrapper_resolution(*args, **kwargs):
         result = func(*args, **kwargs)
-        if isinstance(result, tuple):
+        if isinstance(result, tuple) and config.env == "prod":
             result1 = result[1]
             result = result[0]
             if isinstance(result1, dict):
