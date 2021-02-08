@@ -55,13 +55,6 @@ def test_gen_alpha_keys():
     ]
 
 
-def test_gen_empty_md_df():
-    expected = pd.DataFrame([dict(a=0, b=0, c=0)])
-    pd.testing.assert_frame_equal(u.gen_empty_md_df(["a", "b", "c"]), expected)
-
-    expected = pd.DataFrame([dict(a="x", b="x", c="x")])
-    pd.testing.assert_frame_equal(u.gen_empty_md_df(["a", "b", "c"], "x"), expected)
-
 
 def test_purge_gap_rows(gaps, gaps_totals):
     d = pd.DataFrame(gaps)

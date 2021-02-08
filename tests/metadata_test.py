@@ -1,7 +1,8 @@
 import pandas as pd
 
 import datagenius.util as u
-import datagenius.metadata as md
+import datagenius.metadata as omd
+import tamer.metadata as md
 
 
 class TestGeniusMetadata:
@@ -15,7 +16,7 @@ class TestGeniusMetadata:
             [dict(stage="test_track", transmutation="tracked_func", a=1, b=0, c=1)]
         )
 
-        gmd = md.GeniusMetadata()
+        gmd = omd.GeniusMetadata()
         x, kwargs = gmd.track(tracked_func, df)
         assert kwargs == {}
         pd.testing.assert_frame_equal(x, df)
@@ -108,3 +109,13 @@ class TestGeniusMetadata:
         )
         m1.combine(m2)
         pd.testing.assert_frame_equal(m1.collected, expected)
+
+
+class TestGenEmptyMDDF:
+    def test_that_it_works_with_no_default_val(self):
+        expected = pd.DataFrame([dict(a=0, b=0, c=0)])
+        pd.testing.assert_frame_equal(md.gen_empty_md_df(["a", "b", "c"]), expected)
+
+    def test_that_it_works_with_a_default_val(self):
+        expected = pd.DataFrame([dict(a="x", b="x", c="x")])
+        pd.testing.assert_frame_equal(md.gen_empty_md_df(["a", "b", "c"], "x"), expected)

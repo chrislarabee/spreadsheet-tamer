@@ -293,7 +293,6 @@ def gen_empty_md_df(columns: Sequence, default_val=0) -> pd.DataFrame:
         containing a zero in each of those columns.
 
     """
-    warnings.warn(dep_warning.format("gen_empty_df"))
     return pd.DataFrame([[default_val for _ in columns]], columns=columns)
 
 
