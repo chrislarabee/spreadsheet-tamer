@@ -10,26 +10,6 @@ from tests import testing_tools
 
 
 class TestGeniusAccessor:
-    def test_preprocess(self, gaps, customers, gaps_totals):
-        expected = pd.DataFrame(**customers())
-        df = pd.DataFrame(gaps)
-        df = u.purge_gap_rows(df)
-        df, metadata = df.genius.preprocess()
-        pd.testing.assert_frame_equal(df, expected)
-
-        # More realistic test with a partial header:
-        g = gaps_totals(False, False)
-        expected = pd.DataFrame(g[1:], columns=g[0])
-        df = pd.DataFrame.genius.from_file("tests/samples/excel/sales_report.xlsx")
-        df, metadata = df.genius.preprocess()
-        pd.testing.assert_frame_equal(df, expected)
-
-        # More realistic test with no header:
-        expected = pd.DataFrame(**customers())
-        df = pd.DataFrame.genius.from_file("tests/samples/csv/gaps.csv")
-        df, metadata = df.genius.preprocess()
-        pd.testing.assert_frame_equal(df, expected)
-
     def test_explore(self, employees):
         df = pd.DataFrame(**employees)
         expected = pd.DataFrame(

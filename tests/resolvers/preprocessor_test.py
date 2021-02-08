@@ -1,11 +1,34 @@
+import pytest
+
 import pandas as pd
 from numpy import nan
 
 from tamer.resolvers.preprocessor import Preprocessor
 from tamer.header import Header
+from tamer import config
 
 
 class TestPreprocessor:
+    class TestResolve:
+        @pytest.fixture(autouse=True)
+        def override_test_config(self, monkeypatch):
+            monkeypatch.setattr(config.config, "env", "prod")
+
+        def test_that_it_works_with_a_report_like_spreadsheet(self, gaps_totals):
+            df = pd.DataFrame(gaps_totals())
+            g = gaps_totals(False, False)
+            expected = pd.DataFrame(g[1:], columns=g[0])
+            df = Preprocessor().resolve(df)
+            pd.testing.assert_frame_equal(df, expected, check_dtype=False)
+
+        def test_that_it_works_with_a_csv_with_pre_header_gaps(self, customers, gaps):
+            c = customers()
+            c["data"].insert(0, [nan, nan, nan, nan])
+            expected = pd.DataFrame(**c)
+            df = pd.DataFrame(gaps)
+            df = Preprocessor().resolve(df)
+            pd.testing.assert_frame_equal(df, expected)
+
     class TestDetectHeader:
         def test_detect_header(self, gaps):
             df = pd.DataFrame(gaps)
