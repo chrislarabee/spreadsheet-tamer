@@ -43,13 +43,6 @@ def test_align_args():
     assert u.align_args(_func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
-def test_count_true_str():
-    assert u.count_true_str(["", "", ""]) == 0
-    assert u.count_true_str(["a", "test", 1]) == 2
-    assert u.count_true_str(pd.Series(["a", "test", 1])) == 2
-    assert u.count_true_str(pd.Series([np.nan, "test", 1])) == 1
-
-
 def test_gen_alpha_keys():
     assert u.gen_alpha_keys(5) == ["A", "B", "C", "D", "E"]
     assert u.gen_alpha_keys(26) == list(string.ascii_uppercase)

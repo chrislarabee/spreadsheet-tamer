@@ -229,7 +229,6 @@ def count_true_str(x: Union[list, pd.Series]) -> int:
     Returns: An integer, the count of non-blank strings.
 
     """
-    warnings.warn(dep_warning.format("count_true_str"))
     return sum([1 if isinstance(y, str) and y != "" else 0 for y in x])
 
 

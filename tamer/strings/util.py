@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any, Tuple, Sequence
 import re
 
 
@@ -20,3 +20,17 @@ def clean_whitespace(x: Any) -> Tuple[bool, Any]:
         clean_x = re.sub(r" +", " ", x.strip())
         cleaned = True if clean_x != x else False
     return cleaned, clean_x
+
+
+def count_true_str(x: Sequence) -> int:
+    """
+    Takes a list-like and returns the number of values in it that are strings and 
+    that are not ''.
+    -
+    Args:
+        x (Sequence): List-like object to count strings in.
+    -
+    Returns:
+        int: The count of non-blank strings.
+    """
+    return sum([1 if isinstance(y, str) and y != "" else 0 for y in x])
