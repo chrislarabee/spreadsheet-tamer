@@ -27,6 +27,33 @@ class TestPreprocessor:
             assert list(df.columns) == [0, 1, 2]
             assert header_idx is None
 
+    class TestNormalizeWhitespace:
+        def test_that_it_works_on_a_dataframe_with_a_mix_of_values(self):
+            df = pd.DataFrame(
+                [
+                    dict(a="a good string", b=" a  bad   string  ", c=nan),
+                    dict(a="     what       even     ", b=nan, c=123),
+                ]
+            )
+            expected = pd.DataFrame(
+                [
+                    dict(a="a good string", b="a bad string", c=nan),
+                    dict(a="what even", b=nan, c=123),
+                ]
+            )
+            df, md_dict = Preprocessor._normalize_whitespace(df)
+            pd.testing.assert_frame_equal(df, expected)
+            assert md_dict["metadata"].iloc[0]["a"] == 1
+            assert md_dict["metadata"].iloc[0]["b"] == 1
+            assert md_dict["metadata"].iloc[0]["c"] == 0
+
+        def test_that_it_works_on_a_dataframe_with_standard_strings(self, gaps_totals):
+            g = gaps_totals(False, False)
+            df = pd.DataFrame(g[1:], columns=g[0])
+            expected = pd.DataFrame(g[1:], columns=g[0])
+            df, _ = Preprocessor._normalize_whitespace(df)
+            pd.testing.assert_frame_equal(df, expected)
+
     class TestPurgePreHeader:
         def test_that_it_can_purge_pre_header(self, gaps_totals):
             df = pd.DataFrame(gaps_totals())

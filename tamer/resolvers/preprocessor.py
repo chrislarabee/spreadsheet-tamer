@@ -6,10 +6,12 @@ from .resolver import Resolver
 from ..decorators import resolution
 from ..header import Header
 from ..strings import util as su
+from .. import metadata as md
 
 
 class Preprocessor(Resolver):
-    def __init__(self) -> None:
+    def __init__(self, manual_header: Header = None) -> None:
+        self._manual_header = manual_header
         super().__init__()
 
     def resolve(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -46,6 +48,18 @@ class Preprocessor(Resolver):
                 header_idx = first_idx
                 df = df.drop(index=first_idx).reset_index(drop=True)
         return df, header_idx
+
+    @staticmethod
+    @resolution
+    def _normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+        md_df = md.gen_empty_md_df(df.columns)
+        for c in df.columns:
+            result = df[c].apply(su.clean_whitespace)
+            # Pass the index in case the DataFrame is being chunked on read:
+            result = pd.DataFrame(result.to_list(), index=df.index)
+            df[c] = result[1]
+            md_df[c] = result[0].sum()
+        return df, {"metadata": md_df}
 
     @staticmethod
     @resolution
