@@ -6,31 +6,6 @@ import datagenius.lib.preprocess as pp
 import datagenius.util as u
 
 
-def test_purge_pre_header(gaps_totals, customers):
-    df = pd.DataFrame(gaps_totals())
-    assert df.shape == (11, 3)
-    df = u.purge_gap_rows(df)
-    df, h = pp.detect_header(df)
-    df, metadata = pp.purge_pre_header(df, h["new_kwargs"]["header_idx"])
-    assert list(df.columns) == ["location", "region", "sales"]
-    assert df.shape == (6, 3)
-    expected = pd.DataFrame(
-        [
-            ["Sales by Location Report", nan, nan],
-            ["Grouping: Region", nan, nan],
-        ],
-        columns=["location", "region", "sales"],
-    )
-    pd.testing.assert_frame_equal(metadata["rejects"], expected, check_dtype=False)
-    expected = pd.DataFrame([dict(location=2, region=0, sales=0)])
-    pd.testing.assert_frame_equal(metadata["metadata"], expected)
-
-    # Test a DataFrame that doesn't need a purge:
-    df = pd.DataFrame(**customers())
-    df = pp.purge_pre_header(df)
-    assert df.shape == (4, 4)
-
-
 def test_detect_header(gaps):
     df = pd.DataFrame(gaps)
     df, metadata = pp.detect_header(df)
