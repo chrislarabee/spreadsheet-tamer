@@ -52,6 +52,17 @@ class Preprocessor(Resolver):
     @staticmethod
     @resolution
     def _normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        A simple resolution that applies string.utils.clean_whitespace to every
+        cell in a DataFrame.
+        -
+        Args:
+            df (pd.DataFrame): DataFrame to ensure whitespace is normalized.
+        -
+        Returns:
+            pd.DataFrame: The DataFrame, with any string values cleansed of 
+                excess whitespace.
+        """
         md_df = md.gen_empty_md_df(df.columns)
         for c in df.columns:
             result = df[c].apply(su.clean_whitespace)
