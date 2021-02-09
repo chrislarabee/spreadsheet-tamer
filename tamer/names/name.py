@@ -20,7 +20,7 @@ class Name:
         name. Whether it is valid, and what features it contains. This lets
         the core functions of Name parsing and validation be inherited by
         the real workhorses of parsing, Namestring and Nametoken.
-        -
+
         Args:
             name (Union[str, List[Optional[str]]]): The name to assign to this
                 Name object.
@@ -95,7 +95,7 @@ class Name:
         """
         Takes a passed name, which must either be a string or a list of strings,
         and assigns it to self.name_list after a small amount of pre-processing.
-        -
+
         Args:
             name (Union[str, List[str]]): Name to preprocess.
         """
@@ -118,7 +118,7 @@ class Name:
         Loops over each element in self.name_list and applies the passed function
         to it. If the passed function returns '', then that result is treated as
         an indication that the string should be removed from self.name_list.
-        -
+
         Args:
             operation (NameOperation): A NameOperation, defined as a function
                 that takes an integer and a string as positional arguments and
@@ -141,7 +141,7 @@ class Name:
         """
         Checks the name list for validity. If any of the conditions specified in
         _validate pass, then the entire Name is not valid.
-        -
+
         Args:
             final (Optional[bool], optional): True to check if the required
                 name_attributes are None. Defaults to False.
@@ -169,13 +169,13 @@ class Name:
         """
         Takes a string and removes all invalid characters (as specified by
         datagenius patterns configuration) from it.
-        -
+
         Args:
             s (str): The string to cleanse.
             index (Optional[int], optional): Index in name_list where the string
                 was found. Required for compatibility as a NameOperation.
                 Defaults to None.
-        -
+
         Returns:
             str: The cleansed string
         """
@@ -188,13 +188,13 @@ class Name:
         """
         Takes a string and, if it is one of the invalid words specified in
             datagenius patterns configuration, returns ''.
-        -
+
         Args:
             s (str): The string to cleanse.
             index (Optional[int], optional): Index in name_list where the string
                 was found. Required for compatibility as a NameOperation.
                 Defaults to None.
-        -
+
         Returns:
             str: The string, or '' if it is an invalid word.
         """
@@ -214,12 +214,12 @@ class Name:
     def format_camelcase(name: str, hump_start: int) -> str:
         """
         Camelcases a name that uses nonstandard capitalization (e.g. McElroy).
-        -
+
         Args:
             name (str): The name to camelcase
             hump_start (int): The first character of the "hump" in the string.
                 (i.e. in McElroy the "hump" starts at index 2).
-        -
+
         Returns:
             str: Camel-cased version of name.
         """
@@ -234,13 +234,13 @@ class Name:
     def manage_cases(cls, s: str, index: Optional[int] = None) -> str:
         """
         Makes sure each the passed string is properly capitalized.
-        -
+
         Args:
             s (str): The string to cleanse.
             index (Optional[int], optional): Index in name_list where the string
                 was found. Required for compatibility as a NameOperation.
                 Defaults to None.
-        -
+
         Returns:
             str: Camel-cased version of name.
         """
@@ -260,7 +260,7 @@ class Name:
         """
         Takes a dictionary and assigns the Name object's attributes to
         matching keys from the dictionary
-        -
+
         Args:
             record_dict (Dict[str, Any]): A dictionary containing keys that match
             some or all of Name's attributes.
@@ -275,12 +275,12 @@ class Name:
     def to_list(self, force_name2: bool = False) -> List[Optional[str]]:
         """
         Generates a list of the name's components.
-        -
+
         Args:
             force_name2 (bool): True to include name2 values in the list even if
                 they are all null. Will be a list of length 10 instead of length
                 5. Default is False.
-        -
+
         Returns:
             List[Optional[str]]: A list consisting of the name's prefix, first
                 name, middle name, last name, and suffix.
@@ -301,11 +301,11 @@ class Name:
         check for that search_char. If it finds it, it splits string on that
         value and then standardizes the capitalization of each element in the
         string, before joining it all back together on the search_char.
-        -
+
         Args:
             s (str): The string to search.
             search_char (str): A single character to split s on.
-        -
+
         Returns:
             str: The string with capitalization standardized if search_char was
                 found.
@@ -323,10 +323,10 @@ class Name:
     def standardize_caps(s: str) -> str:
         """
         Takes a string and capitalizes the first character.
-        -
+
         Args:
             s (str): Any string.
-        -
+
         Returns:
             str: The string with first character capitalized.
         """
@@ -342,10 +342,10 @@ class Name:
         Ensures any hyphens present fit the required standard of:
             char-char
             NOT char -char or char- char.
-        -
+
         Args:
             s (str): The string to check for hyphens and standardize.
-        -
+
         Returns:
             str: The passed string, but with any hyphens standardized
         """

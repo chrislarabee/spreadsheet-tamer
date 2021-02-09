@@ -31,7 +31,7 @@ class Header:
     def append(self, value: str) -> None:
         """
         Adds the passed value to the end of Header.
-        -
+
         Args:
             value (str): The value to append.
         """
@@ -42,13 +42,13 @@ class Header:
     def pop(self, key: int) -> str:
         """
         Deletes the Header value at the passed key.
-        -
+
         Args:
             key (int): The index of the value to delete.
-        -
+
         Raises:
             IndexError: If the passed key is out of range.
-        -
+
         Returns:
             str: The deleted value.
         """
@@ -60,10 +60,10 @@ class Header:
     def remove(self, value: str) -> None:
         """
         Deletes the passed value from the Header.
-        -
+
         Args:
             value (str): The value to delete.
-        -
+
         Raises:
             ValueError: If the passed value is not present in the Header or the
                 original_form of the Header.
@@ -81,10 +81,10 @@ class Header:
         """
         Ensures the passed list has no duplicate values by appending a numeral to
         the end of any duplicates (e.g. x, x_1, x_2, etc).
-        -
+
         Args:
             x (List[Any]): A list of any contents.
-        -
+
         Returns:
             List[str]: The passed list, but with any duplicates converted to
                 strings and with their contents appended with _n.
@@ -103,10 +103,10 @@ class Header:
         """
         Standardizes the passed Sequence, converting it to a list of unique
         strings with no non-alphanumeric characters except _.
-        -
+
         Args:
             header (Sequence): Any iterable sequence.
-        -
+
         Returns:
             List[str]: The passed Sequence as a list of standardized strings.
         """

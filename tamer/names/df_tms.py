@@ -17,7 +17,7 @@ def parse_name_string_column(
     """
     Transmutation to parse a string in a single column in a DataFrame and break
     it into its name components (prefix, fname, mname, lname, suffix).
-    -
+
     Args:
         df (pd.DataFrame): The DataFrame to transmute.
         name_column (str): The column label in df that contains the name to parse.
@@ -27,7 +27,7 @@ def parse_name_string_column(
         include_name2 (bool): If name_column includes two people (e.g. Bob and
             Helen Parr), set this to True if you want to have the second name
             included in the appended names as well. Defaults to False.
-    -
+
     Returns:
         pd.DataFrame: The passed DataFrame, with the data in the past column
             broken out into 6 additional columns, the 5 columns specified in

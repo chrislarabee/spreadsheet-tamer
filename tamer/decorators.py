@@ -1,6 +1,5 @@
 from typing import Optional, Any, Union, Collection, Callable, TypeVar
 import functools
-import warnings
 
 import pandas as pd
 from numpy import nan
@@ -22,12 +21,12 @@ def nullable(
     An easy way to wrap functions that need to not execute if they are used in a
     DataFrame/Series.apply call on data that contains nan values. Simply use this
     decorator and the function will return nan if passed a nan value.
-    -
+
     Args:
         func (Optional[Any], optional): A callable object Defaults to None.
         null_return (Optional[Any], optional): Value to return if the wrapped func
             is passed a nan. Defaults to nan.
-    -
+
     Returns:
         Union[Any, _TFunc]: The result of func, or nan_return if the first
             positional argument is nan.

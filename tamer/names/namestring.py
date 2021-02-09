@@ -10,7 +10,7 @@ class Namestring(Name):
         """
         Expands Name's functionality so that it can more robustly handle datasets
         where the name information is stored as a single string.
-        -
+
         Args:
             name_string (str): The name as a single string.
         """
@@ -70,13 +70,13 @@ class Namestring(Name):
         datagenius patterns configuration. Places the first match it finds in
         prefix/suffix and the second it finds in prefix2/suffix2.
         :return:
-        -
+
         Args:
             s (str): The string to check for affixes.
             index (Optional[int], optional): Index in name_list where the string
                 was found. Required for compatibility as a NameOperation.
                 Defaults to None.
-        -
+
         Returns:
             str: The string if no matches were found, '' otherwise.
         """
@@ -125,11 +125,11 @@ class Namestring(Name):
         Takes a passed string and checks if it looks like a single-char initial.
         Builds a cluster of matches at the object level until it stops finding
         matches, and then assigns the cluster to mname or mname2.
-        -
+
         Args:
             s (str): The string to check for single character initials.
             index (int): Index in name_list where the string was found.
-        -
+
         Returns:
             str: The string if no matches were found, '' otherwise.
         """

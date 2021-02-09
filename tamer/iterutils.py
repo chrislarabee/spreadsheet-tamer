@@ -7,16 +7,16 @@ from .type_handling import isnumericplus
 def broadcast_affix(x: Iterable[str], affix: str, pos: int = -1) -> Iterable[str]:
     """
     Appends or prepends the passed affix to every value in the passed list.
-    -
+
     Args:
         x (Iterable[str]): Any iterable of strings.
         affix (str): The string to add to each string in the iterable.
         pos (int, optional): 0 to prepend the affix, -1 to append the affix.
             Defaults to -1.
-    -
+
     Returns:
         Iterable[str]: x with affix added to each element.
-    -
+
     Raises:
         ValueError: If a non-iterable is passed for x.
     """
@@ -39,16 +39,16 @@ def broadcast_type(
     list. Note that if you pass isnumeric plus broadcast_type has special
     functionality and will use the results of isnumericplus to determine what
     type to convert numeric strings to.
-    -
+
     Args:
         x (Iterable[Any]): Any iterable to broadcast types over.
         type_func (Union[Callable[[Any], Any], Type]): A python type (int, float,
             etc) or any Callable that takes a single argument and returns a
             single object.
-    -
+
     Returns:
         Iterable[Any]: x with type_func applied to each element.
-    -
+
     Raises:
         ValueError: If a non-iterable is passed for x.
     """
@@ -72,10 +72,10 @@ def collect_by_keys(x: Dict[Any, Any], *keys: Any) -> Dict[Any, Any]:
     """
     A simple function to collect an arbitrary and not-necessarily ordered subset
     of a dictionary.
-    -
+
     Args:
         x (Dict[Any, Any]): Any dict-like.
-    -
+
     Returns:
         Dict[Any, Any]: A dictionary or OrderedDict containing only the passed
             keys. Returns an object of the same type passed.
@@ -91,13 +91,13 @@ def tuplify(value: Any, do_none: bool = False) -> Union[Tuple[Any, ...], None]:
     """
     Simple function that puts the passed object value into a tuple, if it is not
     already.
-    -
+
     Args:
         value (Any): Any object.
         do_none (bool, optional): Set to True in order to wrap None values in a
             tuple. Otherwise, tuplify will leave them as bare None. Defaults to
             False.
-    -
+
     Returns:
         Union[Tuple[Any, ...], None]: The passed value as a tuple, or None.
     """
@@ -119,14 +119,14 @@ def tuplify_iterable(
     """
     Convenience function for broadcasting tuplify over the elements of a
     dictionary or mutable sequence.
-    -
+
     Args:
         value (Union[Dict[Any, Any], MutableSequence[Any]]): Dict-like or list-
             like.
         do_none (bool, optional): Set to True in order to wrap None values in a
             tuple. Otherwise, tuplify will leave them as bare None. Defaults to
             False.
-    -
+
     Returns:
         Union[Dict[Any, Tuple[Any]], MutableSequence[Tuple[Any]]]: The passed
             dictionary (with values wrapped in tuples) or mutable sequence (with

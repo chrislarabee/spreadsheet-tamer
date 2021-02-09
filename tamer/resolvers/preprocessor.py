@@ -19,7 +19,7 @@ class Preprocessor(Resolver):
         functionality, so probably doesn't need to be instantiated and called
         directly unless your data is coming from a source spreadsheet-tamer can't
         read.
-        -
+
         Args:
             manual_header (Header, optional): A Header to use in place of
                 attempting to detect a header. Defaults to None.
@@ -30,7 +30,7 @@ class Preprocessor(Resolver):
     def resolve(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Applies Preprocessor's resolutions.
-        -
+
         Args:
             df (pd.DataFrame): The DataFrame to apply preprocessing resolutions
                 to.
@@ -57,13 +57,13 @@ class Preprocessor(Resolver):
         Takes a pandas DataFrame and sets its column names to be the values of
         the first row containing all true strings and removes that row from the
         DataFrame.
-        -
+
         Args:
             df (pd.DataFrame): The DataFrame to check for a valid header row.
             manual_header (Header, optional): A manually supplied Header which
                 will be used instead of attempting to detect a valid header.
                 Defaults to None.
-        -
+
         Returns:
             Tuple[pd.DataFrame, Optional[int]]: The DataFrame, as well as the
                 index of the row where the header was located, if one was.
@@ -86,10 +86,10 @@ class Preprocessor(Resolver):
         """
         A simple resolution that applies string.utils.clean_whitespace to every
         cell in a DataFrame.
-        -
+
         Args:
             df (pd.DataFrame): DataFrame to ensure whitespace is normalized.
-        -
+
         Returns:
             pd.DataFrame: The DataFrame, with any string values cleansed of
                 excess whitespace.
@@ -110,12 +110,12 @@ class Preprocessor(Resolver):
         Removes any rows that appear before the header row in a DataFrame where
         the header row wasn't the first row in the source data. Purged rows are
         stored in spreadsheet-tamer's metadata.
-        -
+
         Args:
             df (pd.DataFrame): The DataFrame to purge rows from.
             header_idx (int, optional): The index of the header row. Defaults to
                 None.
-        -
+
         Returns:
             pd.DataFrame: The DataFrame, with any rows appearing before the
                 header removed.

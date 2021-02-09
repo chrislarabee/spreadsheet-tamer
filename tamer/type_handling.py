@@ -15,11 +15,11 @@ def convertplus(obj: Any, target_type: Type) -> Any:
     """
     Smarter type conversion that avoids errors when converting to numeric from
     non-standard strings and which can be used in pd.Series.apply calls.
-    -
+
     Args:
         obj (Any): Any object.
         target_type (Type): The target type to convert to.
-    -
+
     Returns:
         Any: The passed object converted to the target type.
     """
@@ -36,10 +36,10 @@ def get_class_name(obj: Any) -> str:
     """
     Gets the name of the passed object's class, even if it doesn't have a
     __name__ attribute.
-    -
+
     Args:
         obj (Any): An object.
-    -
+
     Returns:
         str: The name of the object's class.
     """
@@ -54,11 +54,11 @@ def isnumericplus(x: Any, return_type: bool = False) -> Tuple[bool, Optional[Typ
     """
     A better version of the str.isnumeric test that correctly identifies floats
     stored as strings as numeric.
-    -
+
     Args:
         x (Any): Any object.
         return_type (bool, optional): Causes isnumericplus to return the type of x. Defaults to False.
-    -
+
     Returns:
         Tuple[bool, Optional[Type]]: A tuple of a boolean and a type, if
             return_type was set to True.
@@ -83,10 +83,10 @@ def isnumericplus(x: Any, return_type: bool = False) -> Tuple[bool, Optional[Typ
 def type_plus(obj: Any) -> Type:
     """
     Wrapper for type that distinguishes nan values as nan and not float.
-    -
+
     Args:
         obj (Any): Any object.
-    -
+
     Returns:
         Any: The type of the object, or nan if it is a numpy nan.
     """

@@ -15,11 +15,11 @@ class ZeroNumeric:
         """
         Numeric values that need to have one or more zeros on their left side,
         thus making them somewhat string-like.
-        -
+
         Args:
             value (Union[int, float, str]): The string, integer, or float to
                 reinterpret as a ZeroNumeric.
-        -
+
         Raises:
             ValueError: Will raise a ValueError if passed a float NaN.
             ValueError: Will raise a ValueError if passed a string that can't be
@@ -60,11 +60,11 @@ class ZeroNumeric:
         """
         Returns the value of the ZeroNumeric but with additional zeros on the
         left side to ensure the length of the ZeroNumeric is equal to length.
-        -
+
         Args:
             length (int, optional): The desired character length of the padded
                 ZeroNumeric.
-        -
+
         Returns:
             ZeroNumeric: A ZeroNumeric object with as many zeros on the left as
             are necessary for len(self) == length.
@@ -77,10 +77,10 @@ class ZeroNumeric:
         """
         Breaks a zero-initial numeric string into two pieces, the leading zeros,
         and the remaining numerals.
-        -
+
         Args:
             value: A numeric value stored as a string.
-        -
+
         Returns:
             Tuple[str, Union[int, float]]: A tuple of zeros stored as string, and
                 an integer or float value representing the remainder of the
@@ -95,10 +95,10 @@ class ZeroNumeric:
     def zn_float(zn: ZeroNumeric) -> ZeroNumeric:
         """
         Version of to_float usable with pandas apply.
-        -
+
         Args:
             zn: A ZeroNumeric object.
-        -
+
         Returns:
             ZeroNumeric: A ZeroNumeric object with the numeric portion as a float.
         """
@@ -109,10 +109,10 @@ class ZeroNumeric:
     def zn_int(zn: ZeroNumeric) -> ZeroNumeric:
         """
         Version of to_int usable with pandas apply.
-        -
+
         Args:
             zn: A ZeroNumeric object.
-        -
+
         Returns:
             ZeroNumeric: A ZeroNumeric object with the numeric portion as an
                 integer.
@@ -122,7 +122,7 @@ class ZeroNumeric:
     def to_float(self) -> ZeroNumeric:
         """
         Converts the numeric portion of the ZeroNumeric to a float.
-        -
+
         Returns:
             ZeroNumeric: A new ZeroNumeric with the same zeros and the numeric
                 portion in float format.
@@ -132,7 +132,7 @@ class ZeroNumeric:
     def to_int(self) -> ZeroNumeric:
         """
         Converts the numeric portion of the ZeroNumeric to a float.
-        -
+
         Returns:
             ZeroNumeric: A new ZeroNumeric with the same zeros and the numeric
                 portion in int format.
@@ -143,7 +143,7 @@ class ZeroNumeric:
         """
         Runs a python operation on self._numeric or self._value if other is a
         string.
-        -
+
         Args:
             op: A python operator object.
             other: An object.
@@ -163,7 +163,7 @@ class ZeroNumeric:
 
         Args:
             new_val (Union[int, float]): [description]
-        -
+
         Returns:
             Union[ZeroNumeric, int]: A new ZeroNumeric object with this
                 ZeroNumeric's zeros replaced by new_val. Or 0 if new_val is 0.

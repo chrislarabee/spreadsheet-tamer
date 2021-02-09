@@ -96,7 +96,7 @@ class Patterns:
     def _load_patterns(cls) -> Dict[str, List[str]]:
         """
         Loads the pattern _config_files into a dictionary of lists.
-        -
+
         Returns:
             Dict[str, List[str]]: A dictionary with keys matching Patterns'
                 properties and lists of strings to assign to those properties.
@@ -114,7 +114,7 @@ class Patterns:
         """
         Loads a yaml file stored at an arbitrary Path and assigns keys to
         matching Patterns properties.
-        -
+
         Args:
             p (Path): Path to a valid yaml file.
         """
@@ -125,7 +125,7 @@ class Patterns:
     def _get_invalid_chars() -> List[str]:
         """
         Generates a list of characters invalid in names.
-        -
+
         Returns:
             List[str]: A list of invalid characters.
         """

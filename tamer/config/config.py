@@ -75,7 +75,7 @@ class Config:
         Add a custom yaml file with name patterns unique to your dataset. You can
         supply any of the properties of GConfig.patterns as keys in the yaml,
         and then any strings as list values for those keys.
-        -
+
         Args:
             p (Union[str, Path]): The path to your custom yaml file.
         """

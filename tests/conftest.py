@@ -69,10 +69,10 @@ def customers():
         0   1   Yancy       Cordwainer  00025
         1   2   Muhammad    El-Kanan    00076
         2   3   Luisa       Romero      00123
-        3   4   Semaj       Soto        01234   
+        3   4   Semaj       Soto        01234
 
         Args:
-            f (Callable, optional): A type object to wrap id values in. Defaults 
+            f (Callable, optional): A type object to wrap id values in. Defaults
                 to str.
 
         Returns:

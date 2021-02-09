@@ -10,7 +10,7 @@ class Nametoken(Name):
         Expands Name's functionality so that it can more robustly handle datasets
         where the name information is stored as separated into different types of
         names (fname, mname, lname, etc).
-        -
+
         Args:
             name_list (List[Optional[str]]): The name as a list of names.
         """
@@ -41,11 +41,11 @@ class Nametoken(Name):
         any it splits the string following the ampersand off into the appropriate n
         ame2 location (based on where it is in name_list. Removes everything
         after the ampersand and returns the cleaned string.
-        -
+
         Args:
             s (str): A string from name_list to check for ampersands.
             index (int): Index in name_list where the string was found.
-        -
+
         Returns:
             str: The cleansed string.
         """
@@ -73,11 +73,11 @@ class Nametoken(Name):
         It's common for tokenized names to have a middle initial at the end of
         the first name token, for whatever reason, so this method moves it to the
         mname and removes it from the passed string.
-        -
+
         Args:
             s (str): The string to check for trailing middle initials.
             index (int): Index in name_list where the string was found.
-        -
+
         Returns:
             str: The string, with its trailing initial removed if one is found.
         """
