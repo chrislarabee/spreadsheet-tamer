@@ -1,4 +1,5 @@
 import os
+from typing import Callable, Dict, List, Any
 import warnings
 
 import pytest
@@ -61,17 +62,22 @@ def set_test_config(monkeypatch):
 
 @pytest.fixture
 def customers():
-    """
-    Generates a simple, ideal dataset for tests. The inner function
-    _gen is used so that simple_data() can return its data with
-    the id values interpreted as strings (for csv reading) or
-    integers (for excel reading).
+    def _gen_customers(f: Callable = str) -> Dict[str, List[Any]]:
+        """
+        Use to generate this DataFrame (with DataFrame(**customers)):
+            id  fname       lname       foreign_key
+        0   1   Yancy       Cordwainer  00025
+        1   2   Muhammad    El-Kanan    00076
+        2   3   Luisa       Romero      00123
+        3   4   Semaj       Soto        01234   
 
-    Returns: A list of lists.
+        Args:
+            f (Callable, optional): A type object to wrap id values in. Defaults 
+                to str.
 
-    """
-
-    def _gen(f=str):
+        Returns:
+            Dict[str, List[Any]]: A dictionary with a list assigned to each key.
+        """
         d = dict(
             columns=["id", "fname", "lname", "foreign_key"],
             data=[
@@ -83,7 +89,7 @@ def customers():
         )
         return d
 
-    return _gen
+    return _gen_customers
 
 
 @pytest.fixture
