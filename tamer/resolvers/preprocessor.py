@@ -1,6 +1,7 @@
 from typing import Tuple, Optional
 
 import pandas as pd
+from numpy import nan
 
 from .resolver import Resolver
 from ..decorators import resolution
@@ -39,6 +40,7 @@ class Preprocessor(Resolver):
                 resolved.
         """
         df = self._normalize_whitespace(df)
+        df = self._purge_gap_rows(df)
         if iterutils.withinplus(df.columns, r"[Uu]nnamed:*[ _]\d") or isinstance(
             df.columns, pd.RangeIndex
         ):
@@ -129,3 +131,18 @@ class Preprocessor(Resolver):
             return df, metadata
         else:
             return df
+
+    @staticmethod
+    @resolution
+    def _purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Removes any rows that have only nan or blank str ('') values.
+
+        Args:
+            df (pd.DataFrame): The DataFrame to purge rows from.
+
+        Returns:
+            pd.DataFrame: The DataFrame, with any gap rows removed.
+        """
+        df.replace("", nan, inplace=True)
+        return df.dropna(how="all").reset_index(drop=True)

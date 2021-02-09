@@ -434,7 +434,6 @@ def purge_gap_rows(df: pd.DataFrame) -> pd.DataFrame:
     Returns: A DataFrame without entirely nan rows.
 
     """
-    warnings.warn(dep_warning.format("purge_gap_rows"))
     return df.dropna(how="all").reset_index(drop=True)
 
 

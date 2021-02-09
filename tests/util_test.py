@@ -55,15 +55,6 @@ def test_gen_alpha_keys():
     ]
 
 
-def test_purge_gap_rows(gaps, gaps_totals):
-    d = pd.DataFrame(gaps)
-    d = u.purge_gap_rows(d)
-    assert d.shape == (5, 4)
-    d = pd.DataFrame(gaps_totals())
-    d = u.purge_gap_rows(d)
-    assert d.shape == (9, 3)
-
-
 def test_translate_null():
     assert pd.isna(u.translate_null(None))
     assert pd.isna(u.translate_null(nan))

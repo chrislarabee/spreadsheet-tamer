@@ -21,10 +21,10 @@ class TestPreprocessor:
             df = Preprocessor().resolve(df)
             pd.testing.assert_frame_equal(df, expected, check_dtype=False)
 
-        def test_that_it_works_with_a_csv_with_pre_header_gaps(self, customers, gaps):
-            c = customers()
-            c["data"].insert(0, [nan, nan, nan, nan])
-            expected = pd.DataFrame(**c)
+        def test_that_it_works_with_a_csv_with_gaps_and_preheader(
+            self, customers, gaps
+        ):
+            expected = pd.DataFrame(**customers())
             df = pd.DataFrame(gaps)
             df = Preprocessor().resolve(df)
             pd.testing.assert_frame_equal(df, expected)
@@ -94,3 +94,26 @@ class TestPreprocessor:
             df = pd.DataFrame(**customers())
             df = Preprocessor._purge_pre_header(df)
             assert df.shape == (4, 4)
+
+    class TestPurgeGapRows:
+        def test_that_it_can_purge_nan_rows(self, gaps, gaps_totals):
+            df = pd.DataFrame(gaps)
+            df = Preprocessor._purge_gap_rows(df)
+            assert df.shape == (5, 4)
+            df = pd.DataFrame(gaps_totals())
+            df = Preprocessor._purge_gap_rows(df)
+            assert df.shape == (9, 3)
+
+        def test_that_it_can_purge_blank_str_rows(self):
+            df = pd.DataFrame(
+                [[1, 2, 3], ["", "", ""], [4, 5, 6]], columns=["a", "b", "c"]
+            )
+            df = Preprocessor._purge_gap_rows(df)
+            assert df.shape == (2, 3)
+
+        def test_that_it_can_purge_mixed_str_and_nan_rows(self):
+            df = pd.DataFrame(
+                [[1, 2, 3], [nan, "", nan], [4, 5, 6]], columns=["a", "b", "c"]
+            )
+            df = Preprocessor._purge_gap_rows(df)
+            assert df.shape == (2, 3)
