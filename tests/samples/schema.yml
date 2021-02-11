@@ -1,0 +1,16 @@
+a:
+  data_type: int
+  required: false
+  unique: true
+  valid_values:
+    - 1
+    - 2
+    - 3
+  invalid_values: null
+
+b:
+  data_type: str
+  required: true
+  unique: false
+  valid_values: null
+  invalid_values: null
