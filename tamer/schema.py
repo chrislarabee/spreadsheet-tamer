@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Any, Optional, Dict, Type
+from typing import List, Any, Optional, Dict, Type, AnyStr, Tuple
 from pathlib import Path
 import re
 
@@ -17,13 +17,22 @@ class Column:
         unique: bool = False,
         valid_values: List[Any] = None,
         invalid_values: List[Any] = None,
+        valid_patterns: List[AnyStr] = None,
+        invalid_patterns: List[AnyStr] = None,
     ) -> None:
         self._label = label
         self._data_type = data_type
         self.required = required
         self.unique = unique
+        if valid_values or valid_patterns:
+            if invalid_values:
+                invalid_values = []
+            if invalid_patterns:
+                invalid_patterns = []
         self.valid_values = valid_values if valid_values else []
         self.invalid_values = invalid_values if invalid_values else []
+        self.valid_patterns = valid_patterns if valid_patterns else []
+        self.invalid_patterns = invalid_patterns if invalid_patterns else []
 
     @property
     def label(self) -> Optional[str]:
@@ -39,33 +48,30 @@ class Column:
     @property
     def data_type(self) -> Type:
         return self._data_type
-    
+
     def evaluate(self, value: Any) -> bool:
         if (pd.isna(value) or value is None) and self.required:
             return False
         if not isinstance(value, self.data_type):
             return False
-        for v in self.invalid_values:
-            if self._validate(v, value):
+        if value in self.invalid_values:
+            return False
+        for v in self.invalid_patterns:
+            if re.search(v, str(value)):
                 return False
         if len(self.valid_values) > 0:
             for v in self.valid_values:
-                if self._validate(v, value):
+                if v == value:
+                    return True
+            else:
+                return False
+        if len(self.valid_patterns) > 0:
+            for v in self.valid_patterns:
+                if re.search(v, str(value)):
                     return True
             else:
                 return False
         return True
-
-    @staticmethod
-    def _validate(x: Any, y: Any) -> bool:
-        result = False
-        if isinstance(y, str):
-            m = re.search(x, str(y))
-            if m:
-                result = True
-        elif x == y:
-            result = True
-        return result
 
 
 class Schema:
@@ -85,9 +91,7 @@ class Schema:
     def from_yaml(cls, p: Path) -> Schema:
         with open(p, "r") as r:
             raw = yaml.load(r, Loader=yaml.Loader)
-        return Schema(
-            **{label: Column(**details) for label, details in raw.items()}
-        )
+        return Schema(**{label: Column(**details) for label, details in raw.items()})
 
     def __getitem__(self, item: str) -> Column:
         return self._columns[item]
