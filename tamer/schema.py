@@ -8,6 +8,23 @@ import yaml
 import pandas as pd
 
 
+class Valid:
+    def __init__(self, text: str = "valid") -> None:
+        self._text = text
+
+    def __str__(self) -> str:
+        return self._text
+
+    def __bool__(self) -> bool:
+        if self._text == "valid":
+            return True
+        else:
+            return False
+
+    def __repr__(self) -> str:
+        return f"<Valid({bool(self)}), reason={self._text}>"
+
+
 class Column:
     def __init__(
         self,
@@ -49,29 +66,38 @@ class Column:
     def data_type(self) -> Type:
         return self._data_type
 
-    def evaluate(self, value: Any) -> bool:
+    def evaluate(self, value: Any) -> Valid:
+        result = Valid()
         if (pd.isna(value) or value is None) and self.required:
-            return False
+            return Valid(f"Column {self._label} is required.")
         if not isinstance(value, self.data_type):
-            return False
+            return Valid(
+                f"Column {self._label} value is not data type {self.data_type}"
+            )
         if value in self.invalid_values:
-            return False
+            return Valid(f"<{value}> is not a valid value for Column {self._label}")
         for v in self.invalid_patterns:
             if re.search(v, str(value)):
-                return False
+                return Valid(
+                    f"<{value}> matches invalid pattern <{v}> for Column {self._label}"
+                )
         if len(self.valid_values) > 0:
             for v in self.valid_values:
                 if v == value:
-                    return True
+                    return result
             else:
-                return False
+                result = Valid(
+                    f"<{value}> is not a valid value for Column {self._label}"
+                )
         if len(self.valid_patterns) > 0:
             for v in self.valid_patterns:
                 if re.search(v, str(value)):
-                    return True
+                    return Valid()
             else:
-                return False
-        return True
+                result = Valid(
+                    f"<{value}> does not match valid patterns for Column {self._label}"
+                )
+        return result
 
 
 class Schema:

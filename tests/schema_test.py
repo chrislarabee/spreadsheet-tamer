@@ -1,8 +1,27 @@
 from pathlib import Path
 
 import pytest
+import pandas as pd
 
 from tamer import schema as sc
+
+
+class TestValid:
+    def test_that_it_can_be_valid(self):
+        v = sc.Valid()
+        assert v
+        assert str(v) == "valid"
+
+    def test_that_it_can_be_invalid(self):
+        v = sc.Valid("violated rule")
+        assert not v
+        assert str(v) == "violated rule"
+
+    def test_that_pandas_series_can_handle_it(self):
+        s = pd.Series([sc.Valid(), sc.Valid("violation"), sc.Valid("other violation")])
+        expected = pd.Series(["valid", "violation", "other violation"])
+        pd.testing.assert_series_equal(s.astype(str), expected)
+        assert pd.Series([True, False, False]).equals(s.astype(bool))
 
 
 class TestColumn:
@@ -28,42 +47,74 @@ class TestColumn:
 
     class TestEvaluate:
         def test_that_it_works_with_only_data_type_constraint(self):
-            c = sc.Column(int)
+            c = sc.Column(int, "a")
             assert c.evaluate(1)
-            assert not c.evaluate("1")
+            v = c.evaluate("1")
+            assert not v
+            assert str(v) == "Column a value is not data type <class 'int'>"
 
         def test_that_it_works_with_valid_values(self):
-            c = sc.Column(int, valid_values=[1, 2, 3])
+            c = sc.Column(int, "a", valid_values=[1, 2, 3])
             assert c.evaluate(1)
-            assert not c.evaluate(4)
-            c = sc.Column(str, valid_values=["a", "b", "c"])
+            v = c.evaluate(4)
+            assert not v
+            assert str(v) == "<4> is not a valid value for Column a"
+            c = sc.Column(str, "a", valid_values=["a", "b", "c"])
             assert c.evaluate("a")
-            assert not c.evaluate("bar")
+            v = c.evaluate("bar")
+            assert not v
+            assert str(v) == "<bar> is not a valid value for Column a"
 
         def test_that_it_works_with_invalid_values(self):
-            c = sc.Column(int, invalid_values=[1, 2, 3])
+            c = sc.Column(int, "a", invalid_values=[1, 2, 3])
             assert c.evaluate(4)
-            assert not c.evaluate(1)
-            c = sc.Column(str, invalid_values=["a", "b", "c"])
+            v = c.evaluate(1)
+            assert not v
+            assert str(v) == "<1> is not a valid value for Column a"
+            c = sc.Column(str, "a", invalid_values=["a", "b", "c"])
             assert c.evaluate("d")
-            assert not c.evaluate("a")
+            v = c.evaluate("a")
+            assert not v
+            assert str(v) == "<a> is not a valid value for Column a"
 
         def test_that_it_works_with_valid_patterns(self):
-            c = sc.Column(str, valid_patterns=[r"^S$", r"^M$", r"^L$", r"^X+L$"])
+            c = sc.Column(str, "a", valid_patterns=[r"^S$", r"^M$", r"^L$", r"^X+L$"])
             assert c.evaluate("S")
-            assert not c.evaluate("Small")
+            v = c.evaluate("Small")
+            assert not v
+            assert str(v) == "<Small> does not match valid patterns for Column a"
             assert c.evaluate("XL")
             assert c.evaluate("XXXL")
-            assert not c.evaluate("-XL")
+            v = c.evaluate("-XL")
+            assert not v
+            assert str(v) == "<-XL> does not match valid patterns for Column a"
 
         def test_that_it_works_with_invalid_patterns(self):
-            c = sc.Column(str, invalid_patterns=[r"\d", r"\s"])
+            c = sc.Column(str, "a", invalid_patterns=[r"\d", r"\s"])
             assert c.evaluate("latte")
-            assert not c.evaluate("no3lle")
-            assert not c.evaluate("what now")
+            v = c.evaluate("no3lle")
+            assert not v
+            assert str(v) == (
+                "<no3lle> matches invalid pattern <\d> for Column a"  # type: ignore
+            )
+            v = c.evaluate("what now")
+            assert not v
+            assert str(v) == (
+                "<what now> matches invalid pattern <\s> for Column a"  # type: ignore
+            )
 
         def test_that_it_works_with_valid_values_and_patterns(self):
-            pass
+            c = sc.Column(
+                str, "a", valid_values=["abc", "def"], valid_patterns=[r"\w+\d"]
+            )
+            assert c.evaluate("abc")
+            assert c.evaluate("hamster1")
+            v = c.evaluate("abc ")
+            assert not v
+            assert str(v) == "<abc > does not match valid patterns for Column a"
+            v = c.evaluate("1def")
+            assert not v
+            assert str(v) == "<1def> does not match valid patterns for Column a"
 
         def test_that_it_works_with_invalid_values_and_patterns(self):
             pass
