@@ -7,22 +7,36 @@ import re
 import yaml
 import pandas as pd
 
+from tamer.decorators import resolution
+
 
 class Valid:
-    def __init__(self, text: str = "valid") -> None:
-        self._text = text
+    def __init__(self, invalid_reason: str = None) -> None:
+        self._invalid_reasons = [invalid_reason] if invalid_reason else []
+
+    @property
+    def invalid_reasons(self) -> List[str]:
+        return self._invalid_reasons
 
     def __str__(self) -> str:
-        return self._text
+        return str(bool(self))
 
     def __bool__(self) -> bool:
-        if self._text == "valid":
+        if self._invalid_reasons == []:
             return True
         else:
             return False
 
     def __repr__(self) -> str:
-        return f"<Valid({bool(self)}), reason={self._text}>"
+        return f"<Valid({bool(self)})>"
+
+    def __add__(self, other: Valid) -> Valid:
+        if isinstance(other, Valid):
+            self._invalid_reasons += other.invalid_reasons
+            return self
+        else:
+            raise TypeError(f"Cannot only add Valid objects to other Valid objects.")
+
 
 
 class Column:
@@ -121,3 +135,11 @@ class Schema:
 
     def __getitem__(self, item: str) -> Column:
         return self._columns[item]
+
+    def validate(self, df: pd.DataFrame) -> pd.DataFrame:
+        for c in df.columns:
+            pass
+
+    @resolution
+    def enforce(self, df: pd.DataFrame) -> pd.DataFrame:
+        pass
