@@ -117,7 +117,19 @@ class TestColumn:
             assert str(v) == "<1def> does not match valid patterns for Column a"
 
         def test_that_it_works_with_invalid_values_and_patterns(self):
-            pass
+            c = sc.Column(
+                str, "a", invalid_values=["abc", "def"], invalid_patterns=[r"\d$"]
+            )
+            assert c.evaluate("xyz")
+            assert c.evaluate("1xyz")
+            v = c.evaluate("abc")
+            assert not v
+            assert str(v) == "<abc> is not a valid value for Column a"
+            v = c.evaluate("xyz1")
+            assert not v
+            assert str(v) == (
+                "<xyz1> matches invalid pattern <\d$> for Column a"  # type: ignore
+            )
 
 
 class TestSchema:
