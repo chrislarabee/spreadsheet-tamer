@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Any, Optional, Dict, Type, AnyStr, Tuple
+from typing import List, Any, Optional, Dict, Type
 from pathlib import Path
 import re
 
@@ -35,7 +35,7 @@ class Valid:
             self._invalid_reasons += other.invalid_reasons
             return self
         else:
-            raise TypeError(f"Cannot only add Valid objects to other Valid objects.")
+            raise TypeError(f"Can only add Valid objects to other Valid objects.")
 
 
 
@@ -48,8 +48,8 @@ class Column:
         unique: bool = False,
         valid_values: List[Any] = None,
         invalid_values: List[Any] = None,
-        valid_patterns: List[AnyStr] = None,
-        invalid_patterns: List[AnyStr] = None,
+        valid_patterns: List[str] = None,
+        invalid_patterns: List[str] = None,
     ) -> None:
         self._label = label
         self._data_type = data_type
@@ -82,16 +82,19 @@ class Column:
 
     def evaluate(self, value: Any) -> Valid:
         result = Valid()
-        if (pd.isna(value) or value is None) and self.required:
-            return Valid(f"Column {self._label} is required.")
-        if not isinstance(value, self.data_type):
+        if (pd.isna(value) or value is None): 
+            if self.required:
+                return Valid(f"Column {self._label} is required")
+            else:
+                return result
+        elif not isinstance(value, self.data_type):
             return Valid(
                 f"Column {self._label} value is not data type {self.data_type}"
             )
         if value in self.invalid_values:
             return Valid(f"<{value}> is not a valid value for Column {self._label}")
         for v in self.invalid_patterns:
-            if re.search(v, str(value)):
+            if re.search(str(v), str(value)):
                 return Valid(
                     f"<{value}> matches invalid pattern <{v}> for Column {self._label}"
                 )
@@ -105,7 +108,7 @@ class Column:
                 )
         if len(self.valid_patterns) > 0:
             for v in self.valid_patterns:
-                if re.search(v, str(value)):
+                if re.search(str(v), str(value)):
                     return Valid()
             else:
                 result = Valid(
@@ -137,8 +140,12 @@ class Schema:
         return self._columns[item]
 
     def validate(self, df: pd.DataFrame) -> pd.DataFrame:
+        valids = pd.Series([Valid() for _ in range(len(df))])
         for c in df.columns:
-            pass
+            v = df[c].apply(lambda x: self._columns[c].evaluate(x))
+            valids += v
+        df["row_valid"] = valids
+        return df
 
     @resolution
     def enforce(self, df: pd.DataFrame) -> pd.DataFrame:
