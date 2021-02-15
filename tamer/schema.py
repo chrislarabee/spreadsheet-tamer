@@ -38,7 +38,6 @@ class Valid:
             raise TypeError(f"Can only add Valid objects to other Valid objects.")
 
 
-
 class Column:
     def __init__(
         self,
@@ -82,7 +81,7 @@ class Column:
 
     def evaluate(self, value: Any) -> Valid:
         result = Valid()
-        if (pd.isna(value) or value is None): 
+        if pd.isna(value) or value is None:
             if self.required:
                 return Valid(f"Column {self._label} is required")
             else:

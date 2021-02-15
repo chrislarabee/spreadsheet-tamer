@@ -31,7 +31,7 @@ class TestValid:
         v2 = sc.Valid()
         v1 += v2
         assert v1.invalid_reasons == []
-    
+
     def test_that_two_valid_objs_can_be_added(self):
         v1 = sc.Valid()
         v2 = sc.Valid("violated rule")
@@ -79,7 +79,9 @@ class TestColumn:
             assert c.evaluate(1)
             v = c.evaluate("1")
             assert not v
-            assert v.invalid_reasons == ["Column a value is not data type <class 'int'>"]
+            assert v.invalid_reasons == [
+                "Column a value is not data type <class 'int'>"
+            ]
 
         def test_that_it_works_with_null_values(self):
             c = sc.Column(int, "a")
@@ -201,28 +203,33 @@ class TestSchema:
     class TestValidate:
         @pytest.fixture
         def sample_df(self):
-            return pd.DataFrame([
-                ["foo", 1, "1 fish", nan],
-                ["bar", 2, "2 fish", 50.0],
-                ["spam", 3, "red fish", 100.0],
-                ["eggs", 4, "blue fish", nan]
-
-            ], columns=["a", "b", "c", "d"])
+            return pd.DataFrame(
+                [
+                    ["foo", 1, "1 fish", nan],
+                    ["bar", 2, "2 fish", 50.0],
+                    ["spam", 3, "red fish", 100.0],
+                    ["eggs", 4, "blue fish", nan],
+                ],
+                columns=["a", "b", "c", "d"],
+            )
 
         def test_that_it_can_handle_single_column_validation(self, sample_df):
             s = sc.Schema(
                 a=sc.Column(str),
                 b=sc.Column(int),
                 c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
-                d=sc.Column(float)
+                d=sc.Column(float),
             )
             expected_bools = pd.Series([False, False, True, True], name="row_valid")
-            expected_reasons = pd.Series([
-                ["<1 fish> matches invalid pattern <^\d> for Column c"], # type: ignore
-                ["<2 fish> matches invalid pattern <^\d> for Column c"], # type: ignore
-                [],
-                []
-            ], name="row_valid")
+            expected_reasons = pd.Series(
+                [
+                    ["<1 fish> matches invalid pattern <^\d> for Column c"],  # type: ignore
+                    ["<2 fish> matches invalid pattern <^\d> for Column c"],  # type: ignore
+                    [],
+                    [],
+                ],
+                name="row_valid",
+            )
             df = s.validate(sample_df)
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
@@ -233,18 +240,21 @@ class TestSchema:
                 a=sc.Column(str, invalid_values=["eggs"]),
                 b=sc.Column(int, invalid_values=[1]),
                 c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
-                d=sc.Column(float)
+                d=sc.Column(float),
             )
             expected_bools = pd.Series([False, False, True, False], name="row_valid")
-            expected_reasons = pd.Series([
+            expected_reasons = pd.Series(
                 [
-                    "<1> is not a valid value for Column b",
-                    "<1 fish> matches invalid pattern <^\d> for Column c", # type: ignore 
-                ], 
-                ["<2 fish> matches invalid pattern <^\d> for Column c"], # type: ignore
-                [],
-                ["<eggs> is not a valid value for Column a"]
-            ], name="row_valid")
+                    [
+                        "<1> is not a valid value for Column b",
+                        "<1 fish> matches invalid pattern <^\d> for Column c",  # type: ignore
+                    ],
+                    ["<2 fish> matches invalid pattern <^\d> for Column c"],  # type: ignore
+                    [],
+                    ["<eggs> is not a valid value for Column a"],
+                ],
+                name="row_valid",
+            )
             df = s.validate(sample_df)
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
