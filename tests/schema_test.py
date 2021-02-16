@@ -215,7 +215,7 @@ class TestSchema:
             [
                 ["foo", 1, "1 fish", nan],
                 ["bar", 2, "2 fish", 50.0],
-                ["spam", 3, "red fish", 100.0],
+                ["bar", 3, "red fish", 100.0],
                 ["eggs", 4, "blue fish", nan],
             ],
             columns=["a", "b", "c", "d"],
@@ -272,9 +272,41 @@ class TestSchema:
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
             pd.testing.assert_series_equal(reasons, expected_reasons)
 
-        @pytest.mark.skip("Not implemented")
         def test_that_it_can_handle_unique_value_constraints(self, sample_df):
-            pass
+            s = sc.Schema(a=sc.Column(str, unique=True))
+            df = s.validate(sample_df)
+            expected_bools = pd.Series([True, False, False, True], name="row_valid")
+            expected_reasons = pd.Series(
+                [
+                    [],
+                    ["Column a must be unique"],
+                    ["Column a must be unique"],
+                    [],
+                ],
+                name="row_valid"
+            )
+            pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
+            reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
+            pd.testing.assert_series_equal(reasons, expected_reasons)
+
+        def test_that_it_can_handle_unique_value_constraints_and_valid_values(
+            self, sample_df
+        ):
+            s = sc.Schema(a=sc.Column(str, unique=True, invalid_values=["bar", "eggs"]))
+            df = s.validate(sample_df)
+            expected_bools = pd.Series([True, False, False, False], name="row_valid")
+            expected_reasons = pd.Series(
+                [
+                    [],
+                    ["Column a must be unique", "<bar> is not a valid value for Column a"],
+                    ["Column a must be unique", "<bar> is not a valid value for Column a"],
+                    ["<eggs> is not a valid value for Column a"],
+                ],
+                name="row_valid"
+            )
+            pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
+            reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
+            pd.testing.assert_series_equal(reasons, expected_reasons)
 
         def test_that_it_can_handle_required_columns(self, sample_df):
             s = sc.Schema(

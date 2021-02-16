@@ -83,7 +83,9 @@ class Preprocessor(Resolver):
 
     @staticmethod
     @resolution
-    def _normalize_whitespace(df: pd.DataFrame) -> Tuple[pd.DataFrame, CollectibleMetadata]:
+    def _normalize_whitespace(
+        df: pd.DataFrame,
+    ) -> Tuple[pd.DataFrame, CollectibleMetadata]:
         """
         A simple resolution that applies string.utils.clean_whitespace to every
         cell in a DataFrame.
@@ -106,7 +108,9 @@ class Preprocessor(Resolver):
 
     @staticmethod
     @resolution
-    def _purge_pre_header(df: pd.DataFrame, header_idx: int = None) -> Tuple[pd.DataFrame, CollectibleMetadata]:
+    def _purge_pre_header(
+        df: pd.DataFrame, header_idx: int = None
+    ) -> Tuple[pd.DataFrame, CollectibleMetadata]:
         """
         Removes any rows that appear before the header row in a DataFrame where
         the header row wasn't the first row in the source data. Purged rows are

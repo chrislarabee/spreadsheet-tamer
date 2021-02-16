@@ -159,7 +159,17 @@ class Schema:
         valids = pd.Series([Valid() for _ in range(len(df))])
         for c in df.columns:
             if c in self._columns:
-                v = df[c].apply(lambda x: self._columns[c].evaluate(x))
+                col = self._columns[c]
+                if col.unique:
+                    dupes = df[c].duplicated(False)
+                    if dupes.any:
+                        valids += pd.Series(
+                            [
+                                Valid(f"Column {c} must be unique") if x else Valid()
+                                for x in dupes
+                            ]
+                        )
+                v = df[c].apply(lambda x: col.evaluate(x))
                 valids += v
         df["row_valid"] = valids
         return df
