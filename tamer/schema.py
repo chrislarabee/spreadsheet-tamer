@@ -158,8 +158,9 @@ class Schema:
     def validate(self, df: pd.DataFrame) -> pd.DataFrame:
         valids = pd.Series([Valid() for _ in range(len(df))])
         for c in df.columns:
-            v = df[c].apply(lambda x: self._columns[c].evaluate(x))
-            valids += v
+            if c in self._columns:
+                v = df[c].apply(lambda x: self._columns[c].evaluate(x))
+                valids += v
         df["row_valid"] = valids
         return df
 

@@ -227,7 +227,6 @@ class TestSchema:
             a=sc.Column(str),
             b=sc.Column(int),
             c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
-            d=sc.Column(float),
         )
 
     class TestValidate:
@@ -254,7 +253,6 @@ class TestSchema:
                 a=sc.Column(str, invalid_values=["eggs"]),
                 b=sc.Column(int, invalid_values=[1]),
                 c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
-                d=sc.Column(float),
             )
             expected_bools = pd.Series([False, False, True, False], name="row_valid")
             expected_reasons = pd.Series(
@@ -278,9 +276,24 @@ class TestSchema:
         def test_that_it_can_handle_unique_value_constraints(self, sample_df):
             pass
 
-        @pytest.mark.skip("Not implemented")
         def test_that_it_can_handle_required_columns(self, sample_df):
-            pass
+            s = sc.Schema(
+                d=sc.Column(float, required=True)
+            )
+            df = s.validate(sample_df)
+            expected_bools = pd.Series([False, True, True, False], name="row_valid")
+            expected_reasons = pd.Series(
+                [
+                    ["Column d is required"],
+                    [],
+                    [],
+                    ["Column d is required"],
+                ],
+                name="row_valid"
+            )
+            pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
+            reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
+            pd.testing.assert_series_equal(reasons, expected_reasons)
 
     class TestEnforceSchemaRules:
         def test_that_it_works_as_expected(self, sample_df, sample_schema):
