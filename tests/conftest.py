@@ -59,7 +59,7 @@ def sheets_api():
 def customers():
     def _gen_customers(f: Callable = str) -> Dict[str, List[Any]]:
         """
-        Use to generate this DataFrame (with DataFrame(**customers)):
+        Use to generate this DataFrame (with DataFrame(**customers())):
             id  fname       lname       foreign_key
         0   1   Yancy       Cordwainer  00025
         1   2   Muhammad    El-Kanan    00076
@@ -88,7 +88,18 @@ def customers():
 
 
 @pytest.fixture
-def sales():
+def sales() -> Dict[str, List[Any]]:
+    """
+    Use to generate this DataFrame (with DataFrame(**sales):
+        location            region      sales
+    0   Bayside Store       Northern    500
+    1   West Valley Store   Northern    300
+    2   Precioso Store      Southern    1000
+    3   Kallipe Store       Southern    200
+
+    Returns:
+        Dict[str, List[Any]]: A dictionary with a list assigned to each key.
+    """
     return dict(
         columns=["location", "region", "sales"],
         data=[
@@ -227,7 +238,20 @@ def gaps_totals():
 
 
 @pytest.fixture
-def needs_cleanse_totals():
+def needs_cleanse_totals() -> Dict[str, List[Any]]:
+    """
+    Use to generate this DataFrame (with DataFrame(**needs_cleanse_totals):
+        location            region      sales
+    0   Bayside Store       Northern    500
+    1   West Valley Store   Northern    300
+    2   nan                 nan         800
+    3   Precioso Store      Southern    1000
+    4   Kallipe Store       Southern    200
+    5   nan                 nan         1200
+
+    Returns:
+        Dict[str, List[Any]]: A dictionary with a list assigned to each key.
+    """
     return dict(
         columns=["location", "region", "sales"],
         data=[
