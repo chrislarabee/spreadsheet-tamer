@@ -69,39 +69,6 @@ def test_complete_clusters(needs_extrapolation, employees):
     )
 
 
-def test_reject_on_conditions(employees):
-    df = pd.DataFrame(**employees)
-    df2, md_dict = cl.reject_on_conditions(df, "department == 'Sales'")
-    pd.testing.assert_frame_equal(df[2:].reset_index(drop=True), df2)
-    expected_metadata = pd.DataFrame(
-        [dict(employee_id=2, department=2, name=2, wfh_stipend=1)]
-    )
-    pd.testing.assert_frame_equal(md_dict["metadata"], expected_metadata)
-
-    df2, md_dict = cl.reject_on_conditions(
-        df, ("department == 'Customer Service'", "employee_id == 4")
-    )
-    pd.testing.assert_frame_equal(df.iloc[:3].reset_index(drop=True), df2)
-    expected_metadata = pd.DataFrame(
-        [dict(employee_id=1, department=1, name=1, wfh_stipend=0)]
-    )
-    pd.testing.assert_frame_equal(md_dict["metadata"], expected_metadata)
-
-
-def test_reject_on_str_content(customers):
-    df = pd.DataFrame(**customers())
-    df2, md_dict = cl.reject_on_str_content(df.copy(), dict(foreign_key="25"))
-    pd.testing.assert_frame_equal(df[1:].reset_index(drop=True), df2)
-    expected_metadata = pd.DataFrame([dict(id=1, fname=1, lname=1, foreign_key=1)])
-    pd.testing.assert_frame_equal(md_dict["metadata"], expected_metadata)
-
-    # Test tuple of strings:
-    df2, md_dict = cl.reject_on_str_content(df.copy(), dict(fname=("i", "e")))
-    pd.testing.assert_frame_equal((df[:2]).reset_index(drop=True), df2)
-    expected_metadata = pd.DataFrame([dict(id=2, fname=2, lname=2, foreign_key=2)])
-    pd.testing.assert_frame_equal(md_dict["metadata"], expected_metadata)
-
-
 def cleanse_redundancies():
     df = pd.DataFrame(
         [
