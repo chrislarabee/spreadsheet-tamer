@@ -1,4 +1,4 @@
-from typing import Tuple, Any, Optional, Type, TypeVar
+from typing import Tuple, Any, Optional, Type, TypeVar, Dict
 import re
 
 import numpy as np
@@ -8,6 +8,7 @@ from .decorators import nullable
 
 
 Numeric = TypeVar("Numeric", int, float, np.int64, np.float32, np.float64)
+CollectibleMetadata = Dict[str, Any]
 
 
 @nullable

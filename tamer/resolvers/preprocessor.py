@@ -9,6 +9,7 @@ from ..header import Header
 from ..strings import util as su
 from .. import metadata as md
 from .. import iterutils
+from ..type_handling import CollectibleMetadata
 
 
 class Preprocessor(Resolver):
@@ -39,13 +40,13 @@ class Preprocessor(Resolver):
             pd.DataFrame: The DataFrame, with any whitespace and header issues
                 resolved.
         """
-        df = self._normalize_whitespace(df)
+        df, _ = self._normalize_whitespace(df)
         df = self._purge_gap_rows(df)
         if iterutils.withinplus(df.columns, r"[Uu]nnamed:*[ _]\d") or isinstance(
             df.columns, pd.RangeIndex
         ):
             df, header_idx = self._detect_header(df, self._manual_header)
-            df = self._purge_pre_header(df, header_idx=header_idx)
+            df, _ = self._purge_pre_header(df, header_idx=header_idx)
         return df
 
     @staticmethod
@@ -82,7 +83,7 @@ class Preprocessor(Resolver):
 
     @staticmethod
     @resolution
-    def _normalize_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+    def _normalize_whitespace(df: pd.DataFrame) -> Tuple[pd.DataFrame, CollectibleMetadata]:
         """
         A simple resolution that applies string.utils.clean_whitespace to every
         cell in a DataFrame.
@@ -105,7 +106,7 @@ class Preprocessor(Resolver):
 
     @staticmethod
     @resolution
-    def _purge_pre_header(df: pd.DataFrame, header_idx: int = None) -> pd.DataFrame:
+    def _purge_pre_header(df: pd.DataFrame, header_idx: int = None) -> Tuple[pd.DataFrame, CollectibleMetadata]:
         """
         Removes any rows that appear before the header row in a DataFrame where
         the header row wasn't the first row in the source data. Purged rows are
@@ -120,17 +121,15 @@ class Preprocessor(Resolver):
             pd.DataFrame: The DataFrame, with any rows appearing before the
                 header removed.
         """
+        metadata = dict()
         if header_idx:
-            metadata = dict()
             if header_idx > 0:
                 rejects = df.iloc[:header_idx]
                 metadata["rejects"] = rejects
                 metadata["metadata"] = pd.DataFrame(rejects.count()).T
             df.drop(index=[i for i in range(header_idx)], inplace=True)
             df.reset_index(drop=True, inplace=True)
-            return df, metadata
-        else:
-            return df
+        return df, metadata
 
     @staticmethod
     @resolution

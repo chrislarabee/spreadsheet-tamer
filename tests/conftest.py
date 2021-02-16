@@ -55,11 +55,6 @@ def sheets_api():
         yield None
 
 
-@pytest.fixture(autouse=True)
-def set_test_config(monkeypatch):
-    monkeypatch.setattr(config.config, "env", "test")
-
-
 @pytest.fixture
 def customers():
     def _gen_customers(f: Callable = str) -> Dict[str, List[Any]]:

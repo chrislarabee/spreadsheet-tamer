@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Any, Optional, Dict, Type
+from typing import List, Any, Optional, Dict, Type, Tuple
 from pathlib import Path
 import re
 
@@ -8,6 +8,7 @@ import yaml
 import pandas as pd
 
 from tamer.decorators import resolution
+from tamer.type_handling import CollectibleMetadata
 
 
 class Valid:
@@ -36,6 +37,22 @@ class Valid:
             return self
         else:
             raise TypeError(f"Can only add Valid objects to other Valid objects.")
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, bool):
+            return bool(self) == other
+        elif isinstance(other, Valid):
+            return self.invalid_reasons == other.invalid_reasons
+        else:
+            return False
+
+    def __ne__(self, other: Any) -> bool:
+        if isinstance(other, bool):
+            return bool(self) != other
+        elif isinstance(other, Valid):
+            return self.invalid_reasons != other.invalid_reasons
+        else:
+            return True
 
 
 class Column:
@@ -147,5 +164,24 @@ class Schema:
         return df
 
     @resolution
-    def enforce(self, df: pd.DataFrame) -> pd.DataFrame:
-        pass
+    def enforce_schema_rules(
+        self, df: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, CollectibleMetadata]:
+        """
+        Rejects all rows in the passed DataFrame that do not pass validation
+        against the Schema's rules.
+
+        Args:
+            df (pd.DataFrame): A DataFrame with at least some columns that
+                correspond to this Schema.
+
+        Returns:
+            Tuple[pd.DataFrame, CollectibleMetadata]: The DataFrame with any
+                invalid rows dropped and a CollectibleMetadata dictionary
+                containing the rejected rows.
+        """
+        if "row_valid" not in list(df.columns):
+            df = self.validate(df)
+        rejects = df[df["row_valid"] == False]
+        df.drop(index=list(rejects.index), inplace=True)
+        return df, dict(rejects=rejects)

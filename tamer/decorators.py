@@ -58,11 +58,10 @@ def resolution(
     @functools.wraps(func)
     def wrapper_resolution(*args, **kwargs):
         result = func(*args, **kwargs)
-        if isinstance(result, tuple) and config.env == "prod":
+        if isinstance(result, tuple):
             result1 = result[1]
             if isinstance(result1, dict):
                 metadata.METADATA.collect(func.__name__, **result1)
-                result = result[0]
         return result
 
     return wrapper_resolution

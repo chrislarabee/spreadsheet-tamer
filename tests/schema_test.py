@@ -51,6 +51,15 @@ class TestValid:
         assert s1[1].invalid_reasons == ["violation"]
         assert s1[2].invalid_reasons == ["other violation", "violation"]
 
+    def test_that_it_can_be_used_in_equalities(self):
+        v = sc.Valid()
+        assert v == True
+        assert v != False
+        v1 = sc.Valid("violation")
+        v2 = sc.Valid("violation")
+        assert v1 == v2
+        assert v != v1
+
 
 class TestColumn:
     def test_that_it_handles_mixing_valid_and_invalid_as_expected(self):
@@ -200,26 +209,31 @@ class TestSchema:
         assert s.columns["b"].required
         assert not s.columns["b"].unique
 
-    class TestValidate:
-        @pytest.fixture
-        def sample_df(self):
-            return pd.DataFrame(
-                [
-                    ["foo", 1, "1 fish", nan],
-                    ["bar", 2, "2 fish", 50.0],
-                    ["spam", 3, "red fish", 100.0],
-                    ["eggs", 4, "blue fish", nan],
-                ],
-                columns=["a", "b", "c", "d"],
-            )
+    @pytest.fixture
+    def sample_df(self):
+        return pd.DataFrame(
+            [
+                ["foo", 1, "1 fish", nan],
+                ["bar", 2, "2 fish", 50.0],
+                ["spam", 3, "red fish", 100.0],
+                ["eggs", 4, "blue fish", nan],
+            ],
+            columns=["a", "b", "c", "d"],
+        )
 
-        def test_that_it_can_handle_single_column_validation(self, sample_df):
-            s = sc.Schema(
-                a=sc.Column(str),
-                b=sc.Column(int),
-                c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
-                d=sc.Column(float),
-            )
+    @pytest.fixture
+    def sample_schema(self):
+        return sc.Schema(
+            a=sc.Column(str),
+            b=sc.Column(int),
+            c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
+            d=sc.Column(float),
+        )
+
+    class TestValidate:
+        def test_that_it_can_handle_single_column_validation(
+            self, sample_df, sample_schema
+        ):
             expected_bools = pd.Series([False, False, True, True], name="row_valid")
             expected_reasons = pd.Series(
                 [
@@ -230,7 +244,7 @@ class TestSchema:
                 ],
                 name="row_valid",
             )
-            df = s.validate(sample_df)
+            df = sample_schema.validate(sample_df)
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
             pd.testing.assert_series_equal(reasons, expected_reasons)
@@ -259,3 +273,17 @@ class TestSchema:
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
             pd.testing.assert_series_equal(reasons, expected_reasons)
+
+        @pytest.mark.skip("Not implemented")
+        def test_that_it_can_handle_unique_value_constraints(self, sample_df):
+            pass
+
+        @pytest.mark.skip("Not implemented")
+        def test_that_it_can_handle_required_columns(self, sample_df):
+            pass
+
+    class TestEnforceSchemaRules:
+        def test_that_it_works_as_expected(self, sample_df, sample_schema):
+            df, _ = sample_schema.enforce_schema_rules(sample_df)
+            assert len(df) == 2
+            pd.testing.assert_index_equal(df.index, pd.Index([2, 3]))

@@ -24,10 +24,6 @@ class TestResolution:
         monkeypatch.setattr(metadata, "METADATA", md)
         return md
 
-    @pytest.fixture(autouse=True)
-    def override_test_config(self, monkeypatch):
-        monkeypatch.setattr(config.config, "env", "prod")
-
     def test_that_it_can_wrap_a_function_with_no_md_return(self, md):
         @decorators.resolution
         def _func(x):

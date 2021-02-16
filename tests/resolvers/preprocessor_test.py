@@ -10,10 +10,6 @@ from tamer import config
 
 class TestPreprocessor:
     class TestResolve:
-        @pytest.fixture(autouse=True)
-        def override_test_config(self, monkeypatch):
-            monkeypatch.setattr(config.config, "env", "prod")
-
         def test_that_it_works_with_a_report_like_spreadsheet(self, gaps_totals):
             df = pd.DataFrame(gaps_totals())
             g = gaps_totals(False, False)
@@ -92,7 +88,7 @@ class TestPreprocessor:
             self, customers
         ):
             df = pd.DataFrame(**customers())
-            df = Preprocessor._purge_pre_header(df)
+            df, _ = Preprocessor._purge_pre_header(df)
             assert df.shape == (4, 4)
 
     class TestPurgeGapRows:
