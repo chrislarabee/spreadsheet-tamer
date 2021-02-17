@@ -283,7 +283,7 @@ class TestSchema:
                     ["Column a must be unique"],
                     [],
                 ],
-                name="row_valid"
+                name="row_valid",
             )
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
@@ -298,20 +298,24 @@ class TestSchema:
             expected_reasons = pd.Series(
                 [
                     [],
-                    ["Column a must be unique", "<bar> is not a valid value for Column a"],
-                    ["Column a must be unique", "<bar> is not a valid value for Column a"],
+                    [
+                        "Column a must be unique",
+                        "<bar> is not a valid value for Column a",
+                    ],
+                    [
+                        "Column a must be unique",
+                        "<bar> is not a valid value for Column a",
+                    ],
                     ["<eggs> is not a valid value for Column a"],
                 ],
-                name="row_valid"
+                name="row_valid",
             )
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)
             pd.testing.assert_series_equal(reasons, expected_reasons)
 
         def test_that_it_can_handle_required_columns(self, sample_df):
-            s = sc.Schema(
-                d=sc.Column(float, required=True)
-            )
+            s = sc.Schema(d=sc.Column(float, required=True))
             df = s.validate(sample_df)
             expected_bools = pd.Series([False, True, True, False], name="row_valid")
             expected_reasons = pd.Series(
@@ -321,7 +325,7 @@ class TestSchema:
                     [],
                     ["Column d is required"],
                 ],
-                name="row_valid"
+                name="row_valid",
             )
             pd.testing.assert_series_equal(df["row_valid"].astype(bool), expected_bools)
             reasons = df["row_valid"].apply(lambda x: x.invalid_reasons)

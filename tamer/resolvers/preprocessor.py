@@ -110,7 +110,7 @@ class Preprocessor(Resolver):
             result = pd.DataFrame(result.to_list(), index=df.index)
             df[c] = result[1]
             md_df[c] = result[0].sum()
-        return df, {"metadata": md_df}
+        return df, dict(metadata=md_df)
 
     @staticmethod
     @resolution
