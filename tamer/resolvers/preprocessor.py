@@ -74,17 +74,11 @@ class Preprocessor(Resolver):
             df.columns = manual_header
         else:
             true_str_series = df.apply(lambda x: su.count_true_str(x) == len(x), axis=1)
-            for i, v in true_str_series.items():
-                if v:
-                    first_idx = i
-            else:
-                first_idx = None
-            # This one line version is pretty but messes up the type checker. :(
-            # first_idx = next((i for i, v in true_str_series.items() if v), None)
-            if first_idx is not None:
+            first_idx = next((i for i, v in true_str_series.items() if v), None)
+            if isinstance(first_idx, int):
                 df.columns = Header(df.iloc[first_idx])
                 header_idx = first_idx
-                df = pd.DataFrame(df.drop(index=first_idx).reset_index(drop=True))
+                df = pd.DataFrame(df.drop(index=[first_idx]).reset_index(drop=True))
         return df, header_idx
 
     @staticmethod
