@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import pandas as pd
+import numpy as np
 
 from .decorators import resolution
 from . import metadata as md
@@ -38,3 +39,37 @@ def complete_clusters(
         after_ct = df[c].count()
         md_df[c] = after_ct - before_ct
     return df, dict(metadata=md_df)
+
+
+@resolution
+def fillna_shift(df: pd.DataFrame, *column_fill_order: Tuple[str, ...]) -> pd.DataFrame:
+    """
+    Takes at least two columns in the DataFrame and shifts all their values
+    "leftward", replacing nan values. Basically, a given column's value will be
+    moved "left" in the reverse of the order specified by columns until it hits
+    the end or a non-null value.
+
+    So:
+        a   b   c            a   b   c
+    0   1   nan 2        0   1   2   nan
+    1   nan 3   4   ->   1   3   4   nan
+    2   nan nan 5        2   5   nan nan
+
+    If you pass a, b, c in that order. c, b, a would reverse the direction of the
+    shift. You can also do arbitrary column orders like b, c, a.
+
+    Args:
+        df (pd.DataFrame): A DataFrame.
+        columns: The columns in the DataFrame to shift values along and fill
+            nan cells.
+
+    Returns:
+        pd.DataFrame: The modified DataFrame.
+    """
+    if len(column_fill_order) < 2:
+        raise ValueError("Must supply at least 2 columns.")
+    for i, c in enumerate(column_fill_order[:-1]):
+        for c2 in column_fill_order[i + 1 :]:
+            df[c].fillna(df[c2], inplace=True)
+            df[c2] = np.where(df[c] == df[c2], np.nan, df[c2])
+    return df

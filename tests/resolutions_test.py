@@ -1,3 +1,4 @@
+import pytest
 import pandas as pd
 from numpy import nan
 
@@ -37,3 +38,52 @@ class TestCompleteClusters:
         pd.testing.assert_frame_equal(
             md["metadata"], expected_metadata, check_dtype=False
         )
+
+
+class TestFillnaShift:
+    @pytest.fixture
+    def sample_df(self):
+        return pd.DataFrame(
+            [
+                dict(a=1, b=nan, c=nan, d=2),
+                dict(a=nan, b=3, c=4, d=nan),
+                dict(a=nan, b=nan, c=5, d=nan),
+            ]
+        )
+
+    def test_that_it_works_with_simple_ordering(self, sample_df):
+        expected = pd.DataFrame(
+            [
+                dict(a=1, b=2, c=nan, d=nan),
+                dict(a=3, b=4, c=nan, d=nan),
+                dict(a=5, b=nan, c=nan, d=nan),
+            ]
+        )
+        df2 = r.fillna_shift(sample_df, "a", "b", "c", "d")
+        pd.testing.assert_frame_equal(df2, expected, check_dtype=False)
+
+    def test_that_it_works_with_rigthward_ordering(self, sample_df):
+        expected = pd.DataFrame(
+            [
+                dict(a=nan, b=nan, c=1, d=2),
+                dict(a=nan, b=nan, c=3, d=4),
+                dict(a=nan, b=nan, c=nan, d=5),
+            ]
+        )
+        df2 = r.fillna_shift(sample_df, "d", "c", "b", "a")
+        pd.testing.assert_frame_equal(df2, expected, check_dtype=False)
+
+    def test_that_it_works_with_arbitrary_ordering(self, sample_df):
+        expected = pd.DataFrame(
+            [
+                dict(a=nan, b=2, c=1, d=nan),
+                dict(a=nan, b=3, c=4, d=nan),
+                dict(a=nan, b=5, c=nan, d=nan),
+            ]
+        )
+        df2 = r.fillna_shift(sample_df, "b", "c", "d", "a")
+        pd.testing.assert_frame_equal(df2, expected, check_dtype=False)
+
+    def test_that_it_raises_expected_error_on_too_few_columns(self, sample_df):
+        with pytest.raises(ValueError, match="Must supply at least 2 columns."):
+            r.fillna_shift(sample_df, "a")
