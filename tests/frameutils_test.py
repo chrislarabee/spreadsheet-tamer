@@ -6,6 +6,44 @@ from tamer import frameutils
 from tamer.decorators import nullable
 
 
+class TestAccrete:
+    def test_that_it_works_with_a_single_group_by(self):
+        df = pd.DataFrame(
+            [
+                dict(a="t", b="u", c="v", d=1),
+                dict(a="t", b="w", c=nan, d=2),
+                dict(a="y", b="z", c="z", d=3),
+            ]
+        )
+        expected = pd.DataFrame(
+            [
+                dict(a="t", b="u,w", c="v", d=1),
+                dict(a="t", b="u,w", c="v", d=2),
+                dict(a="y", b="z", c="z", d=3),
+            ]
+        )
+        df = frameutils.accrete(df, ["a"], ("b", "c"), ",")
+        pd.testing.assert_frame_equal(df, expected)
+
+    def test_that_it_works_with_multiple_group_by_values(self):
+        df = pd.DataFrame(
+            [
+                dict(a="t", b="u", c=1),
+                dict(a="t", b="u", c=2),
+                dict(a="x", b="y", c=nan),
+            ]
+        )
+        expected = pd.DataFrame(
+            [
+                dict(a="t", b="u", c="1.0 2.0"),
+                dict(a="t", b="u", c="1.0 2.0"),
+                dict(a="x", b="y", c=nan),
+            ]
+        )
+        df = frameutils.accrete(df, ["a", "b"], "c")
+        pd.testing.assert_frame_equal(df, expected)
+
+
 class TestMultiapply:
     def test_that_it_works_with_broadcasting_a_simple_lambda_func(self):
         df = pd.DataFrame([dict(a=1, b=2, c=3), dict(a=4, b=5, c=6)])
