@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Dict, Union, Any
 
 import pandas as pd
 import numpy as np
@@ -6,6 +6,7 @@ import numpy as np
 from .decorators import resolution
 from . import metadata as md
 from .type_handling import CollectibleMetadata
+from . import iterutils
 
 
 @resolution
@@ -73,3 +74,36 @@ def fillna_shift(df: pd.DataFrame, *column_fill_order: Tuple[str, ...]) -> pd.Da
             df[c].fillna(df[c2], inplace=True)
             df[c2] = np.where(df[c] == df[c2], np.nan, df[c2])
     return df
+
+
+@resolution
+def remove_redundancies(
+    df: pd.DataFrame, redundancy_map: Dict[str, Union[str, Tuple[str, ...]]]
+) -> Tuple[pd.DataFrame, CollectibleMetadata]:
+    """
+    For each row in the DataFrame, if a key in redundancy_map contains the same
+    value as the column(s) in the paired value, replaces the column(s)' value
+    with nan, removing the redundant data.
+
+    Args:
+        df (pd.DataFrame): A DataFrame.
+        redundancy_map (Dict[str, Union[str, Tuple[str, ...]]]): A dictionary
+            with master column names as keys (the columns that *should* contain
+            the data) and one or more other columns that may also contain the
+            value in the master column.
+
+    Returns:
+        Tuple[pd.DataFrame, CollectibleMetadata]: The modified DataFrame, and a
+            metadata dictionary.
+    """
+    for k, v in redundancy_map.items():
+        redundancy_map[k] = iterutils.tuplify(v)
+    md_df = md.gen_empty_md_df(df.columns)
+    for master, extras in redundancy_map.items():
+        for e in extras:
+            result = df.apply(
+                lambda row: np.nan if row[master] == row[e] else row[e], axis=1
+            )
+            md_df[e] = df[e].count() - result.count()
+            df[e] = result
+    return df, dict(metadata=md_df)

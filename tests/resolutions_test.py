@@ -87,3 +87,25 @@ class TestFillnaShift:
     def test_that_it_raises_expected_error_on_too_few_columns(self, sample_df):
         with pytest.raises(ValueError, match="Must supply at least 2 columns."):
             r.fillna_shift(sample_df, "a")
+
+
+class TestRemoveRedundancies:
+    def test_that_it_works_on_integers(self):
+        df = pd.DataFrame(
+            [
+                dict(a=1, b=1, c=1),
+                dict(a=2, b=3, c=2),
+                dict(a=3, b=nan, c=nan),
+            ]
+        )
+        expected = pd.DataFrame(
+            [
+                dict(a=1, b=nan, c=nan),
+                dict(a=2, b=3, c=nan),
+                dict(a=3, b=nan, c=nan),
+            ]
+        )
+        df, md = r.remove_redundancies(df, dict(a=("b", "c")))
+        pd.testing.assert_frame_equal(df, expected)
+        expected_metadata = pd.DataFrame([dict(a=0, b=1, c=2)])
+        pd.testing.assert_frame_equal(md["metadata"], expected_metadata)
