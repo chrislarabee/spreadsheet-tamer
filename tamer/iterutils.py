@@ -111,7 +111,7 @@ def tuplify(value: Any) -> Tuple[Any, ...]:
 
 
 def tuplify_iterable(
-    value: Union[Dict[Any, Any], MutableSequence[Any]] 
+    value: Union[Dict[Any, Any], MutableSequence[Any]]
 ) -> Union[Dict[Any, Tuple[Any]], MutableSequence[Tuple[Any]]]:
     """
     Convenience function for broadcasting tuplify over the elements of a
