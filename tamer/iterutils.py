@@ -87,21 +87,18 @@ def collect_by_keys(x: Dict[Any, Any], *keys: Any) -> Dict[Any, Any]:
     return result
 
 
-def tuplify(value: Any, do_none: bool = False) -> Union[Tuple[Any, ...], None]:
+def tuplify(value: Any) -> Tuple[Any, ...]:
     """
     Simple function that puts the passed object value into a tuple, if it is not
     already.
 
     Args:
         value (Any): Any object.
-        do_none (bool, optional): Set to True in order to wrap None values in a
-            tuple. Otherwise, tuplify will leave them as bare None. Defaults to
-            False.
 
     Returns:
-        Union[Tuple[Any, ...], None]: The passed value as a tuple, or None.
+        Tuple[Any, ...]: The passed value as a tuple.
     """
-    if not isinstance(value, tuple) and (value is not None or do_none):
+    if not isinstance(value, tuple):
         # Covers dicts and OrderedDicts:
         if isinstance(value, dict):
             value = [(k, v) for k, v in value.items()]
@@ -114,7 +111,7 @@ def tuplify(value: Any, do_none: bool = False) -> Union[Tuple[Any, ...], None]:
 
 
 def tuplify_iterable(
-    value: Union[Dict[Any, Any], MutableSequence[Any]], do_none: bool = False
+    value: Union[Dict[Any, Any], MutableSequence[Any]] 
 ) -> Union[Dict[Any, Tuple[Any]], MutableSequence[Tuple[Any]]]:
     """
     Convenience function for broadcasting tuplify over the elements of a
@@ -123,9 +120,6 @@ def tuplify_iterable(
     Args:
         value (Union[Dict[Any, Any], MutableSequence[Any]]): Dict-like or list-
             like.
-        do_none (bool, optional): Set to True in order to wrap None values in a
-            tuple. Otherwise, tuplify will leave them as bare None. Defaults to
-            False.
 
     Returns:
         Union[Dict[Any, Tuple[Any]], MutableSequence[Tuple[Any]]]: The passed
@@ -138,7 +132,7 @@ def tuplify_iterable(
     else:
         iterable = enumerate(value)
     for k, v in iterable:
-        value[k] = tuplify(v, do_none)
+        value[k] = tuplify(v)
     return value
 
 

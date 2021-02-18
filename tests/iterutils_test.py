@@ -50,8 +50,7 @@ class TestTuplify:
         assert u.tuplify("test") == ("test",)
 
     def test_that_it_works_on_none(self):
-        assert u.tuplify(None) is None
-        assert u.tuplify(None, True) == (None,)
+        assert u.tuplify(None) == (None,)
 
     def test_that_it_works_on_any_iterable(self):
         assert u.tuplify([1, 2, 3]) == (1, 2, 3)
