@@ -1,8 +1,11 @@
 from typing import Optional, Sequence
+import warnings
 
 import pandas as pd
 
 import datagenius.util as u
+
+warnings.warn("datagenius.lib.preprocess is deprecated.", DeprecationWarning)
 
 
 @u.transmutation(stage="h_preprocess", priority=99)

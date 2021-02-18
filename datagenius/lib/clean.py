@@ -1,10 +1,14 @@
 from typing import Sequence
+import warnings
 
 import pandas as pd
 from numpy import nan
 
 import datagenius.util as u
 import datagenius.lib.guides as gd
+
+
+warnings.warn("datagenius.lib.clean is deprecated.", DeprecationWarning)
 
 
 @u.transmutation(stage="clean", priority=15)

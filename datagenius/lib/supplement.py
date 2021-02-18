@@ -7,6 +7,9 @@ import datagenius.util as u
 import datagenius.lib.guides as gd
 
 
+warnings.warn("datagenius.lib.supplement is deprecated.", DeprecationWarning)
+
+
 def do_exact(
     df1: pd.DataFrame, df2: pd.DataFrame, on: tuple, rsuffix: str = "_s"
 ) -> pd.DataFrame:

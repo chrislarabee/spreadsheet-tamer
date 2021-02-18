@@ -1,10 +1,13 @@
 import os
 import collections as col
+import warnings
 
 import sqlalchemy as sa
 import pandas as pd
 
 import datagenius.util as u
+
+warnings.warn("datagenius.io.odbc is deprecated.", DeprecationWarning)
 
 
 class ODBConnector:

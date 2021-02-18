@@ -1,6 +1,10 @@
+import warnings
+
 import pandas as pd
 
 import datagenius.util as u
+
+warnings.warn("datagenius.lib.explore is deprecated.", DeprecationWarning)
 
 
 @u.transmutation(stage="explore")

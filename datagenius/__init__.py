@@ -18,12 +18,10 @@ from .util import (
     broadcast_type,
     standardize_header,
 )
-from datagenius.config import config
 import datagenius.names as names
 
 
 __all__ = [
-    "config",
     "names",
     "element",
     "genius",

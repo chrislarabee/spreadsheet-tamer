@@ -1,5 +1,6 @@
 import os
 from typing import Callable
+import warnings
 
 import pandas as pd
 import numpy as np
@@ -9,6 +10,8 @@ import datagenius.util as u
 import datagenius.metadata as md
 from datagenius.io import odbc, text
 from datagenius.tms_registry import TMS
+
+warnings.warn("datagenius.genius is deprecated.", DeprecationWarning)
 
 
 @pd.api.extensions.register_dataframe_accessor("genius")

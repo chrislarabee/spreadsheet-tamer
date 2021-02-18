@@ -1,8 +1,12 @@
 from typing import Callable
+import warnings
 
 import pandas as pd
 
 import datagenius.util as u
+
+
+warnings.warn("datagenius.metadata is deprecated.", DeprecationWarning)
 
 
 class GeniusMetadata(Callable):

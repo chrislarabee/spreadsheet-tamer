@@ -2,12 +2,15 @@ import os
 from pathlib import Path
 from typing import Dict, List, Any, Union, Tuple
 import string
+import warnings
 
 import yaml
 
 mod_path = Path(__file__).parent
 
 # TODO: gconfig module is ready for deprecation.
+warnings.warn("datagenius.gconfig is deprecated.", DeprecationWarning)
+
 
 class Patterns:
     def __init__(self) -> None:

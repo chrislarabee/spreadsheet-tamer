@@ -1,11 +1,13 @@
 import re
 import operator as o
+import warnings
 
 import pandas as pd
 
 import datagenius.util as u
 
-# TODO: element module is ready for deprecation.
+warnings.warn("datagenius.element is deprecated.", DeprecationWarning)
+
 
 class ZeroNumeric:
     """

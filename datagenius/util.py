@@ -27,8 +27,10 @@ import datagenius.element as e
 from datagenius.tms_registry import TMS
 
 
+warnings.warn("datagenius.util is deprecated.", DeprecationWarning)
+
 _TFunc = TypeVar("_TFunc", bound=Callable[..., Any])
-dep_warning = "{0} is deprecated but not copied to tamer."
+
 
 def transmutation(
     func: Optional[Any] = None, *, stage: str = None, priority: int = 10
@@ -144,7 +146,6 @@ def align_args(
         that func can accept.
 
     """
-    warnings.warn(dep_warning.format("align_args"))
     func_args = getattr(func, "args", None)
     if func_args is None:
         func_args = inspect.getfullargspec(func).args
@@ -266,7 +267,6 @@ def gen_alpha_keys(num: int) -> List[str]:
         desired. Can be used to generate sets up to 676 in length.
 
     """
-    warnings.warn(dep_warning.format("gen_alpha_keys"))
     a = string.ascii_uppercase
     result = list()
     x = num // 26
@@ -420,7 +420,6 @@ def package_rejects_metadata(df: pd.DataFrame):
         counts of values in df.
 
     """
-    warnings.warn(dep_warning.format("package_rejects_metadata"))
     return dict(rejects=df, metadata=pd.DataFrame(df.count()).T)
 
 
@@ -474,7 +473,6 @@ def translate_null(obj: Any, to=nan):
     Returns: The object, converted to None or nan as appropriate.
 
     """
-    warnings.warn(dep_warning.format("translate_null"))
     if not pd.isna(to) and to is not None:
         raise ValueError(f"to must be numpy nan or None. to={to}")
     if pd.isna(obj) or obj is None:
@@ -546,7 +544,6 @@ def validate_attr(obj, attr: str, match=None) -> bool:
         attribute and if it matches the passed match.
 
     """
-    warnings.warn(dep_warning.format("validate_attr"))
     result = False
     if hasattr(obj, attr):
         if match is None:
@@ -603,7 +600,6 @@ def gsheet_range_formula(
     Returns: The DataFrame, with a formula row or column added.
 
     """
-    warnings.warn(dep_warning.format("gsheet_range_formula"))
     col_order = list(col_order) if col_order else list(df.columns)
     # Translate columns into Google Sheet column names (i.e. A, B, C...)
     alpha_cols = gen_alpha_keys(len(col_order))

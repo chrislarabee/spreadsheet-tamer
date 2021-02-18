@@ -1,9 +1,12 @@
 import re
 from collections import abc
+import warnings
 
 from numpy import nan
 
 import datagenius.util as u
+
+warnings.warn("datagenius.lib.guides is deprecated.", DeprecationWarning)
 
 
 class CleaningGuide(abc.Mapping, abc.Callable):

@@ -11,6 +11,8 @@ from google.auth.transport.requests import Request
 
 from datagenius import util as u
 
+warnings.warn("datagenius.io.text is deprecated.", DeprecationWarning)
+
 
 class SheetsAPI:
     """
