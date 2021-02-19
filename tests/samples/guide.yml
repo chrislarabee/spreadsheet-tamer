@@ -1,0 +1,18 @@
+size:
+  - target:
+    - sm
+    - s
+    into: small
+  - target: 
+      pattern: "(\\d{2})(\\d{2})"
+    into: 
+      pattern: "{0}-{1}"
+  - target:
+    - red
+    - blue
+    - green
+    redistribute: color
+  - cast: str
+
+price:
+  - cast: float
