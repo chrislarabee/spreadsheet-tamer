@@ -1,65 +1,9 @@
 import pandas as pd
 from numpy import nan
-import pytest
 
 import datagenius.lib.clean as cl
 import datagenius.lib.guides as gd
 import datagenius.element as e
-
-
-class TestCleaningGuide:
-    def test_basics(self):
-        cg = gd.CleaningGuide(("a", "x"), (("b", "c"), "y"), d="z")
-        assert cg("a") == "x"
-        assert cg("b") == "y"
-        assert cg("c") == "y"
-        assert cg("d") == "z"
-        assert cg("e") == "e"
-
-    def test_convert(self):
-        cg = gd.CleaningGuide.convert(
-            gd.CleaningGuide(("a", "x"), (("b", "c"), "y"), d="z")
-        )
-        assert cg("a") == "x"
-        assert cg("b") == "y"
-        assert cg("c") == "y"
-        assert cg("d") == "z"
-        assert cg("e") == "e"
-
-        cg = gd.CleaningGuide.convert(dict(a="x", b="y", c="z"))
-        assert cg("a") == "x"
-        assert cg("b") == "y"
-        assert cg("c") == "z"
-        assert cg("e") == "e"
-
-        with pytest.raises(ValueError, match="Invalid object=test, type=<class 'str'>"):
-            cg = gd.CleaningGuide.convert("test")
-
-
-def test_cleanse_typos(needs_cleanse_typos):
-    df = pd.DataFrame(**needs_cleanse_typos)
-    df2, md_dict = cl.cleanse_typos(
-        df,
-        dict(attr1=dict(cu="copper"), attr2=gd.CleaningGuide((("sm", "s"), "small"))),
-    )
-    pd.testing.assert_frame_equal(df, df2)
-    expected_metadata = pd.DataFrame(
-        [
-            dict(
-                id=0,
-                name=0,
-                price=0,
-                cost=0,
-                upc=0,
-                attr1=1,
-                attr2=2,
-                attr3=0,
-                attr4=0,
-                attr5=0,
-            )
-        ]
-    )
-    pd.testing.assert_frame_equal(md_dict["metadata"], expected_metadata)
 
 
 def test_convert_types(customers, products):

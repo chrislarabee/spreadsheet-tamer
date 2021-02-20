@@ -7,26 +7,28 @@ from tamer.numerics.zero_numeric import ZeroNumeric
 
 class TestConvertPlus:
     def test_that_it_can_convert_various_types(self):
-        assert t.convertplus(123, target_type=str) == "123"
+        assert t.convertplus(123, target_type=t.String) == "123"
         assert isinstance(t.convertplus("00123", ZeroNumeric), ZeroNumeric)
-        assert t.convertplus(1.23, int) == 1
-        assert isinstance(t.convertplus(1234.0, int), int)
-        assert t.convertplus([1, 2, 3], str) == "[1, 2, 3]"
-        assert t.convertplus(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
-        assert t.convertplus("0", float) == 0.0
-        assert t.convertplus("1", float) == 1.0
+        assert t.convertplus(1.23, t.Integer) == 1
+        assert isinstance(t.convertplus(1234.0, t.Integer), int)
+        assert t.convertplus([1, 2, 3], t.String) == "[1, 2, 3]"
+        assert (
+            t.convertplus(dict(a=1, b=2, c=3), t.String) == "{'a': 1, 'b': 2, 'c': 3}"
+        )
+        assert t.convertplus("0", t.Float) == 0.0
+        assert t.convertplus("1", t.Float) == 1.0
 
     def test_that_it_can_handle_nans(self):
-        assert pd.isna(t.convertplus(nan, int))
+        assert pd.isna(t.convertplus(nan, t.Integer))
 
     def test_that_it_can_be_used_in_pandas_apply(self):
         s = pd.Series([1, nan, "2", 1.2])
         expected = pd.Series([1, nan, 2, 1])
-        result = s.apply(t.convertplus, target_type=int)
+        result = s.apply(t.convertplus, target_type=t.Integer)
         pd.testing.assert_series_equal(expected, result)
 
     def test_that_it_can_handle_weird_strings(self):
-        assert t.convertplus("1..23", float) == 1.23
+        assert t.convertplus("1..23", t.Float) == 1.23
 
 
 class TestGetClassName:
