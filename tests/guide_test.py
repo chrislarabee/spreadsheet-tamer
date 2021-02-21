@@ -6,10 +6,16 @@ from tamer import guide as gd
 
 
 class TestRule:
+    def test_that_targets_are_tuplified(self):
+        r = gd.Rule("test", target="test")
+        assert r._target == ("test",)
+        r = gd.Rule("test", target=[1, 2, 3])
+        assert r._target == (1, 2, 3)
+
     class TestValidateTargetIntoPatterns:
         def test_that_it_works_with_correct_input(self):
             gd.Rule._validate_target_into_patterns(
-                [r"(\d{2})(\d{2})", r"(a)(b)"], "{0}-{1}"
+                (r"(\d{2})(\d{2})", r"(a)(b)"), "{0}-{1}"
             )
 
         def test_that_it_raises_the_expected_error_with_incorrect_input(self):
@@ -17,7 +23,7 @@ class TestRule:
                 ValueError, match=r"\(a\) does not match \{0\}-\{1\}"
             ):
                 gd.Rule._validate_target_into_patterns(
-                    [r"(\d{2})(\d{2})", r"(a)"], "{0}-{1}"
+                    (r"(\d{2})(\d{2})", r"(a)"), "{0}-{1}"
                 )
 
     class TestCountChar:
@@ -39,7 +45,7 @@ class TestRule:
 
         def test_that_it_works_with_target_pattern(self):
             r = gd.Rule(
-                "size", target=[r"^sm?$", r"all"], into="small", target_pattern=True
+                "size", target=[r"^sm?$", r"all"], into="small", is_pattern="target"
             )
             s = pd.Series(["sm", "s", "sall", nan])
             expected = pd.Series(["small", "small", "small", nan])
@@ -51,10 +57,24 @@ class TestRule:
                 "size",
                 target=[r"^(\d{2})(\d{2})$"],
                 into="{0}-{1}",
-                target_pattern=True,
-                into_pattern=True,
+                is_pattern="into"
             )
             s = pd.Series([1214, "1618", 12345, nan])
             expected = pd.Series(["12-14", "16-18", 12345, nan])
             s = r.map_transform_values(s)
+            pd.testing.assert_series_equal(s, expected)
+
+    class TestCastValues:
+        def test_that_it_works_with_simple_value_matching(self):
+            r = gd.Rule("size", target="100", cast=float)
+            s = pd.Series([1, "12", "100", nan])
+            expected = pd.Series([1, "12", 100.0, nan])
+            s = r.cast_values(s)
+            pd.testing.assert_series_equal(s, expected)
+
+        def test_that_it_works_with_target_pattern(self):
+            r = gd.Rule("size", target=r"\d+$", cast=int, is_pattern="target")
+            s = pd.Series([1, "12", "100", "test", nan])
+            expected = pd.Series([1, 12, 100, "test", nan])
+            s = r.cast_values(s)
             pd.testing.assert_series_equal(s, expected)

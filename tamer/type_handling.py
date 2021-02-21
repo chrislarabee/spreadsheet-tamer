@@ -14,25 +14,8 @@ Numeric = TypeVar("Numeric", int, float, np.int64, np.float32, np.float64)
 CollectibleMetadata = Dict[str, Any]
 
 
-class SSType:
-    def __call__(self, value: Any) -> SSType:
-        return value
-
-
-class Float(float, SSType):
-    pass
-
-
-class Integer(int, SSType):
-    pass
-
-
-class String(str, SSType):
-    pass
-
-
 @nullable
-def convertplus(obj: Any, target_type: SSType) -> Any:
+def convertplus(obj: Any, target_type: Type[Any]) -> Any:
     """
     Smarter type conversion that avoids errors when converting to numeric from
     non-standard strings and which can be used in pd.Series.apply calls.
@@ -44,7 +27,7 @@ def convertplus(obj: Any, target_type: SSType) -> Any:
     Returns:
         Any: The passed object converted to the target type.
     """
-    if isinstance(obj, str) and target_type == Float and isnumericplus(obj):
+    if isinstance(obj, str) and target_type == float and isnumericplus(obj):
         pts = re.search(r"\.+", obj)
         point_ct = len(pts.group()) if pts else 0
         if point_ct > 1:

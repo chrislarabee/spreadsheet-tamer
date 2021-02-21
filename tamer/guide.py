@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Optional, List
+from typing import Any, Optional, Type, Tuple, Literal
 from pathlib import Path
 import re
 
 import pandas as pd
 
-from .type_handling import SSType
+from . import type_handling as th
+from . import iterutils
 
 
 class Rule:
@@ -16,50 +17,57 @@ class Rule:
         target: Any,
         into: Optional[Any] = None,
         redistribute: Optional[str] = None,
-        cast: Optional[SSType] = None,
-        target_pattern: bool = False,
-        into_pattern: bool = False,
+        cast: Optional[Type[Any]] = None,
+        is_pattern: Optional[Literal["target", "into"]] = None,
     ) -> None:
         self._label = label
-        self._target = target
+        self._target = iterutils.tuplify(target)
         self._into = into
         self._redistribute = redistribute
         self._cast = cast
-        self._target_pattern = target_pattern
-        self._into_pattern = into_pattern
+        self._target_pattern = True if is_pattern in ("target", "into") else False
+        self._into_pattern = True if is_pattern == "into" else False
         if self._target_pattern and self._into_pattern and self._into:
             self._validate_target_into_patterns(self._target, self._into)
 
     def map_transform_values(self, s: pd.Series) -> pd.Series:
-        if self._target:
-            if self._target_pattern:
-                if self._into_pattern:
-                    result = s
-                    for p in self._target:
-                        result = s.apply(
-                            lambda x: self._into.format(*re.search(p, str(x)).groups())
-                            if pd.notna(x) and re.search(p, str(x)) is not None
-                            else x
-                        )
-                    return pd.Series(result)
-                else:
+        if self._target_pattern:
+            if self._into_pattern:
+                result = s
+                for p in self._target:
                     result = s.apply(
-                        lambda x: self._into
-                        if pd.notna(x)
-                        and pd.Series(
-                            [re.search(p, str(x)) is not None for p in self._target]
-                        ).any()
+                        lambda x: self._into.format(*re.search(p, str(x)).groups())
+                        if pd.notna(x) and re.search(p, str(x))
                         else x
                     )
-                    return pd.Series(result)
             else:
-                result = s.apply(lambda x: self._into if x in self._target else x)
-                return pd.Series(result)
+                result = s.apply(
+                    lambda x: self._into
+                    if pd.notna(x)
+                    and pd.Series(
+                        [re.search(p, str(x)) is not None for p in self._target]
+                    ).any()
+                    else x
+                )
         else:
-            return s
+            result = s.apply(lambda x: self._into if x in self._target else x)
+        return pd.Series(result)
+
+    def cast_values(self, s: pd.Series) -> pd.Series:
+        if self._target_pattern:
+            result = s
+            for p in self._target:
+                result = s.apply(
+                    lambda x: th.convertplus(x, self._cast) if re.search(p, str(x)) else x
+                )
+        else:
+            result = s.apply(
+                lambda x: th.convertplus(x, self._cast) if x in self._target else x
+            )
+        return pd.Series(result)
 
     @classmethod
-    def _validate_target_into_patterns(cls, target_pat: List[str], into_pat: str):
+    def _validate_target_into_patterns(cls, target_pat: Tuple[str, ...], into_pat: str):
         for tp in target_pat:
             if cls._count_char(tp, r"\(") != cls._count_char(into_pat, r"\{"):
                 raise ValueError(
