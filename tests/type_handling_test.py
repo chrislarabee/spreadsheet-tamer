@@ -12,9 +12,7 @@ class TestConvertPlus:
         assert t.convertplus(1.23, int) == 1
         assert isinstance(t.convertplus(1234.0, int), int)
         assert t.convertplus([1, 2, 3], str) == "[1, 2, 3]"
-        assert (
-            t.convertplus(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
-        )
+        assert t.convertplus(dict(a=1, b=2, c=3), str) == "{'a': 1, 'b': 2, 'c': 3}"
         assert t.convertplus("0", float) == 0.0
         assert t.convertplus("1", float) == 1.0
 
