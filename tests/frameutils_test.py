@@ -6,6 +6,18 @@ from tamer import frameutils
 from tamer.decorators import nullable
 
 
+class TestComplexJoinRule:
+    def test_that_its_subscriptable(self):
+        r = frameutils.ComplexJoinRule("a", "b", "c", inexact=True)
+        assert r.thresholds[0] == 0.9
+
+    def test_that_output_works(self):
+        r = frameutils.ComplexJoinRule("a", "b", "c", conditions=dict(c="x"))
+        assert r.output() == (("a", "b", "c"), {"c": ("x",)})
+        assert r.output("on", "thresholds") == (("a", "b", "c"), None)
+        assert r.output("on") == ("a", "b", "c")
+
+
 class TestAccrete:
     def test_that_it_works_with_a_single_group_by(self):
         df = pd.DataFrame(

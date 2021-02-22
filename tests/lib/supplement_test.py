@@ -209,15 +209,3 @@ def test_prep_suffixes():
     with pytest.raises(ValueError, match="Suffix len=2, suffixes="):
         su.prep_suffixes(("_x", "_y"), 3)
 
-
-class TestSupplementGuide:
-    def test_basics(self):
-        sg = gd.SupplementGuide("a", "b", "c", inexact=True)
-        # Ensures thresholds is subscriptable:
-        assert sg.thresholds[0] == 0.9
-
-    def test_output(self):
-        sg = gd.SupplementGuide("a", "b", "c", conditions={"c": "x"})
-        assert sg.output() == (("a", "b", "c"), {"c": ("x",)})
-        assert sg.output("on", "thresholds") == (("a", "b", "c"), None)
-        assert sg.output("on") == ("a", "b", "c")

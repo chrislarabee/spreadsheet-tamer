@@ -1,8 +1,114 @@
-from typing import Callable, Any, Union, Tuple, List
+from typing import Callable, Any, Union, Tuple, List, Dict
 import pandas as pd
 from numpy import nan
 
 from . import iterutils
+
+
+class ComplexJoinRule:
+    def __init__(
+        self,
+        *on: str,
+        conditions: Dict[str, Any] = None,
+        thresholds: Union[float, Tuple[float, ...]] = None,
+        block: Union[str, Tuple[str, ...]] = None,
+        inexact: bool = False,
+    ):
+        """
+        Args:
+            conditions: A dictionary of conditions which rows in the
+                target DataFrame must meet in order to qualify for this
+                Supplement guide's instructions. Keys are column names
+                and values are the value(s) in that column that qualify.
+            thresholds: A float or tuple of floats of the same length
+                as on. Used only if inexact is True, each threshold
+                will be used with the on at the same index and matches
+                in that column must equal or exceed the threshold to
+                qualify as a match.
+            block: A string or tuple of strings, column names in the
+                target DataFrame. Use this if you're lucky enough to
+                have data that you can match partially exactly on and
+                just need inexact matches within that set of exact
+                matches.
+            inexact: A boolean, indicates whether this SupplementGuide
+                represents exact or inexact match guidelines.
+
+        Args:
+            *on: An arbitrary list of strings, names of columns in the target 
+                DataFrame.
+            conditions (Dict[str, Any], optional): A dictionary of conditions
+                which rows in the target DataFrame must meet in order to qualify 
+                for this ComplexJoinRule's instructions. Keys are column names 
+                and values are the value(s) in that column that qualify. Defaults 
+                to None.
+            thresholds (Union[float, Tuple[float, ...]], optional): Used only if
+                inexact is True, each threshold will be used with the on at the 
+                same index for fuzzy matching. Defaults to None.
+            block (Union[str, Tuple[str, ...]], optional): Column names in the 
+                target DataFrame to require exact matches on. Defaults to None.
+            inexact (bool, optional): Set to True if this ComplexJoinRule 
+                represents inexact match guidelines. Defaults to False.
+
+        Raises:
+            ValueError: If threshold values are passed and the # of thresholds
+                passed does not match the # of ons patched.
+        """
+        self.on = on
+        c = {None: None} if conditions is None else conditions
+        for k, v in c.items():
+            c[k] = iterutils.tuplify(v)  # type: ignore
+        self.conditions = c
+        self.thresholds = iterutils.tuplify(thresholds) if thresholds else None
+        self.block = iterutils.tuplify(block)
+        self.inexact = inexact
+        if self.inexact:
+            if self.thresholds is None:
+                self.thresholds = tuple([0.9 for _ in range(len(self.on))])
+            elif len(self.thresholds) != len(self.on):
+                raise ValueError(
+                    f"If provided, thresholds length must match on "
+                    f"length: thresholds={self.thresholds}, on={self.on}"
+                )
+        self.chunks = []
+
+    def insert(self, index: int, x):
+        self.chunks.insert(index, x)
+
+    def output(self, *attrs: str) -> Tuple[Any, ...]:
+        """
+        Convenience method for quickly collecting a tuple of attributes from the 
+        ComplexJoinRule.
+
+        Args:
+            *attrs: An arbitrary number of strings, which must be attributes 
+                in the ComplexJoinRule. If no attrs are passed, output will just 
+                return on and conditions attributes.
+
+        Returns:
+            Tuple[Any, ...]: A tuple of the ComplexJoinRule's attribute values.
+        """
+        if len(attrs) == 0:
+            return self.on, self.conditions
+        else:
+            results = [getattr(self, a) for a in attrs]
+            return results[0] if len(results) == 1 else tuple(results)
+
+    def __getitem__(self, item: int):
+        return self.chunks[item]
+
+    def __setitem__(self, key: int, value: list):
+        self.chunks[key] = value
+
+    def __delitem__(self, key: int):
+        self.chunks.pop(key)
+
+    def __len__(self):
+        return len(self.chunks)
+
+
+class ComplexJoinDaemon:
+    def __init__(self) -> None:
+        pass
 
 
 def accrete(
