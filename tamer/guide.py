@@ -6,6 +6,7 @@ import re
 
 import pandas as pd
 import numpy as np
+import yaml
 
 from . import type_handling as th
 from . import iterutils
@@ -167,4 +168,7 @@ class Guide:
 
     @classmethod
     def from_yaml(cls, p: Path) -> Guide:
-        pass
+        with open(p, "r") as r:
+            raw = yaml.load(r, Loader=yaml.Loader)
+        return cls(**{label: Rule(label, **details) for label, details in raw.items()})
+

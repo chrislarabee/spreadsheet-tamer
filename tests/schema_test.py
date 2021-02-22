@@ -63,20 +63,24 @@ class TestValid:
 
 class TestColumn:
     def test_that_it_handles_mixing_valid_and_invalid_as_expected(self):
-        c = sc.Column(int, valid_values=[1, 2, 3], invalid_values=[4, 5, 6])
+        c = sc.Column("x", int, valid_values=[1, 2, 3], invalid_values=[4, 5, 6])
         assert c.valid_values == [1, 2, 3]
         assert c.invalid_values == []
-        c = sc.Column(str, valid_patterns=[r"\D"], invalid_patterns=[r"\d"])
+        c = sc.Column("x", str, valid_patterns=[r"\D"], invalid_patterns=[r"\d"])
         assert c.valid_patterns == [r"\D"]
         assert c.invalid_patterns == []
         c = sc.Column(
-            str, valid_values=["a"], invalid_patterns=[r"\d"], invalid_values=["a"]
+            "x", str, valid_values=["a"], invalid_patterns=[r"\d"], invalid_values=["a"]
         )
         assert c.valid_values == ["a"]
         assert c.invalid_patterns == []
         assert c.invalid_values == []
         c = sc.Column(
-            str, valid_patterns=[r"\D"], invalid_patterns=[r"\d"], invalid_values=["a"]
+            "x",
+            str,
+            valid_patterns=[r"\D"],
+            invalid_patterns=[r"\d"],
+            invalid_values=["a"],
         )
         assert c.valid_patterns == [r"\D"]
         assert c.invalid_patterns == []
@@ -84,7 +88,7 @@ class TestColumn:
 
     class TestEvaluate:
         def test_that_it_works_with_only_data_type_constraint(self):
-            c = sc.Column(int, "a")
+            c = sc.Column("a", int)
             assert c.evaluate(1)
             v = c.evaluate("1")
             assert not v
@@ -93,40 +97,40 @@ class TestColumn:
             ]
 
         def test_that_it_works_with_null_values(self):
-            c = sc.Column(int, "a")
+            c = sc.Column("a", int)
             assert c.evaluate(1)
             assert c.evaluate(nan)
-            c = sc.Column(int, "a", required=True)
+            c = sc.Column("a", int, required=True)
             v = c.evaluate(nan)
             assert not v
             assert v.invalid_reasons == ["Column a is required"]
 
         def test_that_it_works_with_valid_values(self):
-            c = sc.Column(int, "a", valid_values=[1, 2, 3])
+            c = sc.Column("a", int, valid_values=[1, 2, 3])
             assert c.evaluate(1)
             v = c.evaluate(4)
             assert not v
             assert v.invalid_reasons == ["<4> is not a valid value for Column a"]
-            c = sc.Column(str, "a", valid_values=["a", "b", "c"])
+            c = sc.Column("a", str, valid_values=["a", "b", "c"])
             assert c.evaluate("a")
             v = c.evaluate("bar")
             assert not v
             assert v.invalid_reasons == ["<bar> is not a valid value for Column a"]
 
         def test_that_it_works_with_invalid_values(self):
-            c = sc.Column(int, "a", invalid_values=[1, 2, 3])
+            c = sc.Column("a", int, invalid_values=[1, 2, 3])
             assert c.evaluate(4)
             v = c.evaluate(1)
             assert not v
             assert v.invalid_reasons == ["<1> is not a valid value for Column a"]
-            c = sc.Column(str, "a", invalid_values=["a", "b", "c"])
+            c = sc.Column("a", str, invalid_values=["a", "b", "c"])
             assert c.evaluate("d")
             v = c.evaluate("a")
             assert not v
             assert v.invalid_reasons == ["<a> is not a valid value for Column a"]
 
         def test_that_it_works_with_valid_patterns(self):
-            c = sc.Column(str, "a", valid_patterns=[r"^S$", r"^M$", r"^L$", r"^X+L$"])
+            c = sc.Column("a", str, valid_patterns=[r"^S$", r"^M$", r"^L$", r"^X+L$"])
             assert c.evaluate("S")
             v = c.evaluate("Small")
             assert not v
@@ -142,7 +146,7 @@ class TestColumn:
             ]
 
         def test_that_it_works_with_invalid_patterns(self):
-            c = sc.Column(str, "a", invalid_patterns=[r"\d", r"\s"])
+            c = sc.Column("a", str, invalid_patterns=[r"\d", r"\s"])
             assert c.evaluate("latte")
             v = c.evaluate("no3lle")
             assert not v
@@ -157,7 +161,7 @@ class TestColumn:
 
         def test_that_it_works_with_valid_values_and_patterns(self):
             c = sc.Column(
-                str, "a", valid_values=["abc", "def"], valid_patterns=[r"\w+\d"]
+                "a", str, valid_values=["abc", "def"], valid_patterns=[r"\w+\d"]
             )
             assert c.evaluate("abc")
             assert c.evaluate("hamster1")
@@ -174,7 +178,7 @@ class TestColumn:
 
         def test_that_it_works_with_invalid_values_and_patterns(self):
             c = sc.Column(
-                str, "a", invalid_values=["abc", "def"], invalid_patterns=[r"\d$"]
+                "a", str, invalid_values=["abc", "def"], invalid_patterns=[r"\d$"]
             )
             assert c.evaluate("xyz")
             assert c.evaluate("1xyz")
@@ -191,8 +195,8 @@ class TestColumn:
 class TestSchema:
     def test_that_type_hints_cause_no_errors(self):
         s = sc.Schema(
-            a=sc.Column(str),
-            b=sc.Column(int),
+            a=sc.Column("x", str),
+            b=sc.Column("x", int),
         )
 
     def test_that_from_yaml_loads_successfully(self):
@@ -224,9 +228,9 @@ class TestSchema:
     @pytest.fixture
     def sample_schema(self):
         return sc.Schema(
-            a=sc.Column(str),
-            b=sc.Column(int),
-            c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
+            a=sc.Column("a", str),
+            b=sc.Column("b", int),
+            c=sc.Column("c", str, invalid_patterns=[r"^\d", r"green"]),
         )
 
     class TestValidate:
@@ -250,9 +254,9 @@ class TestSchema:
 
         def test_that_it_can_handle_multi_column_validation(self, sample_df):
             s = sc.Schema(
-                a=sc.Column(str, invalid_values=["eggs"]),
-                b=sc.Column(int, invalid_values=[1]),
-                c=sc.Column(str, invalid_patterns=[r"^\d", r"green"]),
+                a=sc.Column("a", str, invalid_values=["eggs"]),
+                b=sc.Column("b", int, invalid_values=[1]),
+                c=sc.Column("c", str, invalid_patterns=[r"^\d", r"green"]),
             )
             expected_bools = pd.Series([False, False, True, False], name="row_valid")
             expected_reasons = pd.Series(
@@ -273,7 +277,7 @@ class TestSchema:
             pd.testing.assert_series_equal(reasons, expected_reasons)
 
         def test_that_it_can_handle_unique_value_constraints(self, sample_df):
-            s = sc.Schema(a=sc.Column(str, unique=True))
+            s = sc.Schema(a=sc.Column("a", str, unique=True))
             df = s.validate(sample_df)
             expected_bools = pd.Series([True, False, False, True], name="row_valid")
             expected_reasons = pd.Series(
@@ -292,7 +296,9 @@ class TestSchema:
         def test_that_it_can_handle_unique_value_constraints_and_valid_values(
             self, sample_df
         ):
-            s = sc.Schema(a=sc.Column(str, unique=True, invalid_values=["bar", "eggs"]))
+            s = sc.Schema(
+                a=sc.Column("a", str, unique=True, invalid_values=["bar", "eggs"])
+            )
             df = s.validate(sample_df)
             expected_bools = pd.Series([True, False, False, False], name="row_valid")
             expected_reasons = pd.Series(
@@ -315,7 +321,7 @@ class TestSchema:
             pd.testing.assert_series_equal(reasons, expected_reasons)
 
         def test_that_it_can_handle_required_columns(self, sample_df):
-            s = sc.Schema(d=sc.Column(float, required=True))
+            s = sc.Schema(d=sc.Column("d", float, required=True))
             df = s.validate(sample_df)
             expected_bools = pd.Series([False, True, True, False], name="row_valid")
             expected_reasons = pd.Series(

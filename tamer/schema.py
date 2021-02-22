@@ -58,8 +58,8 @@ class Valid:
 class Column:
     def __init__(
         self,
+        label: str,
         data_type: Type,
-        label: str = None,
         required: bool = False,
         unique: bool = False,
         valid_values: List[Any] = None,
@@ -136,8 +136,6 @@ class Column:
 class Schema:
     def __init__(self, **columns: Column) -> None:
         self._columns = columns
-        for label, c in self._columns.items():
-            c.label = label
 
     @property
     def columns(self) -> Dict[str, Column]:
@@ -150,7 +148,7 @@ class Schema:
     def from_yaml(cls, p: Path) -> Schema:
         with open(p, "r") as r:
             raw = yaml.load(r, Loader=yaml.Loader)
-        return Schema(**{label: Column(**details) for label, details in raw.items()})
+        return cls(**{label: Column(label, **details) for label, details in raw.items()})
 
     def __getitem__(self, item: str) -> Column:
         return self._columns[item]
