@@ -3,6 +3,7 @@ import pandas as pd
 from numpy import nan
 
 from tamer import guide as gd
+from tamer.numerics.zero_numeric import ZeroNumeric
 
 
 class TestRule:
@@ -93,3 +94,88 @@ class TestRule:
             expected = pd.Series([nan, "light brown", "dark blue", "cyan blue", nan])
             s = r.get_redistribution_values(s)
             pd.testing.assert_series_equal(s, expected)
+
+
+class TestGuide:
+    class TestResolveRules:
+        def test_that_it_works_for_type_conversion(self, customers):
+            df = pd.DataFrame(**customers())
+            g = gd.Guide(
+                id=[gd.Rule("id", cast=int)],
+                foreign_key=[gd.Rule("foreign_key", ZeroNumeric)],
+            )
+            df = g.resolve_rules(df)
+            pd.testing.assert_frame_equal(df, pd.DataFrame(**customers(int)))
+            assert list(df.dtypes) == ["int64", "O", "O", "O"]
+
+        @pytest.fixture
+        def redis_df(self):
+            return pd.DataFrame(
+                [
+                    dict(a="red", b=nan),
+                    dict(a="L", b="blue"),
+                    dict(a="S", b=nan),
+                    dict(a="yellow", b=1),
+                    dict(a=123, b="x"),
+                ]
+            )
+
+        def test_that_it_works_for_fillna_value_redistribution(self, redis_df):
+            expected = pd.DataFrame(
+                [
+                    dict(a=nan, b="red"),
+                    dict(a="L", b="blue"),
+                    dict(a="S", b=nan),
+                    dict(a=nan, b=1),
+                    dict(a=123, b="x"),
+                ]
+            )
+            g = gd.Guide(a=[gd.Rule("a", target=["red", "yellow"], redistribute="b")])
+            df = g.resolve_rules(redis_df)
+            pd.testing.assert_frame_equal(df, expected)
+
+        def test_that_it_works_for_overwrite_value_redistribution(self, redis_df):
+            expected = pd.DataFrame(
+                [
+                    dict(a=nan, b="red"),
+                    dict(a="L", b="blue"),
+                    dict(a="S", b=nan),
+                    dict(a=nan, b="yellow"),
+                    dict(a=nan, b=123),
+                ]
+            )
+            g = gd.Guide(
+                a=[
+                    gd.Rule(
+                        "a",
+                        target=["red", "yellow", 123],
+                        redistribute="b",
+                        redistribute_mode="overwrite",
+                    )
+                ]
+            )
+            df = g.resolve_rules(redis_df)
+            pd.testing.assert_frame_equal(df, expected)
+
+        def test_that_it_works_for_append_value_redistribution(self, redis_df):
+            expected = pd.DataFrame(
+                [
+                    dict(a=nan, b="red"),
+                    dict(a="L", b="blue"),
+                    dict(a="S", b=nan),
+                    dict(a=nan, b="1 yellow"),
+                    dict(a=nan, b="x 123"),
+                ]
+            )
+            g = gd.Guide(
+                a=[
+                    gd.Rule(
+                        "a",
+                        target=["red", "yellow", 123],
+                        redistribute="b",
+                        redistribute_mode="append",
+                    )
+                ]
+            )
+            df = g.resolve_rules(redis_df)
+            pd.testing.assert_frame_equal(df, expected)

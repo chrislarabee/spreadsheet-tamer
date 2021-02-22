@@ -36,8 +36,12 @@ class Rule:
             self._validate_target_into_patterns(self._target, self._into)
 
     @property
-    def is_redistribute_rule(self) -> bool:
-        return True if self._redistribute else False
+    def redistribute(self) -> Optional[str]:
+        return self._redistribute
+
+    @property
+    def redistribute_mode(self) -> str:
+        return self._redis_mode
 
     def apply(self, s: pd.Series) -> pd.Series:
         result = pd.Series(s.copy())
@@ -127,15 +131,18 @@ class Guide:
             result = pd.Series(df[label].copy())
             for rule in rules:
                 result = rule.apply(result)
-                if rule.is_redistribute_rule:
+                if rule.redistribute:
                     redis_vals = rule.get_redistribution_values(result)
+                    self._redistribute(
+                        redis_vals, df, rule.redistribute, label, rule.redistribute_mode
+                    )
+                else:
+                    df[label] = result
+        return df
 
     @staticmethod
     def _redistribute(
-        s: pd.Series,
-        df: pd.DataFrame,
-        label: str,
-        mode: Literal["overwrite", "append", "fillna"],
+        s: pd.Series, df: pd.DataFrame, label: str, from_label: str, mode: str
     ) -> pd.DataFrame:
         if mode == "overwrite":
             df[label] = s.fillna(df[label])
@@ -152,7 +159,7 @@ class Guide:
                 f"mode must be one of ['overwrite', 'append', 'fillna']. Passed {mode}."
             )
         # pandas-stubs can't handle the result of series[].
-        df.loc[s[s.notna()].index, label] = np.nan  # type: ignore
+        df.loc[s[s.notna()].index, from_label] = np.nan  # type: ignore
         return df
 
     def to_yaml(self):
