@@ -1,5 +1,16 @@
-from typing import Union, Any, Callable, Iterable, Type, Dict, Tuple, MutableSequence
+from typing import (
+    Union,
+    Any,
+    Callable,
+    Iterable,
+    Type,
+    Dict,
+    Tuple,
+    MutableSequence,
+    List,
+)
 import re
+import string
 
 from .type_handling import isnumericplus
 
@@ -84,6 +95,29 @@ def collect_by_keys(x: Dict[Any, Any], *keys: Any) -> Dict[Any, Any]:
     for k, v in x.items():
         if k in keys:
             result[k] = v
+    return result
+
+
+def gen_alpha_keys(num: int) -> List[str]:
+    """
+    Generates a set of characters from the Latin alphabet a la excel
+    headers.
+
+    Args:
+        num (int): The desired length of the set.
+
+    Returns:
+        List[str]: A list containing as many letters and letter combos as
+            desired. Can be used to generate sets up to 676 in length.
+    """
+    a = string.ascii_uppercase
+    result = list()
+    x = num // 26
+    for i in range(x + 1):
+        root = a[i - 1] if i > 0 else ""
+        keys = [root + a[j] for j in range(26)]
+        for k in keys:
+            result.append(k) if len(result) < num else None
     return result
 
 

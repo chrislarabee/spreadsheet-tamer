@@ -43,18 +43,6 @@ def test_align_args():
     assert u.align_args(_func, dict(x=1, y=2, z=3)) == dict(x=1, y=2, z=3)
 
 
-def test_gen_alpha_keys():
-    assert u.gen_alpha_keys(5) == ["A", "B", "C", "D", "E"]
-    assert u.gen_alpha_keys(26) == list(string.ascii_uppercase)
-    assert u.gen_alpha_keys(27) == [*string.ascii_uppercase, "AA"]
-    assert u.gen_alpha_keys(28) == [*string.ascii_uppercase, "AA", "AB"]
-    assert u.gen_alpha_keys(53) == [
-        *string.ascii_uppercase,
-        *["A" + a for a in string.ascii_uppercase],
-        "BA",
-    ]
-
-
 def test_translate_null():
     assert pd.isna(u.translate_null(None))
     assert pd.isna(u.translate_null(nan))

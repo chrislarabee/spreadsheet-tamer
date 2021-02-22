@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import string
 
 import pandas as pd
 
@@ -42,6 +43,21 @@ class TestCollectByKeys:
         # OrderedDict IS an an instance of dict, so we must directly test against
         # type here.
         assert type(x) == OrderedDict and type(x) != dict
+
+
+class TestGenAlphaKeys:
+    def test_that_it_works_with_equal_less_than_26_lists(self):
+        assert u.gen_alpha_keys(5) == ["A", "B", "C", "D", "E"]
+        assert u.gen_alpha_keys(26) == list(string.ascii_uppercase)
+
+    def test_that_it_works_with_greater_than_26_lists(self):
+        assert u.gen_alpha_keys(27) == [*string.ascii_uppercase, "AA"]
+        assert u.gen_alpha_keys(28) == [*string.ascii_uppercase, "AA", "AB"]
+        assert u.gen_alpha_keys(53) == [
+            *string.ascii_uppercase,
+            *["A" + a for a in string.ascii_uppercase],
+            "BA",
+        ]
 
 
 class TestTuplify:
