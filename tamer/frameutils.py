@@ -34,19 +34,19 @@ class ComplexJoinRule:
                 represents exact or inexact match guidelines.
 
         Args:
-            *on: An arbitrary list of strings, names of columns in the target 
+            *on: An arbitrary list of strings, names of columns in the target
                 DataFrame.
             conditions (Dict[str, Any], optional): A dictionary of conditions
-                which rows in the target DataFrame must meet in order to qualify 
-                for this ComplexJoinRule's instructions. Keys are column names 
-                and values are the value(s) in that column that qualify. Defaults 
+                which rows in the target DataFrame must meet in order to qualify
+                for this ComplexJoinRule's instructions. Keys are column names
+                and values are the value(s) in that column that qualify. Defaults
                 to None.
             thresholds (Union[float, Tuple[float, ...]], optional): Used only if
-                inexact is True, each threshold will be used with the on at the 
+                inexact is True, each threshold will be used with the on at the
                 same index for fuzzy matching. Defaults to None.
-            block (Union[str, Tuple[str, ...]], optional): Column names in the 
+            block (Union[str, Tuple[str, ...]], optional): Column names in the
                 target DataFrame to require exact matches on. Defaults to None.
-            inexact (bool, optional): Set to True if this ComplexJoinRule 
+            inexact (bool, optional): Set to True if this ComplexJoinRule
                 represents inexact match guidelines. Defaults to False.
 
         Raises:
@@ -76,12 +76,12 @@ class ComplexJoinRule:
 
     def output(self, *attrs: str) -> Tuple[Any, ...]:
         """
-        Convenience method for quickly collecting a tuple of attributes from the 
+        Convenience method for quickly collecting a tuple of attributes from the
         ComplexJoinRule.
 
         Args:
-            *attrs: An arbitrary number of strings, which must be attributes 
-                in the ComplexJoinRule. If no attrs are passed, output will just 
+            *attrs: An arbitrary number of strings, which must be attributes
+                in the ComplexJoinRule. If no attrs are passed, output will just
                 return on and conditions attributes.
 
         Returns:
@@ -109,6 +109,38 @@ class ComplexJoinRule:
 class ComplexJoinDaemon:
     def __init__(self) -> None:
         pass
+
+    @staticmethod
+    def _prep_suffixes(
+        frame_ct: int,
+        suffixes: Union[str, Tuple[str, ...]] = None 
+    ) -> Tuple[str, ...]:
+        """
+        Ensures the passed suffixes are valid for use.
+
+        Args:
+            frame_ct (int): The number of other frames that ComplexJoinDaemon
+                will process.
+            suffixes (Union[str, Tuple[str, ...]], optional): The suffixes to be 
+                used. Defaults to None.
+
+        Raises:
+            ValueError: If passed a tuple of suffixes that has a length that 
+                doesn't match frame_ct.
+
+        Returns:
+            Tuple[str, ...]: A tuple of validated suffixes.
+        """
+        if suffixes is None:
+            suffixes = tuple(["_" + a for a in iterutils.gen_alpha_keys(frame_ct)])
+        else:
+            suffixes = iterutils.tuplify(suffixes)
+        if len(suffixes) != frame_ct:
+            raise ValueError(
+                f"Length of suffixes must be equal to the number of other "
+                f"frames. Suffix len={len(suffixes)}, suffixes={suffixes}"
+            )
+        return suffixes
 
 
 def accrete(
@@ -153,7 +185,7 @@ def multiapply(
     df: pd.DataFrame,
     *columns: str,
     func: Callable[[Any], Any] = None,
-    **column_func_pairs: Callable[[Any], Any]
+    **column_func_pairs: Callable[[Any], Any],
 ) -> pd.DataFrame:
     """
     Convenience function for applying a variety of single argument functions to

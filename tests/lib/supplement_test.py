@@ -201,11 +201,3 @@ def test_prep_ons():
     assert su.prep_ons(("a", "b")) == (("a", "b"),)
 
 
-def test_prep_suffixes():
-    assert su.prep_suffixes(None, 2) == ("_A", "_B")
-    assert su.prep_suffixes("_x", 1) == ("_x",)
-    assert su.prep_suffixes(("_x", "_y"), 2) == ("_x", "_y")
-
-    with pytest.raises(ValueError, match="Suffix len=2, suffixes="):
-        su.prep_suffixes(("_x", "_y"), 3)
-

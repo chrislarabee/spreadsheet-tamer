@@ -18,6 +18,20 @@ class TestComplexJoinRule:
         assert r.output("on") == ("a", "b", "c")
 
 
+class TestComplexJoinDaemon:
+    class TestPrepSuffixes:
+        def test_that_it_works_with_no_suffixes_supplied(self):
+            assert frameutils.ComplexJoinDaemon._prep_suffixes(2) == ("_A", "_B")
+
+        def test_that_it_works_with_suffixes_supplied(self):
+            assert frameutils.ComplexJoinDaemon._prep_suffixes(2, ("_x", "_y")) == ("_x", "_y")
+            assert frameutils.ComplexJoinDaemon._prep_suffixes(1, "_x") == ("_x",)
+
+        def test_that_it_raises_expected_error_with_improper_suffixes_length(self):
+            with pytest.raises(ValueError, match="Suffix len=2, suffixes="):
+                frameutils.ComplexJoinDaemon._prep_suffixes(3, ("_x", "_y"))
+
+
 class TestAccrete:
     def test_that_it_works_with_a_single_group_by(self):
         df = pd.DataFrame(
