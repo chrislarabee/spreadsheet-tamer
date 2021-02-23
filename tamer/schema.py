@@ -148,7 +148,9 @@ class Schema:
     def from_yaml(cls, p: Path) -> Schema:
         with open(p, "r") as r:
             raw = yaml.load(r, Loader=yaml.Loader)
-        return cls(**{label: Column(label, **details) for label, details in raw.items()})
+        return cls(
+            **{label: Column(label, **details) for label, details in raw.items()}
+        )
 
     def __getitem__(self, item: str) -> Column:
         return self._columns[item]

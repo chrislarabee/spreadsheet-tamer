@@ -171,4 +171,3 @@ class Guide:
         with open(p, "r") as r:
             raw = yaml.load(r, Loader=yaml.Loader)
         return cls(**{label: Rule(label, **details) for label, details in raw.items()})
-
