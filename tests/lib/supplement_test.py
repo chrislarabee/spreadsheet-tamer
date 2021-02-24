@@ -192,12 +192,3 @@ def test_build_plan():
     plan = su.build_plan((({"c": "x"}, "a"),))
     assert plan[0].output() == (("a",), {"c": ("x",)})
     assert len(plan) == 1
-
-
-def test_prep_ons():
-    assert su.prep_ons("test") == ("test",)
-    assert su.prep_ons((("a",), ("b", "c"))) == (("a",), ("b", "c"))
-    assert su.prep_ons(["a", "b", ("c", "d")]) == ("a", "b", ("c", "d"))
-    assert su.prep_ons(("a", "b")) == (("a", "b"),)
-
-

@@ -19,6 +19,11 @@ class TestComplexJoinRule:
 
 
 class TestComplexJoinDaemon:
+    class TestPrepOns:
+        def test_that_it_wraps_tuples_and_strings_in_tuples(self):
+            assert frameutils.ComplexJoinDaemon._prep_ons(("a", "b")) == (("a", "b"),)
+            assert frameutils.ComplexJoinDaemon._prep_ons("a") == ("a",)
+
     class TestPrepSuffixes:
         def test_that_it_works_with_no_suffixes_supplied(self):
             assert frameutils.ComplexJoinDaemon._prep_suffixes(2) == ("_A", "_B")

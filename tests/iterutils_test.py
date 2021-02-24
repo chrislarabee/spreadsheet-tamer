@@ -72,6 +72,7 @@ class TestTuplify:
         assert u.tuplify([1, 2, 3]) == (1, 2, 3)
         assert u.tuplify({1, 2, 3}) == (1, 2, 3)
         assert u.tuplify({"a": 1, "b": 2}) == (("a", 1), ("b", 2))
+        assert u.tuplify([("a", "b"), ("c", "d")]) == (("a", "b"), ("c", "d"))
 
     def test_that_it_works_on_single_values(self):
         assert u.tuplify(1) == (1,)

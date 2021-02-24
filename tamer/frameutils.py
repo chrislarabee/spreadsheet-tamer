@@ -1,4 +1,4 @@
-from typing import Callable, Any, Union, Tuple, List, Dict
+from typing import Callable, Any, Sequence, Union, Tuple, List, Dict
 import pandas as pd
 from numpy import nan
 
@@ -109,6 +109,25 @@ class ComplexJoinRule:
 class ComplexJoinDaemon:
     def __init__(self) -> None:
         pass
+
+    @staticmethod
+    def _prep_ons(ons: Union[str, Tuple[str, ...]]) -> Union[Tuple[Tuple[str, ...]], Tuple[str, ...]]:
+        """
+        Ensures the passed ons are valid for use in build_plan.
+
+        Args:
+            ons (Union[str, Tuple[str, ...]]): ons to prep.
+
+        Returns:
+            Union[Tuple[Tuple[str, ...]], Tuple[str, ...]]: Prepped ons.
+        """
+        if isinstance(ons, tuple):
+            result = (ons,)
+        elif isinstance(ons, str):
+            result = tuple(list(ons))
+        else:
+            result = ons
+        return result
 
     @staticmethod
     def _prep_suffixes(
