@@ -173,22 +173,3 @@ def test_slice_dframe(stores):
     x = su.slice_dframe(df, {"budget": (25000,)})
     assert x[0].to_dict("records") == expected
     assert not x[1]
-
-
-def test_build_plan():
-    plan = su.build_plan(("a", "b", "c"))
-    assert plan[0].output() == (("a", "b", "c"), {None: (None,)})
-
-    # Check that condition/on pairs can be in any order:
-    plan = su.build_plan(("a", "b", ("a", {"c": "x"})))
-
-    assert plan[0].output() == (("a",), {"c": ("x",)})
-    assert plan[1].output() == (("a", "b"), {None: (None,)})
-
-    plan = su.build_plan(("a", "b", ({"c": "x"}, "a")))
-    assert plan[0].output() == (("a",), {"c": ("x",)})
-    assert plan[1].output() == (("a", "b"), {None: (None,)})
-
-    plan = su.build_plan((({"c": "x"}, "a"),))
-    assert plan[0].output() == (("a",), {"c": ("x",)})
-    assert len(plan) == 1

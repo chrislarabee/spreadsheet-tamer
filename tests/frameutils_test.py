@@ -19,6 +19,28 @@ class TestComplexJoinRule:
 
 
 class TestComplexJoinDaemon:
+    class TestBuildPlan:
+        def test_that_it_works_with_simple_ons(self):
+            plan = frameutils.ComplexJoinDaemon._build_plan(("a", "b", "c"))
+            assert plan[0].output() == (("a", "b", "c"), {None: (None,)})
+
+        def test_that_condition_on_pairs_can_be_in_any_order(self):
+            expected_plan_0 = (("a",), {"c": ("x",)})
+            expected_plan_1 = (("a", "b"), {None: (None,)})
+            plan = frameutils.ComplexJoinDaemon._build_plan(
+                ("a", "b", ("a", {"c": "x"}))
+            )
+            assert plan[0].output() == expected_plan_0
+            assert plan[1].output() == expected_plan_1 
+            plan = frameutils.ComplexJoinDaemon._build_plan(
+                ("a", "b", ({"c": "x"}, "a"))
+            )
+            assert plan[0].output() == expected_plan_0
+            assert plan[1].output() == expected_plan_1 
+            plan = frameutils.ComplexJoinDaemon._build_plan((({"c": "x"}, "a"),))
+            assert plan[0].output() == expected_plan_0
+            assert len(plan) == 1
+
     class TestPrepOns:
         def test_that_it_wraps_tuples_and_strings_in_tuples(self):
             assert frameutils.ComplexJoinDaemon._prep_ons(("a", "b")) == (("a", "b"),)
@@ -29,7 +51,10 @@ class TestComplexJoinDaemon:
             assert frameutils.ComplexJoinDaemon._prep_suffixes(2) == ("_A", "_B")
 
         def test_that_it_works_with_suffixes_supplied(self):
-            assert frameutils.ComplexJoinDaemon._prep_suffixes(2, ("_x", "_y")) == ("_x", "_y")
+            assert frameutils.ComplexJoinDaemon._prep_suffixes(2, ("_x", "_y")) == (
+                "_x",
+                "_y",
+            )
             assert frameutils.ComplexJoinDaemon._prep_suffixes(1, "_x") == ("_x",)
 
         def test_that_it_raises_expected_error_with_improper_suffixes_length(self):

@@ -111,7 +111,50 @@ class ComplexJoinDaemon:
         pass
 
     @staticmethod
-    def _prep_ons(ons: Union[str, Tuple[str, ...]]) -> Union[Tuple[Tuple[str, ...]], Tuple[str, ...]]:
+    def _build_plan(on: tuple) -> tuple:
+        """
+        Takes a tuple of mixed simple and complex on values and ensures
+        they are standardized in the ways that chunk_dframes expects.
+
+        Args:
+            on: A tuple containing simple strings, tuples of
+                dictionary and string/tuple pairs, or SupplementGuide
+                objects.
+
+        Returns: A tuple of SupplementGuide objects, one for each complex on
+            and a single SupplementGuide for the simple ons at the end.
+
+        """
+        simple_ons = list()
+        complex_ons = list()
+        for o in on:
+            if isinstance(o, ComplexJoinRule):
+                complex_ons.append(o)
+            elif isinstance(o, str):
+                simple_ons.append(o)
+            elif isinstance(o, tuple):
+                pair = [None, None]
+                for oi in o:
+                    if isinstance(oi, dict):
+                        pair[1] = oi  # type: ignore
+                    elif isinstance(oi, (str, tuple)):
+                        pair[0] = iterutils.tuplify(oi)  # type: ignore
+                    else:
+                        raise ValueError(
+                            "tuple ons must have a dict as one of their "
+                            "arguments and a str/tuple as the other Invalid "
+                            f"tuple={o}"
+                        )
+                sg = ComplexJoinRule(*pair[0], conditions=pair[1])
+                complex_ons.append(sg)
+        if len(simple_ons) > 0:
+            complex_ons.append(ComplexJoinRule(*simple_ons))
+        return tuple(complex_ons)
+
+    @staticmethod
+    def _prep_ons(
+        ons: Union[str, Tuple[str, ...]]
+    ) -> Union[Tuple[Tuple[str, ...]], Tuple[str, ...]]:
         """
         Ensures the passed ons are valid for use in build_plan.
 
@@ -131,8 +174,7 @@ class ComplexJoinDaemon:
 
     @staticmethod
     def _prep_suffixes(
-        frame_ct: int,
-        suffixes: Union[str, Tuple[str, ...]] = None 
+        frame_ct: int, suffixes: Union[str, Tuple[str, ...]] = None
     ) -> Tuple[str, ...]:
         """
         Ensures the passed suffixes are valid for use.
@@ -140,11 +182,11 @@ class ComplexJoinDaemon:
         Args:
             frame_ct (int): The number of other frames that ComplexJoinDaemon
                 will process.
-            suffixes (Union[str, Tuple[str, ...]], optional): The suffixes to be 
+            suffixes (Union[str, Tuple[str, ...]], optional): The suffixes to be
                 used. Defaults to None.
 
         Raises:
-            ValueError: If passed a tuple of suffixes that has a length that 
+            ValueError: If passed a tuple of suffixes that has a length that
                 doesn't match frame_ct.
 
         Returns:
