@@ -19,6 +19,63 @@ class TestComplexJoinRule:
 
 
 class TestComplexJoinDaemon:
+    class TestSliceDataFrame:
+        def test_that_it_works_with_a_single_condition(self, stores):
+            df = pd.DataFrame(**stores)
+            expected = pd.DataFrame(
+                [
+                    ["W Valley", "Northern", 90000, 4500],
+                    ["Precioso", "Southern", 110000, 4500],
+                    ["Kalliope", "Southern", 90000, 4500],
+                ],
+                columns=["location", "region", "budget", "inventory"],
+                index=[1, 2, 3],
+            )
+            x = frameutils.ComplexJoinDaemon._slice_dataframe(
+                df, {"inventory": (4500,)}
+            )
+            assert df is not x[0]
+            assert x[1]
+            pd.testing.assert_frame_equal(x[0], expected)
+
+        def test_that_it_works_with_multiple_conditions(self, stores):
+            df = pd.DataFrame(**stores)
+            expected = pd.DataFrame(
+                [
+                    ["W Valley", "Northern", 90000, 4500],
+                    ["Kalliope", "Southern", 90000, 4500],
+                ],
+                columns=["location", "region", "budget", "inventory"],
+                index=[1, 3],
+            )
+            x = frameutils.ComplexJoinDaemon._slice_dataframe(
+                df, {"inventory": (4500,), "budget": (90000,)}
+            )
+            assert df is not x[0]
+            assert x[1]
+            pd.testing.assert_frame_equal(x[0], expected)
+
+        def test_that_it_works_with_no_conditions(self, stores):
+            df = pd.DataFrame(**stores)
+            expected = pd.DataFrame(**stores)
+            x = frameutils.ComplexJoinDaemon._slice_dataframe(df, {None: (None,)})
+            assert df is not x[0]
+            assert x[1]
+            pd.testing.assert_frame_equal(x[0], expected)
+
+        def test_that_it_works_with_unmet_conditions(self, stores):
+            df = pd.DataFrame(**stores)
+            expected = pd.DataFrame(
+                [],
+                columns=["location", "region", "budget", "inventory"],
+            )
+            x = frameutils.ComplexJoinDaemon._slice_dataframe(df, {"budget": (25000,)})
+            assert df is not x[0]
+            assert not x[1]
+            pd.testing.assert_frame_equal(
+                x[0], expected, check_index_type=False, check_dtype=False
+            )
+
     class TestBuildPlan:
         def test_that_it_works_with_simple_ons(self):
             plan = frameutils.ComplexJoinDaemon._build_plan(("a", "b", "c"))
@@ -31,12 +88,12 @@ class TestComplexJoinDaemon:
                 ("a", "b", ("a", {"c": "x"}))
             )
             assert plan[0].output() == expected_plan_0
-            assert plan[1].output() == expected_plan_1 
+            assert plan[1].output() == expected_plan_1
             plan = frameutils.ComplexJoinDaemon._build_plan(
                 ("a", "b", ({"c": "x"}, "a"))
             )
             assert plan[0].output() == expected_plan_0
-            assert plan[1].output() == expected_plan_1 
+            assert plan[1].output() == expected_plan_1
             plan = frameutils.ComplexJoinDaemon._build_plan((({"c": "x"}, "a"),))
             assert plan[0].output() == expected_plan_0
             assert len(plan) == 1

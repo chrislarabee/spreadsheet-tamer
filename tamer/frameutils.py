@@ -111,6 +111,19 @@ class ComplexJoinDaemon:
         pass
 
     @staticmethod
+    def _slice_dataframe(df: pd.DataFrame, conditions) -> Tuple[pd.DataFrame, bool]:
+        df = pd.DataFrame(df.copy())
+        row_ct = df.shape[0]
+        no_conditions = True
+        for k, v in conditions.items():
+            if k is not None:
+                no_conditions = False
+                df = pd.DataFrame(df[df[k].isin(v)])
+        new_ct = df.shape[0]
+        result = True if (row_ct >= new_ct != 0 or no_conditions) else False
+        return df, result
+
+    @staticmethod
     def _build_plan(on: tuple) -> tuple:
         """
         Takes a tuple of mixed simple and complex on values and ensures
