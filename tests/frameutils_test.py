@@ -19,6 +19,55 @@ class TestComplexJoinRule:
 
 
 class TestComplexJoinDaemon:
+    class TestChunkDataFrames:
+        def test_that_it_works_with_a_single_dataframe(self, stores):
+            df = pd.DataFrame(**stores)
+            plan = (
+                frameutils.ComplexJoinRule("location", conditions=dict(budget=90000)),
+                frameutils.ComplexJoinRule("budget", conditions=dict(inventory=4500)),
+            )
+            c, p_df = frameutils.ComplexJoinDaemon._chunk_dataframes(plan, df)
+            assert c[0][0].values.tolist() == [
+                ["W Valley", "Northern", 90000, 4500],
+                ["Kalliope", "Southern", 90000, 4500],
+            ]
+            assert c[1][0].values.tolist() == [
+                ["Precioso", "Southern", 110000, 4500],
+            ]
+            assert p_df.values.tolist() == [
+                ["Bayside", "Northern", 100000, 5000],
+            ]
+
+        def test_that_it_works_with_multiple_dataframes(self, sales, regions):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**regions)
+            plan = (
+                frameutils.ComplexJoinRule(
+                    "region", conditions=dict(region=("Northern",))
+                ),
+            )
+            c, p_df = frameutils.ComplexJoinDaemon._chunk_dataframes(plan, df1, df2)
+            expected = pd.DataFrame(**sales).iloc[[0, 1]]
+            pd.testing.assert_frame_equal(c[0][0], expected)
+            assert c[0][1].to_dict("records") == [
+                dict(region="Northern", stores=50, employees=500)
+            ]
+            expected = pd.DataFrame(**sales).iloc[[2, 3]]
+            pd.testing.assert_frame_equal(p_df, expected)
+
+        def test_that_it_works_with_multiple_dataframes_and_no_conditions(
+            self, sales, regions
+        ):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**regions)
+            plan = (frameutils.ComplexJoinRule("region"),)
+            c, p_df = frameutils.ComplexJoinDaemon._chunk_dataframes(plan, df1, df2)
+            expected = pd.DataFrame(**sales)
+            pd.testing.assert_frame_equal(c[0][0], expected)
+            expected = pd.DataFrame(**regions)
+            pd.testing.assert_frame_equal(c[0][1], expected)
+            assert p_df.to_dict("records") == []
+
     class TestSliceDataFrame:
         def test_that_it_works_with_a_single_condition(self, stores):
             df = pd.DataFrame(**stores)

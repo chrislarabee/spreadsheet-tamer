@@ -1,37 +1,23 @@
-from typing import Callable, Any, Sequence, Union, Tuple, List, Dict
+from typing import Callable, Any, Optional, Union, Tuple, List, Dict, overload
+from collections.abc import MutableSequence
+
 import pandas as pd
 from numpy import nan
 
 from . import iterutils
 
 
-class ComplexJoinRule:
+class ComplexJoinRule(MutableSequence):
     def __init__(
         self,
         *on: str,
-        conditions: Dict[str, Any] = None,
+        conditions: dict = None,
         thresholds: Union[float, Tuple[float, ...]] = None,
         block: Union[str, Tuple[str, ...]] = None,
         inexact: bool = False,
     ):
         """
-        Args:
-            conditions: A dictionary of conditions which rows in the
-                target DataFrame must meet in order to qualify for this
-                Supplement guide's instructions. Keys are column names
-                and values are the value(s) in that column that qualify.
-            thresholds: A float or tuple of floats of the same length
-                as on. Used only if inexact is True, each threshold
-                will be used with the on at the same index and matches
-                in that column must equal or exceed the threshold to
-                qualify as a match.
-            block: A string or tuple of strings, column names in the
-                target DataFrame. Use this if you're lucky enough to
-                have data that you can match partially exactly on and
-                just need inexact matches within that set of exact
-                matches.
-            inexact: A boolean, indicates whether this SupplementGuide
-                represents exact or inexact match guidelines.
+        A rule
 
         Args:
             *on: An arbitrary list of strings, names of columns in the target
@@ -54,10 +40,11 @@ class ComplexJoinRule:
                 passed does not match the # of ons patched.
         """
         self.on = on
-        c = {None: None} if conditions is None else conditions
-        for k, v in c.items():
-            c[k] = iterutils.tuplify(v)  # type: ignore
-        self.conditions = c
+        self._conditions = (
+            {k: iterutils.tuplify(v) for k, v in conditions.items()}
+            if conditions
+            else {None: (None,)}
+        )
         self.thresholds = iterutils.tuplify(thresholds) if thresholds else None
         self.block = iterutils.tuplify(block)
         self.inexact = inexact
@@ -66,10 +53,14 @@ class ComplexJoinRule:
                 self.thresholds = tuple([0.9 for _ in range(len(self.on))])
             elif len(self.thresholds) != len(self.on):
                 raise ValueError(
-                    f"If provided, thresholds length must match on "
-                    f"length: thresholds={self.thresholds}, on={self.on}"
+                    f"If provided, thresholds length must match on length: "
+                    f"thresholds={self.thresholds}, on={self.on}"
                 )
         self.chunks = []
+
+    @property
+    def conditions(self) -> dict:
+        return self._conditions
 
     def insert(self, index: int, x):
         self.chunks.insert(index, x)
@@ -110,13 +101,44 @@ class ComplexJoinDaemon:
     def __init__(self) -> None:
         pass
 
+    @classmethod
+    def _chunk_dataframes(
+        cls, plan: Tuple[ComplexJoinRule, ...], *frames: pd.DataFrame
+    ) -> Tuple[Tuple[ComplexJoinRule, ...], pd.DataFrame]:
+        df1 = frames[0]
+        for df in frames:
+            for p in plan:
+                match, result = cls._slice_dataframe(df, p.conditions)
+                p.append(match)
+                if result:
+                    df.drop(match.index, inplace=True)
+        return plan, df1
+
     @staticmethod
-    def _slice_dataframe(df: pd.DataFrame, conditions) -> Tuple[pd.DataFrame, bool]:
+    def _slice_dataframe(
+        df: pd.DataFrame, conditions: Dict[Optional[str], Tuple[Optional[Any], ...]]
+    ) -> Tuple[pd.DataFrame, bool]:
+        """
+        Takes a dictionary of conditions in the form of:
+            {'column_label': tuple(of, values, to, match)
+        and returns a dataframe that contains only the rows that match all the
+        passed conditions.
+
+
+        Args:
+            df (pd.DataFrame): A DataFrame.
+            conditions (Dict[str, Tuple[Any, ...]]): Paired column_labels and
+                tuples of values to match against.
+
+        Returns:
+            Tuple[pd.DataFrame, bool]: A DataFrame containing only the matching
+                rows and a boolean indicating whether matching rows were found.
+        """
         df = pd.DataFrame(df.copy())
         row_ct = df.shape[0]
         no_conditions = True
         for k, v in conditions.items():
-            if k is not None:
+            if k is not None and v is not None:
                 no_conditions = False
                 df = pd.DataFrame(df[df[k].isin(v)])
         new_ct = df.shape[0]
@@ -124,7 +146,7 @@ class ComplexJoinDaemon:
         return df, result
 
     @staticmethod
-    def _build_plan(on: tuple) -> tuple:
+    def _build_plan(on: Tuple[Any, ...]) -> Tuple[ComplexJoinRule, ...]:
         """
         Takes a tuple of mixed simple and complex on values and ensures
         they are standardized in the ways that chunk_dframes expects.
