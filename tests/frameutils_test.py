@@ -19,6 +19,93 @@ class TestComplexJoinRule:
 
 
 class TestComplexJoinDaemon:
+    class TestDoExact:
+        def test_that_it_works_as_expected(self, sales, regions):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**regions)
+            result = frameutils.ComplexJoinDaemon.do_exact(df1, df2, ("region",))
+            assert list(result.stores) == [50, 50, 42, 42]
+            assert list(result.employees) == [500, 500, 450, 450]
+
+    class TestDoInexact:
+        def test_that_it_can_do_exact_as_sanity_check(self, sales, regions):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**regions)
+            result = frameutils.ComplexJoinDaemon.do_inexact(
+                df1, df2, ("region",), thresholds=(1,)
+            )
+            assert list(result.stores) == [50, 50, 42, 42]
+            assert list(result.employees) == [500, 500, 450, 450]
+
+        def test_that_it_works_with_a_basic_inexact_match(self, sales, stores):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**stores)
+            result = frameutils.ComplexJoinDaemon.do_inexact(
+                df1, df2, ("location",), thresholds=(0.7,)
+            )
+            assert list(result.budget) == [100000, 90000, 110000, 90000]
+            assert list(result.inventory) == [5000, 4500, 4500, 4500]
+            assert (
+                set(result.columns).difference(
+                    {
+                        "location",
+                        "region",
+                        "region_s",
+                        "sales",
+                        "location_s",
+                        "budget",
+                        "inventory",
+                    }
+                )
+                == set()
+            )
+
+        def test_that_it_works_with_block(self, sales, stores):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**stores)
+            result = frameutils.ComplexJoinDaemon.do_inexact(
+                df1, df2, ("location",), thresholds=(0.7,), block=("region",)
+            )
+            assert list(result.budget) == [100000, 90000, 110000, 90000]
+            assert list(result.inventory) == [5000, 4500, 4500, 4500]
+            assert (
+                set(result.columns).difference(
+                    {
+                        "location",
+                        "region",
+                        "region_s",
+                        "sales",
+                        "location_s",
+                        "budget",
+                        "inventory",
+                    }
+                )
+                == set()
+            )
+
+        def test_that_it_works_with_multiple_ons(self, sales, stores):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**stores)
+            result = frameutils.ComplexJoinDaemon.do_inexact(
+                df1, df2, ("location", "region"), thresholds=(0.7, 1)
+            )
+            assert list(result.budget) == [100000, 90000, 110000, 90000]
+            assert list(result.inventory) == [5000, 4500, 4500, 4500]
+            assert (
+                set(result.columns).difference(
+                    {
+                        "location",
+                        "region",
+                        "region_s",
+                        "sales",
+                        "location_s",
+                        "budget",
+                        "inventory",
+                    }
+                )
+                == set()
+            )
+
     class TestChunkDataFrames:
         def test_that_it_works_with_a_single_dataframe(self, stores):
             df = pd.DataFrame(**stores)

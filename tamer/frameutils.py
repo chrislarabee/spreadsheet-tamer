@@ -1,8 +1,10 @@
-from typing import Callable, Any, Optional, Union, Tuple, List, Dict, overload
+from typing import Callable, Any, Optional, Union, Tuple, List, Dict
 from collections.abc import MutableSequence
+import warnings
 
 import pandas as pd
 from numpy import nan
+import recordlinkage as link
 
 from . import iterutils
 
@@ -100,6 +102,93 @@ class ComplexJoinRule(MutableSequence):
 class ComplexJoinDaemon:
     def __init__(self) -> None:
         pass
+
+    @staticmethod
+    def do_exact(
+        df1: pd.DataFrame, df2: pd.DataFrame, on: Tuple[str, ...], rsuffix: str = "_s"
+    ) -> pd.DataFrame:
+        """
+        Merges two DataFrames with overlapping columns based on exact matches in
+        those columns.
+
+        Args:
+            df1 (pd.DataFrame): A DataFrame.
+            df2 (pd.DataFrame): A DataFrame containing columns shared with df1.
+            on (Tuple[str, ...]): Columns shared by df1 and df2, which will be
+                used to left join rows from df2 onto exact matches in df1
+            rsuffix (str, optional): An optional suffix to use for overlapping
+                columns outside the on columns. Will only be applied to df2
+                columns. Defaults to "_s".
+
+        Returns:
+            pd.DataFrame: A DataFrame containing all the rows in df1, joined
+                with any matched rows from df2.
+        """
+        return df1.merge(df2, "left", on=on, suffixes=("", rsuffix))
+
+    @staticmethod
+    def do_inexact(
+        df1: pd.DataFrame,
+        df2: pd.DataFrame,
+        on: Tuple[str, ...],
+        thresholds: Tuple[float, ...],
+        block: Tuple[str, ...] = None,
+        rsuffix: str = "_s",
+    ) -> pd.DataFrame:
+        """
+        Merges two DataFrames with overlapping columns based on inexact
+        matches in those columns.
+
+        Args:
+            df1: A pandas DataFrame.
+            df2: A pandas DataFrame containing columns shared with df1.
+            on: A tuple of columns shared by df1 and df2, which will be
+                used to left join rows from df2 onto inexact matches in
+                df1.
+            thresholds: A tuple of floats, indicating how close each on
+                comparison must be to qualify the row as a match. Must
+                be the same length as on.
+            block: A tuple of columns shared by df1 and df2, similar to
+                on, which must represent an exact match between the two
+                frames. Useful when you can reduce the possible match
+                space of two datasets by restricting inexact matches to
+                records that at least have an exact match on a different
+                column.
+            rsuffix: An optional suffix to use for overlapping columns
+                outside the on columns. Will only be applied to df2
+                columns.
+
+        Returns: A DataFrame containing all the rows in df1, joined
+            with any matched rows from df2.
+
+        """
+        # The recordlinkage library is currently passing an argument to the
+        # underlying jellyfish library that jellyfish is going to deprecate
+        # eventually. Nothing to do about that so just suppress it:
+        warnings.filterwarnings(
+            "ignore", message="the name 'jaro_winkler'", category=DeprecationWarning
+        )
+        idxr = link.Index()
+        idxr.block(block) if block is not None else idxr.full()
+        candidate_links = idxr.index(df1, df2)
+        compare = link.Compare()
+        # Create copies since contents of the Dataframe need to be changed.
+        frames = (df1.copy(), df2.copy())
+        for i, o in enumerate(on):
+            compare.string(o, o, method="jarowinkler", threshold=thresholds[i])
+            # Any columns containing strings should be lowercase to improve
+            # matching:
+            for f in frames:
+                if f.dtypes[o] == "O":
+                    # Pyright can't tell that DataFrame.copy() returns DataFrame.
+                    f[o] = f[o].astype(str).str.lower()  # type: ignore
+        features = compare.compute(candidate_links, *frames)
+        matches = features[features.sum(axis=1) == len(on)].reset_index()
+        a = matches.join(df1, on="level_0", how="outer", rsuffix="")
+        b = a.join(df2, on="level_1", how="left", rsuffix=rsuffix)
+        drop_cols = ["level_0", "level_1", *[i for i in range(len(on))]]
+        b.drop(columns=drop_cols, inplace=True)
+        return b
 
     @classmethod
     def _chunk_dataframes(
