@@ -95,18 +95,6 @@ class TestGeniusAccessor:
         )
         pd.testing.assert_frame_equal(df, expected)
 
-    def test_standardize(self, needs_cleanse_typos, products):
-        df = pd.DataFrame(**needs_cleanse_typos)
-        expected = pd.DataFrame(**products)
-        df, metadata = df.genius.standardize(
-            cleaning_guides=dict(
-                attr1=dict(cu="copper"), attr2=gd.CleaningGuide((("sm", "s"), "small"))
-            ),
-            type_mapping=dict(upc=str),
-        )
-        pd.testing.assert_series_equal(df["attr1"], expected["attr1"])
-        assert df["upc"].dtype == "O"
-
     def test_align_tms_with_options(self):
         tms = [
             ge.lib.clean.reject_on_conditions,

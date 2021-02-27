@@ -2,10 +2,8 @@ import pandas as pd
 import pytest
 from numpy import nan
 
-import datagenius.lib.explore as ex
-import datagenius.element as e
 
-
+@pytest.mark.skip("Not implemented.")
 def test_count_values(employees):
     # Data type compatibility check:
     df = pd.DataFrame([dict(a=[1, 2, 3], b=2), dict(a=[4, 5, 6], b=3)])
@@ -18,6 +16,7 @@ def test_count_values(employees):
     pd.testing.assert_frame_equal(md_dict["metadata"], expected)
 
 
+@pytest.mark.skip("Not implemented.")
 def test_count_uniques(customers, sales, products):
     # Data type compatibility check:
     df = pd.DataFrame([dict(a=[1, 2, 3], b=2), dict(a=[4, 5, 6], b=3)])
@@ -53,6 +52,7 @@ def test_count_uniques(customers, sales, products):
     pd.testing.assert_frame_equal(md_dict["metadata"], expected)
 
 
+@pytest.mark.skip("Not implemented.")
 def test_count_nulls(products):
     # Data type compatibility check:
     df = pd.DataFrame([dict(a=[1, 2, 3], b=2), dict(a=[4, 5, 6], b=3)])
@@ -80,6 +80,7 @@ def test_count_nulls(products):
     pd.testing.assert_frame_equal(md_dict["metadata"], expected)
 
 
+@pytest.mark.skip("Not implemented.")
 def test_collect_data_types():
     df = pd.DataFrame(
         [
@@ -101,6 +102,7 @@ def test_collect_data_types():
     pd.testing.assert_frame_equal(md_dict["metadata"], expected)
 
 
+@pytest.mark.skip("Not implemented.")
 def test_id_type_violations():
     df = pd.DataFrame([dict(a=1, b=2.4, c="string"), dict(a=2, b="x", c=nan)])
     expected = pd.DataFrame([dict(a=False, b=True, c=False)])
@@ -108,6 +110,7 @@ def test_id_type_violations():
     pd.testing.assert_frame_equal(md_dict["metadata"], expected)
 
 
+@pytest.mark.skip("Not implemented.")
 def test_id_nullable_violations():
     df = pd.DataFrame([dict(a=1, b=nan, c="x"), dict(a=nan, b=2, c="y")])
     expected = pd.DataFrame([dict(a=False, b=True, c=False)])
@@ -115,6 +118,7 @@ def test_id_nullable_violations():
     pd.testing.assert_frame_equal(md_dict["metadata"], expected)
 
 
+@pytest.mark.skip("Not implemented.")
 def test_id_clustering_violations():
     df = pd.DataFrame(
         [
