@@ -10,65 +10,6 @@ from tests import testing_tools
 
 
 class TestGeniusAccessor:
-    def test_explore(self, employees):
-        df = pd.DataFrame(**employees)
-        expected = pd.DataFrame(
-            [
-                ["explore", "count_values", 4, 4, 4, 2],
-                ["explore", "count_uniques", 4, 2, 4, 1],
-                ["explore", "count_nulls", 0, 0, 0, 2],
-                [
-                    "explore",
-                    "collect_data_types",
-                    "int(1.0)",
-                    "str(1.0)",
-                    "str(1.0)",
-                    "float(0.5),nan(0.5)",
-                ],
-            ],
-            columns=[
-                "stage",
-                "transmutation",
-                "employee_id",
-                "department",
-                "name",
-                "wfh_stipend",
-            ],
-        )
-        df, metadata = df.genius.explore()
-        pd.testing.assert_frame_equal(metadata.collected, expected)
-
-    def test_clean(self, sales, needs_cleanse_totals):
-        df = pd.DataFrame(**needs_cleanse_totals)
-        expected = pd.DataFrame(**sales).iloc[1:3].reset_index(drop=True)
-        df, metadata = df.genius.clean(
-            required_cols=["location"],
-            reject_str_content=dict(location="Bayside"),
-            reject_conditions="sales < 300",
-        )
-        pd.testing.assert_frame_equal(df, expected)
-
-        expected_metadata = pd.DataFrame(
-            [
-                ["clean", "reject_incomplete_rows", 0, 0, 2.0],
-                ["clean", "reject_on_conditions", 1.0, 1, 1.0],
-                ["clean", "reject_on_str_content", 1.0, 1.0, 1.0],
-            ],
-            columns=["stage", "transmutation", "location", "region", "sales"],
-        )
-        pd.testing.assert_frame_equal(metadata.collected, expected_metadata)
-
-        expected_rejects = pd.DataFrame(
-            columns=["location", "region", "sales"],
-            data=[
-                [nan, nan, 800],
-                [nan, nan, 1200],
-                ["Kalliope Store", "Southern", 200],
-                ["Bayside Store", "Northern", 500],
-            ],
-        )
-        pd.testing.assert_frame_equal(metadata.rejects, expected_rejects)
-
     def test_reformat(self, products, formatted_products):
         df = pd.DataFrame(**products)
         expected = pd.DataFrame(**formatted_products)
@@ -287,21 +228,3 @@ class TestGeniusAccessor:
         expected = [x1, x2, x3]
 
         assert pd.DataFrame.genius._order_transmutations([x2, x3, x1]) == expected
-
-
-class TestGeniusAccessorOnChunkedFiles:
-    def test_preprocess(self, sales):
-        expected = [
-            pd.DataFrame(
-                data=sales["data"][:2], columns=sales["columns"], index=[0, 1]
-            ),
-            pd.DataFrame(
-                data=sales["data"][2:], columns=sales["columns"], index=[2, 3]
-            ),
-        ]
-        for i, chunk in enumerate(
-            pd.read_csv("tests/samples/csv/sales.csv", chunksize=2)
-        ):
-            pd.testing.assert_frame_equal(chunk, expected[i])
-            chunk, _ = chunk.genius.preprocess()
-            pd.testing.assert_frame_equal(chunk, expected[i])
