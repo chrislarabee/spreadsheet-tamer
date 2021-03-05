@@ -1,9 +1,9 @@
-from typing import Callable, Any, Optional, Union, Tuple, List, Dict
+from typing import Callable, Any, Optional, Union, Tuple, List, Dict, Sequence
 from collections.abc import MutableSequence
 import warnings
 
 import pandas as pd
-from numpy import nan
+from numpy import nan, select
 import recordlinkage as link
 
 from . import iterutils
@@ -16,7 +16,6 @@ class ComplexJoinRule(MutableSequence):
         conditions: dict = None,
         thresholds: Union[float, Tuple[float, ...]] = None,
         block: Union[str, Tuple[str, ...]] = None,
-        inexact: bool = False,
     ):
         """
         A rule
@@ -29,40 +28,46 @@ class ComplexJoinRule(MutableSequence):
                 for this ComplexJoinRule's instructions. Keys are column names
                 and values are the value(s) in that column that qualify. Defaults
                 to None.
-            thresholds (Union[float, Tuple[float, ...]], optional): Used only if
-                inexact is True, each threshold will be used with the on at the
-                same index for fuzzy matching. Defaults to None.
+            thresholds (Union[float, Tuple[float, ...]], optional): Each
+                threshold will be paired with the on value at the corresponding
+                index for inexact value matching. Match values must be equal to
+                or greater than the threshold to count as a match. If you want to
+                use a single threshold for all ons, pass a single float. Defaults
+                to None.
             block (Union[str, Tuple[str, ...]], optional): Column names in the
                 target DataFrame to require exact matches on. Defaults to None.
-            inexact (bool, optional): Set to True if this ComplexJoinRule
-                represents inexact match guidelines. Defaults to False.
 
         Raises:
             ValueError: If threshold values are passed and the # of thresholds
                 passed does not match the # of ons patched.
         """
+        self.chunks = []
         self.on = on
         self._conditions = (
             {k: iterutils.tuplify(v) for k, v in conditions.items()}
             if conditions
             else {None: (None,)}
         )
-        self.thresholds = iterutils.tuplify(thresholds) if thresholds else None
-        self.block = iterutils.tuplify(block)
-        self.inexact = inexact
-        if self.inexact:
-            if self.thresholds is None:
-                self.thresholds = tuple([0.9 for _ in range(len(self.on))])
-            elif len(self.thresholds) != len(self.on):
+        self.block = iterutils.tuplify(block) if block else None
+        if isinstance(thresholds, float):
+            self._thresholds = tuple([thresholds for _ in range(len(self.on))])
+        elif isinstance(thresholds, Sequence):
+            self._thresholds = iterutils.tuplify(thresholds)
+            if len(self._thresholds) != len(self.on):
                 raise ValueError(
                     f"If provided, thresholds length must match on length: "
-                    f"thresholds={self.thresholds}, on={self.on}"
+                    f"thresholds={self._thresholds}, on={self.on}"
                 )
-        self.chunks = []
+        else:
+            self._thresholds = None
 
     @property
     def conditions(self) -> dict:
         return self._conditions
+
+    @property
+    def thresholds(self) -> Optional[Tuple[float, ...]]:
+        return self._thresholds
 
     def insert(self, index: int, x):
         self.chunks.insert(index, x)
@@ -100,8 +105,53 @@ class ComplexJoinRule(MutableSequence):
 
 
 class ComplexJoinDaemon:
-    def __init__(self) -> None:
-        pass
+    def __init__(
+        self,
+        on: Union[str, ComplexJoinRule, Sequence[Union[str, ComplexJoinRule]]] = None,
+        suffixes: Union[str, Sequence[str]] = None,
+        select_cols: Union[str, Sequence[str]] = None,
+    ) -> None:
+        self._on = self._prep_ons(on)
+        self._suffixes = iterutils.tuplify(suffixes) if suffixes else None
+        self._select_cols = iterutils.tuplify(select_cols) if select_cols else None
+        self._plan = self._build_plan(self._on)
+
+    def execute(self, *frames: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        chunks, remainder = self._chunk_dataframes(self._plan, *frames)
+        results = []
+        p_cols = set(frames[0].columns)
+        for cjr in chunks:
+            p_frame = cjr.chunks[0]
+            o_frames = cjr.chunks[1:]
+            for i, other in enumerate(o_frames):
+                rsuffix = self._suffixes[i] if self._suffixes else "_s"
+                if not other.empty:
+                    o_cols = set(other.columns)
+                    other["merged_on"] = ",".join(cjr.on)
+                    other = (
+                        other[
+                            {
+                                *cjr.on,
+                                *o_cols.intersection(set(self._select_cols)),
+                                "merged_on",
+                            }
+                        ]
+                        if self._select_cols
+                        else other
+                    )
+                    if cjr.thresholds:
+                        p_frame = self.do_inexact(
+                            p_frame, other, cjr.on, cjr.thresholds, cjr.block, rsuffix
+                        )
+                    else:
+                        p_frame = self.do_exact(p_frame, other, cjr.on, rsuffix)
+            results.append(p_frame)
+        result_df = pd.concat(results)
+        unmatched = self._ensure_dataframe(result_df[result_df["merged_on"].isna()])
+        unmatched = unmatched[p_cols]  # type: ignore
+        matched = self._ensure_dataframe(result_df[~result_df["merged_on"].isna()])
+        unmatched = pd.concat([unmatched, remainder])
+        return matched, unmatched
 
     @staticmethod
     def do_exact(
@@ -190,6 +240,19 @@ class ComplexJoinDaemon:
         b.drop(columns=drop_cols, inplace=True)
         return b
 
+    @staticmethod
+    def _ensure_dataframe(x: Union[pd.DataFrame, pd.Series]) -> pd.DataFrame:
+        if isinstance(x, pd.Series):
+            if isinstance(x.index, pd.RangeIndex):
+                columns = ["_x"]
+                s = x
+            else:
+                columns = x.index
+                s = [x]
+            return pd.DataFrame(s, columns=columns)
+        else:
+            return x
+
     @classmethod
     def _chunk_dataframes(
         cls, plan: Tuple[ComplexJoinRule, ...], *frames: pd.DataFrame
@@ -235,7 +298,9 @@ class ComplexJoinDaemon:
         return df, result
 
     @staticmethod
-    def _build_plan(on: Tuple[Any, ...]) -> Tuple[ComplexJoinRule, ...]:
+    def _build_plan(
+        on: Tuple[Union[str, ComplexJoinRule, Tuple[str, ...], None], ...]
+    ) -> Tuple[ComplexJoinRule, ...]:
         """
         Takes a tuple of mixed simple and complex on values and ensures
         they are standardized in the ways that chunk_dframes expects.
@@ -256,44 +321,33 @@ class ComplexJoinDaemon:
                 complex_ons.append(o)
             elif isinstance(o, str):
                 simple_ons.append(o)
-            elif isinstance(o, tuple):
-                pair = [None, None]
-                for oi in o:
-                    if isinstance(oi, dict):
-                        pair[1] = oi  # type: ignore
-                    elif isinstance(oi, (str, tuple)):
-                        pair[0] = iterutils.tuplify(oi)  # type: ignore
-                    else:
-                        raise ValueError(
-                            "tuple ons must have a dict as one of their "
-                            "arguments and a str/tuple as the other Invalid "
-                            f"tuple={o}"
-                        )
-                sg = ComplexJoinRule(*pair[0], conditions=pair[1])
-                complex_ons.append(sg)
         if len(simple_ons) > 0:
             complex_ons.append(ComplexJoinRule(*simple_ons))
         return tuple(complex_ons)
 
     @staticmethod
     def _prep_ons(
-        ons: Union[str, Tuple[str, ...]]
-    ) -> Union[Tuple[Tuple[str, ...]], Tuple[str, ...]]:
+        ons: Union[str, ComplexJoinRule, Sequence[Union[str, ComplexJoinRule]]] = None
+    ) -> Tuple[Union[str, ComplexJoinRule, Tuple[str, ...], None], ...]:
         """
         Ensures the passed ons are valid for use in build_plan.
 
         Args:
-            ons (Union[str, Tuple[str, ...]]): ons to prep.
+            ons (Union[str, Sequence[str, ...]], optional): ons to prep. Default
+                is None.
 
         Returns:
-            Union[Tuple[Tuple[str, ...]], Tuple[str, ...]]: Prepped ons.
+            Union[Tuple[Tuple[str, ...]], Tuple[str, ...], Tuple[None]]: Prepped
+                ons.
         """
         if isinstance(ons, tuple):
             result = (ons,)
-        elif isinstance(ons, str):
-            result = tuple(list(ons))
+        elif ons is None:
+            result = (ons,)
+        elif isinstance(ons, (str, ComplexJoinRule)):
+            result = tuple([ons])
         else:
-            result = ons
+            result = iterutils.tuplify(ons)
         return result
 
     @staticmethod
@@ -364,6 +418,16 @@ def accrete(
         )
         df[c] = df[c].replace("", nan)
     return df
+
+
+def complex_join(
+    *frames: pd.DataFrame,
+    on: Union[str, Sequence[str]] = None,
+    select_cols: Union[str, Sequence[str]] = None,
+    suffixes: Union[str, Sequence[str]] = None,
+) -> pd.DataFrame:
+    d = ComplexJoinDaemon(on, suffixes)
+    sel_cols = iterutils.tuplify(select_cols)
 
 
 def multiapply(

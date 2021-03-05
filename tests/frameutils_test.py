@@ -1,3 +1,4 @@
+from pandas.core import frame
 import pytest
 import pandas as pd
 from numpy import nan
@@ -8,8 +9,8 @@ from tamer.decorators import nullable
 
 class TestComplexJoinRule:
     def test_that_its_subscriptable(self):
-        r = frameutils.ComplexJoinRule("a", "b", "c", inexact=True)
-        assert r.thresholds[0] == 0.9
+        r = frameutils.ComplexJoinRule("a", "b", "c", thresholds=0.9)
+        assert r.thresholds == (0.9, 0.9, 0.9)
 
     def test_that_output_works(self):
         r = frameutils.ComplexJoinRule("a", "b", "c", conditions=dict(c="x"))
@@ -19,6 +20,62 @@ class TestComplexJoinRule:
 
 
 class TestComplexJoinDaemon:
+    class TestExecute:
+        def test_that_it_works_with_simple_conditions(self, sales, regions):
+            d = frameutils.ComplexJoinDaemon(
+                on=frameutils.ComplexJoinRule(
+                    "region", conditions=dict(region="Northern")
+                )
+            )
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**regions)
+            matched, unmatched = d.execute(df1, df2)
+            assert list(matched.stores) == [50, 50]
+            assert list(matched.employees) == [500, 500]
+            assert list(unmatched.index) == [2, 3]
+
+        def test_that_select_columns_functionality_works(self, sales, regions):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**regions)
+            d = frameutils.ComplexJoinDaemon(on="region", select_cols="stores")
+            matched, unmatched = d.execute(df1, df2)
+            assert list(matched.stores) == [50, 50, 42, 42]
+            assert list(matched.region) == [
+                "Northern",
+                "Northern",
+                "Southern",
+                "Southern",
+            ]
+            assert (
+                set(matched.columns).difference(
+                    {"region", "stores", "location", "sales", "merged_on"}
+                )
+                == set()
+            )
+            assert unmatched.values.tolist() == []
+
+        def test_that_thresholds_functionality_works(self, sales, stores):
+            df1 = pd.DataFrame(**sales)
+            df2 = pd.DataFrame(**stores)
+            d = frameutils.ComplexJoinDaemon(
+                on=frameutils.ComplexJoinRule("location", thresholds=0.7),
+                select_cols=("budget", "location", "other"),
+            )
+            matched, unmatched = d.execute(df1, df2)
+            assert list(matched.budget) == [100000, 90000, 110000, 90000]
+            assert list(matched.region) == [
+                "Northern",
+                "Northern",
+                "Southern",
+                "Southern",
+            ]
+            assert (
+                set(matched.columns).difference(
+                    {"location", "budget", "region", "sales", "location_s", "merged_on"}
+                )
+                == set()
+            )
+
     class TestDoExact:
         def test_that_it_works_as_expected(self, sales, regions):
             df1 = pd.DataFrame(**sales)
@@ -105,6 +162,26 @@ class TestComplexJoinDaemon:
                 )
                 == set()
             )
+
+    class TestEnsureDataframe:
+        def test_that_it_works_with_a_nameless_series(self):
+            s = pd.Series([1, 2, 3])
+            expected = pd.DataFrame([1, 2, 3], columns=["_x"])
+            result = frameutils.ComplexJoinDaemon._ensure_dataframe(s)
+            pd.testing.assert_frame_equal(result, expected)
+
+        def test_that_it_works_with_a_df_slice(self):
+            df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6], c=[7, 8, 9]))
+            s = df.iloc[1]
+            expected = pd.DataFrame([dict(a=2, b=5, c=8)], index=[1])
+            result = frameutils.ComplexJoinDaemon._ensure_dataframe(s)
+            pd.testing.assert_frame_equal(result, expected)
+
+        def test_that_it_works_with_a_dataframe(self):
+            df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
+            expected = df.copy()
+            result = frameutils.ComplexJoinDaemon._ensure_dataframe(df)
+            pd.testing.assert_frame_equal(result, expected)
 
     class TestChunkDataFrames:
         def test_that_it_works_with_a_single_dataframe(self, stores):
@@ -213,31 +290,22 @@ class TestComplexJoinDaemon:
             )
 
     class TestBuildPlan:
-        def test_that_it_works_with_simple_ons(self):
+        def test_that_it_works_with_simple_str_ons(self):
             plan = frameutils.ComplexJoinDaemon._build_plan(("a", "b", "c"))
             assert plan[0].output() == (("a", "b", "c"), {None: (None,)})
-
-        def test_that_condition_on_pairs_can_be_in_any_order(self):
-            expected_plan_0 = (("a",), {"c": ("x",)})
-            expected_plan_1 = (("a", "b"), {None: (None,)})
-            plan = frameutils.ComplexJoinDaemon._build_plan(
-                ("a", "b", ("a", {"c": "x"}))
-            )
-            assert plan[0].output() == expected_plan_0
-            assert plan[1].output() == expected_plan_1
-            plan = frameutils.ComplexJoinDaemon._build_plan(
-                ("a", "b", ({"c": "x"}, "a"))
-            )
-            assert plan[0].output() == expected_plan_0
-            assert plan[1].output() == expected_plan_1
-            plan = frameutils.ComplexJoinDaemon._build_plan((({"c": "x"}, "a"),))
-            assert plan[0].output() == expected_plan_0
-            assert len(plan) == 1
 
     class TestPrepOns:
         def test_that_it_wraps_tuples_and_strings_in_tuples(self):
             assert frameutils.ComplexJoinDaemon._prep_ons(("a", "b")) == (("a", "b"),)
             assert frameutils.ComplexJoinDaemon._prep_ons("a") == ("a",)
+            assert frameutils.ComplexJoinDaemon._prep_ons(None) == (None,)
+
+        def test_that_it_works_with_complex_join_rules(self):
+            ons = frameutils.ComplexJoinDaemon._prep_ons(
+                frameutils.ComplexJoinRule("a", "b", conditions=dict(a="test"))
+            )
+            assert isinstance(ons, tuple)
+            assert isinstance(ons[0], frameutils.ComplexJoinRule)
 
     class TestPrepSuffixes:
         def test_that_it_works_with_no_suffixes_supplied(self):
